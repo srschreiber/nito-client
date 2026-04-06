@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/oto/v2"
+	"github.com/pion/ice/v4"
 	media "github.com/pion/mediadevices"
 	_ "github.com/pion/mediadevices/pkg/driver/microphone"
 	"github.com/pion/mediadevices/pkg/wave"
@@ -101,7 +102,9 @@ func newPC() (*webrtc.PeerConnection, error) {
 	}, webrtc.RTPCodecTypeAudio); err != nil {
 		return nil, fmt.Errorf("register codec: %w", err)
 	}
-	api := webrtc.NewAPI(webrtc.WithMediaEngine(m))
+	se := webrtc.SettingEngine{}
+	se.SetICEMulticastDNSMode(ice.MulticastDNSModeDisabled)
+	api := webrtc.NewAPI(webrtc.WithMediaEngine(m), webrtc.WithSettingEngine(se))
 	return api.NewPeerConnection(webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
 			{URLs: []string{"stun:stun.l.google.com:19302"}},
@@ -243,7 +246,7 @@ func Join(roomID string) error {
 	select {
 	case <-gatherDone:
 	case <-time.After(10 * time.Second):
-		pc.Close()
+		go pc.Close() // Close may block if the ICE agent is stuck; don't let it hang the caller.
 		player.Close()
 		return fmt.Errorf("voice join: ICE gathering timeout")
 	}
