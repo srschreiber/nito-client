@@ -41,8 +41,10 @@ const (
 	RPCVoiceICERestartAnswer = "voice_ice_restart_answer" // broker → client: ICE restart answer
 )
 
+var VoiceChatWithSelf = "self"
+
 type VoiceJoinPayload struct {
-	RoomID   string `json:"roomId"`
+	RoomID   string `json:"roomId"` // special value of "self" to relay voice to self
 	SDPOffer string `json:"sdpOffer"`
 }
 

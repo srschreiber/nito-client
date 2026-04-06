@@ -44,3 +44,13 @@ func VoiceLeaveDirect() error {
 	_, err := voiceLeaveCmd()
 	return err
 }
+
+// VoiceTestAudioDirect starts a loopback audio test (roomID="self").
+func VoiceTestAudioDirect() error {
+	return voice.JoinSelf()
+}
+
+// VoiceLeaveTestAudioDirect stops the loopback audio test.
+func VoiceLeaveTestAudioDirect() error {
+	return voice.Leave(voice.SelfRoomID)
+}

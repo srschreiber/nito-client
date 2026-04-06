@@ -154,6 +154,24 @@ func decryptFrame(aead cipher.AEAD, payload []byte) ([]byte, error) {
 	return aead.Open(nil, payload[:ns], payload[ns:], nil)
 }
 
+// SelfRoomID is the special roomID the broker uses to loop audio back to the sender.
+const SelfRoomID = "self"
+
+// JoinSelf starts a loopback audio test: audio is sent to the broker with roomID "self"
+// and the broker relays it straight back. Uses a random ephemeral key since both the
+// encrypt and decrypt paths are in the same process.
+func JoinSelf() error {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		return fmt.Errorf("voice test: generate key: %w", err)
+	}
+	aead, err := newAEAD(key)
+	if err != nil {
+		return fmt.Errorf("voice test: aead: %w", err)
+	}
+	return joinWithAEAD(SelfRoomID, aead)
+}
+
 // Join starts a voice call in roomID. Requires an active session with a selected room.
 // Returns once the WebRTC connection is signalled; media flows asynchronously.
 // 1. Client creates offer → sets it as local description
@@ -163,14 +181,6 @@ func decryptFrame(aead cipher.AEAD, payload []byte) ([]byte, error) {
 // 5. Broker sends answer to client
 // 6. Client sets broker's answer as its remote description
 func Join(roomID string) error {
-	debugf("voice: join start roomID=%s", roomID)
-	mu.Lock()
-	if activeSession != nil {
-		mu.Unlock()
-		return fmt.Errorf("already in a voice session")
-	}
-	mu.Unlock()
-
 	rawKeyBytes, err := connection.GetRoomKeyBytes()
 	if err != nil {
 		return fmt.Errorf("voice join: room key: %w", err)
@@ -183,6 +193,17 @@ func Join(roomID string) error {
 	if err != nil {
 		return fmt.Errorf("voice join: aead: %w", err)
 	}
+	return joinWithAEAD(roomID, aead)
+}
+
+func joinWithAEAD(roomID string, aead cipher.AEAD) error {
+	debugf("voice: join start roomID=%s", roomID)
+	mu.Lock()
+	if activeSession != nil {
+		mu.Unlock()
+		return fmt.Errorf("already in a voice session")
+	}
+	mu.Unlock()
 	debugf("voice: keys ok")
 
 	pc, err := newPC()
