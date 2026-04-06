@@ -35,7 +35,6 @@ import (
 	"github.com/pion/ice/v4"
 	media "github.com/pion/mediadevices"
 	_ "github.com/pion/mediadevices/pkg/driver/microphone"
-	"github.com/pion/mediadevices/pkg/prop"
 	"github.com/pion/mediadevices/pkg/wave"
 	rtppkg "github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
@@ -533,10 +532,7 @@ func iceRestart(sess *voiceSession) {
 // and writes it to the WebRTC send track.
 func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLocalStaticRTP) {
 	stream, err := media.GetUserMedia(media.MediaStreamConstraints{
-		Audio: func(c *media.MediaTrackConstraints) {
-			c.SampleRate = prop.IntExact(sampleRate)
-			c.ChannelCount = prop.IntExact(numChannels)
-		},
+		Audio: func(c *media.MediaTrackConstraints) {},
 	})
 	if err != nil {
 		debugf("voice: get user media: %v", err)
@@ -622,16 +618,44 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 
 // chunkToInt16 converts a mediadevices audio chunk to mono int16 PCM.
 // The returned slice is always a fresh copy — safe to use after release() is called.
+// chunkToInt16 converts a mediadevices audio chunk to mono int16 PCM at 48 kHz.
+// Multi-channel input is downmixed to mono by averaging all channels.
 func chunkToInt16(chunk any) ([]int16, error) {
 	switch pcm := chunk.(type) {
 	case *wave.Int16Interleaved:
-		out := make([]int16, len(pcm.Data))
-		copy(out, pcm.Data)
+		ch := pcm.Size.Channels
+		if ch <= 1 {
+			out := make([]int16, len(pcm.Data))
+			copy(out, pcm.Data)
+			return out, nil
+		}
+		frames := len(pcm.Data) / ch
+		out := make([]int16, frames)
+		for i := range out {
+			var sum int32
+			for c := 0; c < ch; c++ {
+				sum += int32(pcm.Data[i*ch+c])
+			}
+			out[i] = int16(sum / int32(ch))
+		}
 		return out, nil
 	case *wave.Float32Interleaved:
-		out := make([]int16, len(pcm.Data))
-		for i, v := range pcm.Data {
-			out[i] = int16(v * 32767)
+		ch := pcm.Size.Channels
+		if ch <= 1 {
+			out := make([]int16, len(pcm.Data))
+			for i, v := range pcm.Data {
+				out[i] = int16(v * 32767)
+			}
+			return out, nil
+		}
+		frames := len(pcm.Data) / ch
+		out := make([]int16, frames)
+		for i := range out {
+			var sum float32
+			for c := 0; c < ch; c++ {
+				sum += pcm.Data[i*ch+c]
+			}
+			out[i] = int16((sum / float32(ch)) * 32767)
 		}
 		return out, nil
 	default:
