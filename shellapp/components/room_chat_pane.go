@@ -112,6 +112,7 @@ func (p *RoomChatPane) Update(msg tea.Msg) tea.Cmd {
 	case types.RoomSelectedMsg:
 		p.showMembers = true
 		p.resizeChildren()
+		p.chat.Update(ClearHistoryMsg{})
 		var cmds []tea.Cmd
 		if cmd := p.rooms.Update(msg); cmd != nil {
 			cmds = append(cmds, cmd)
