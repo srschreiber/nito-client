@@ -38,6 +38,77 @@ The one thing we do ask is attribution, as required by the [MIT License](LICENSE
 
 I only open sourced the client to be transparent. The broker, on the other hand, doesn't need to be released for you to verify the E2EE claims because you can see that nothing (including UDP data) flows to the broker unencrypted, except metadata such as usernames, room names, who is in what room, timestamps, etc (see /shared to see exactly what the broker can/can't see). Eventually, I would like to experience what it is like to run a small side-gig where users pay a modest montly fee (3-4 dollars to keep the lights on) and where I maintain the broker and develop features. If the broker is open source, it removes the incentive of paying for a service. It's unlikely that _anyone_ will ever pay for this service, however I would like to keep this option open.
 
+## windows
+
+dumped from chat gpt, will format later. my findings on getting it up and running on my windows machine
+
+🪟 Windows Setup (what actually worked)
+1. Git Bash didn’t work
+No gcc
+CGO_ENABLED=0
+Audio deps (mediadevices/malgo) failed
+
+👉 Needed a real native toolchain
+
+2. Installed MSYS2
+Downloaded MSYS2
+Opened UCRT64 shell (important)
+3. Installed required packages
+
+In UCRT64:
+
+pacman -S --needed \
+  mingw-w64-ucrt-x86_64-gcc \
+  mingw-w64-ucrt-x86_64-go \
+  mingw-w64-ucrt-x86_64-pkgconf \
+  mingw-w64-ucrt-x86_64-opus
+4. Fixed Go environment (GOROOT issue)
+
+Set Go paths manually:
+
+source /ucrt64/etc/profile.d/go.sh
+export GOROOT=/ucrt64/lib/go
+export PATH=/ucrt64/bin:$GOROOT/bin:$PATH
+5. Enabled cgo
+go env -w CGO_ENABLED=1
+6. Fixed missing tools (step-by-step errors)
+
+You hit these in order:
+
+❌ pkg-config not found
+
+→ installed:
+
+pacman -S mingw-w64-ucrt-x86_64-pkgconf
+❌ opus not found
+
+→ installed:
+
+pacman -S mingw-w64-ucrt-x86_64-opus
+7. Ran the app
+go clean -cache
+go run ./shellapp/
+8. Docker fix (separate issue)
+
+MSYS2 couldn’t see Docker → added to PATH:
+
+export PATH="/c/Program Files/Docker/Docker/resources/bin:$PATH"
+🧠 Key takeaways
+Git Bash alone is not enough for cgo/audio
+MSYS2 UCRT64 gives:
+gcc
+pkg-config
+native libs (opus)
+Required for:
+mediadevices → malgo → Windows audio (WASAPI)
+🔥 Minimal mental model
+
+To run your app on Windows you needed:
+
+Go + CGO + GCC + pkg-config + Opus + correct shell
+
+If you want, I can condense this into a super tight README version (10 lines) or add Linux/macOS sections.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
