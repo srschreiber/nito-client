@@ -154,6 +154,7 @@ func decryptFrame(aead cipher.AEAD, payload []byte) ([]byte, error) {
 // 5. Broker sends answer to client
 // 6. Client sets broker's answer as its remote description
 func Join(roomID string) error {
+	log.Printf("voice: join start roomID=%s", roomID)
 	mu.Lock()
 	if activeSession != nil {
 		mu.Unlock()
@@ -173,11 +174,13 @@ func Join(roomID string) error {
 	if err != nil {
 		return fmt.Errorf("voice join: aead: %w", err)
 	}
+	log.Printf("voice: keys ok")
 
 	pc, err := newPC()
 	if err != nil {
 		return fmt.Errorf("voice join: new pc: %w", err)
 	}
+	log.Printf("voice: peer connection created")
 
 	sendTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{
 		MimeType:    webrtc.MimeTypeOpus,
@@ -194,11 +197,13 @@ func Join(roomID string) error {
 		return fmt.Errorf("voice join: add track: %w", err)
 	}
 
+	log.Printf("voice: initialising audio output")
 	oc, err := getOtoCtx()
 	if err != nil {
 		pc.Close()
 		return fmt.Errorf("voice join: oto: %w", err)
 	}
+	log.Printf("voice: audio output ready")
 	pr, pw := io.Pipe()
 	player := oc.NewPlayer(pr)
 	player.Play()
@@ -233,6 +238,7 @@ func Join(roomID string) error {
 	// Create offer and gather ICE.
 	// SetLocalDescription triggers mDNS registration which blocks forever on Windows,
 	// so we run the entire gather sequence in a goroutine and select on a result channel.
+	log.Printf("voice: creating offer")
 	offer, err := pc.CreateOffer(nil)
 	if err != nil {
 		pc.Close()
@@ -242,11 +248,15 @@ func Join(roomID string) error {
 	gatherDone := webrtc.GatheringCompletePromise(pc)
 	setLocalErrCh := make(chan error, 1)
 	go func() {
+		log.Printf("voice: setting local description")
 		if err := pc.SetLocalDescription(offer); err != nil {
+			log.Printf("voice: set local desc error: %v", err)
 			setLocalErrCh <- err
 			return
 		}
+		log.Printf("voice: waiting for ICE gathering")
 		<-gatherDone
+		log.Printf("voice: ICE gathering complete")
 		setLocalErrCh <- nil
 	}()
 	select {
@@ -260,6 +270,7 @@ func Join(roomID string) error {
 			return fmt.Errorf("voice join: set local desc: %w", err)
 		}
 	case <-time.After(10 * time.Second):
+		log.Printf("voice: ICE gathering timed out")
 		go func() {
 			_ = pw.Close()
 			_ = player.Close()
@@ -274,27 +285,9 @@ func Join(roomID string) error {
 		player.Close()
 		return fmt.Errorf("voice join: not connected")
 	}
-	payload, _ := json.Marshal(wstypes.VoiceJoinPayload{
-		RoomID: roomID, SDPOffer: pc.LocalDescription().SDP,
-	})
-	sig, err := keys.Sign(s.UserID+":"+wstypes.RPCVoiceJoin, s.UserID)
-	if err != nil {
-		pc.Close()
-		player.Close()
-		return fmt.Errorf("voice join: sign: %w", err)
-	}
-	wsMsg := wstypes.ToBrokerWsMessage{
-		RPCName: wstypes.RPCVoiceJoin, RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
-		UserID: s.UserID, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
-		Timestamp: time.Now().Unix(), Signature: sig, Payload: payload,
-	}
-	data, _ := json.Marshal(wsMsg)
-	if err := connection.Send(data); err != nil {
-		pc.Close()
-		player.Close()
-		return fmt.Errorf("voice join: send: %w", err)
-	}
 
+	// Set up the session and register the message handler BEFORE sending the
+	// offer so a fast local broker's answer isn't dropped.
 	answerCh := make(chan string, 1)
 	ctx, cancel := context.WithCancel(context.Background())
 	sess := &voiceSession{
@@ -312,9 +305,28 @@ func Join(roomID string) error {
 			go iceRestart(sess)
 		}
 	})
-
-	// Register handler before we wait, so the answer isn't missed.
 	connection.SetVoiceMessageHandler(handleIncoming)
+
+	log.Printf("voice: sending offer to broker")
+	payload, _ := json.Marshal(wstypes.VoiceJoinPayload{
+		RoomID: roomID, SDPOffer: pc.LocalDescription().SDP,
+	})
+	sig, err := keys.Sign(s.UserID+":"+wstypes.RPCVoiceJoin, s.UserID)
+	if err != nil {
+		Leave(roomID)
+		return fmt.Errorf("voice join: sign: %w", err)
+	}
+	wsMsg := wstypes.ToBrokerWsMessage{
+		RPCName: wstypes.RPCVoiceJoin, RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
+		UserID: s.UserID, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
+		Timestamp: time.Now().Unix(), Signature: sig, Payload: payload,
+	}
+	data, _ := json.Marshal(wsMsg)
+	if err := connection.Send(data); err != nil {
+		Leave(roomID)
+		return fmt.Errorf("voice join: send: %w", err)
+	}
+	log.Printf("voice: offer sent, waiting for broker answer")
 
 	select {
 	case sdpAnswer := <-answerCh:
