@@ -240,7 +240,13 @@ func Join(roomID string) error {
 		player.Close()
 		return fmt.Errorf("voice join: set local desc: %w", err)
 	}
-	<-gatherDone
+	select {
+	case <-gatherDone:
+	case <-time.After(10 * time.Second):
+		pc.Close()
+		player.Close()
+		return fmt.Errorf("voice join: ICE gathering timeout")
+	}
 
 	s := connection.CurrentSession()
 	if s == nil {
