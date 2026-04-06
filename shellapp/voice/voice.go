@@ -217,7 +217,7 @@ func Join(roomID string) error {
 	debugf("voice: creating player")
 	player := oc.NewPlayer(pr)
 	debugf("voice: starting player")
-	player.Play()
+	go player.Play() // Play() can block on Windows waiting for the audio device; don't hold up Join.
 	debugf("voice: player started")
 
 	// Receive incoming tracks: decrypt → decode Opus → PCM → speakers.
