@@ -205,8 +205,11 @@ func Join(roomID string) error {
 	}
 	log.Printf("voice: audio output ready")
 	pr, pw := io.Pipe()
+	log.Printf("voice: creating player")
 	player := oc.NewPlayer(pr)
+	log.Printf("voice: starting player")
 	player.Play()
+	log.Printf("voice: player started")
 
 	// Receive incoming tracks: decrypt → decode Opus → PCM → speakers.
 	pc.OnTrack(func(remote *webrtc.TrackRemote, _ *webrtc.RTPReceiver) {
