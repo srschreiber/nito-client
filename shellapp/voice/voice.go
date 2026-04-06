@@ -246,8 +246,11 @@ func Join(roomID string) error {
 	select {
 	case <-gatherDone:
 	case <-time.After(10 * time.Second):
-		go pc.Close() // Close may block if the ICE agent is stuck; don't let it hang the caller.
-		player.Close()
+		go func() {
+			_ = pw.Close() // EOF to player's pipe reader so oto stops blocking on read.
+			_ = player.Close()
+			_ = pc.Close()
+		}()
 		return fmt.Errorf("voice join: ICE gathering timeout")
 	}
 
