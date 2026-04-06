@@ -40,7 +40,7 @@ I only open sourced the client to be transparent. The broker, on the other hand,
 
 ## windows
 
-dumped from chat gpt, will format later
+dumped from chat gpt, will format later. my findings on getting it up and running on my windows machine
 
 🪟 Windows Setup (what actually worked)
 1. Git Bash didn’t work
