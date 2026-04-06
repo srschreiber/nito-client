@@ -26,7 +26,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+
 	"sync"
 	"sync/atomic"
 	"time"
@@ -55,6 +55,15 @@ const (
 	opusFrameSamples = sampleRate * opusFrameMs / 1000 // 960 samples
 	opusBufMax       = 4096
 )
+
+// DebugLog enables verbose voice-join diagnostic logging to stdout.
+const DebugLog = true
+
+func debugf(format string, args ...any) {
+	if DebugLog {
+		debugf(format, args...)
+	}
+}
 
 var (
 	mu            sync.Mutex
@@ -154,7 +163,7 @@ func decryptFrame(aead cipher.AEAD, payload []byte) ([]byte, error) {
 // 5. Broker sends answer to client
 // 6. Client sets broker's answer as its remote description
 func Join(roomID string) error {
-	log.Printf("voice: join start roomID=%s", roomID)
+	debugf("voice: join start roomID=%s", roomID)
 	mu.Lock()
 	if activeSession != nil {
 		mu.Unlock()
@@ -174,13 +183,13 @@ func Join(roomID string) error {
 	if err != nil {
 		return fmt.Errorf("voice join: aead: %w", err)
 	}
-	log.Printf("voice: keys ok")
+	debugf("voice: keys ok")
 
 	pc, err := newPC()
 	if err != nil {
 		return fmt.Errorf("voice join: new pc: %w", err)
 	}
-	log.Printf("voice: peer connection created")
+	debugf("voice: peer connection created")
 
 	sendTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{
 		MimeType:    webrtc.MimeTypeOpus,
@@ -197,19 +206,19 @@ func Join(roomID string) error {
 		return fmt.Errorf("voice join: add track: %w", err)
 	}
 
-	log.Printf("voice: initialising audio output")
+	debugf("voice: initialising audio output")
 	oc, err := getOtoCtx()
 	if err != nil {
 		pc.Close()
 		return fmt.Errorf("voice join: oto: %w", err)
 	}
-	log.Printf("voice: audio output ready")
+	debugf("voice: audio output ready")
 	pr, pw := io.Pipe()
-	log.Printf("voice: creating player")
+	debugf("voice: creating player")
 	player := oc.NewPlayer(pr)
-	log.Printf("voice: starting player")
+	debugf("voice: starting player")
 	player.Play()
-	log.Printf("voice: player started")
+	debugf("voice: player started")
 
 	// Receive incoming tracks: decrypt → decode Opus → PCM → speakers.
 	pc.OnTrack(func(remote *webrtc.TrackRemote, _ *webrtc.RTPReceiver) {
@@ -241,7 +250,7 @@ func Join(roomID string) error {
 	// Create offer and gather ICE.
 	// SetLocalDescription triggers mDNS registration which blocks forever on Windows,
 	// so we run the entire gather sequence in a goroutine and select on a result channel.
-	log.Printf("voice: creating offer")
+	debugf("voice: creating offer")
 	offer, err := pc.CreateOffer(nil)
 	if err != nil {
 		pc.Close()
@@ -251,15 +260,15 @@ func Join(roomID string) error {
 	gatherDone := webrtc.GatheringCompletePromise(pc)
 	setLocalErrCh := make(chan error, 1)
 	go func() {
-		log.Printf("voice: setting local description")
+		debugf("voice: setting local description")
 		if err := pc.SetLocalDescription(offer); err != nil {
-			log.Printf("voice: set local desc error: %v", err)
+			debugf("voice: set local desc error: %v", err)
 			setLocalErrCh <- err
 			return
 		}
-		log.Printf("voice: waiting for ICE gathering")
+		debugf("voice: waiting for ICE gathering")
 		<-gatherDone
-		log.Printf("voice: ICE gathering complete")
+		debugf("voice: ICE gathering complete")
 		setLocalErrCh <- nil
 	}()
 	select {
@@ -273,7 +282,7 @@ func Join(roomID string) error {
 			return fmt.Errorf("voice join: set local desc: %w", err)
 		}
 	case <-time.After(10 * time.Second):
-		log.Printf("voice: ICE gathering timed out")
+		debugf("voice: ICE gathering timed out")
 		go func() {
 			_ = pw.Close()
 			_ = player.Close()
@@ -304,13 +313,13 @@ func Join(roomID string) error {
 
 	pc.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
 		if state == webrtc.PeerConnectionStateFailed {
-			log.Printf("voice: connection failed, initiating ICE restart")
+			debugf("voice: connection failed, initiating ICE restart")
 			go iceRestart(sess)
 		}
 	})
 	connection.SetVoiceMessageHandler(handleIncoming)
 
-	log.Printf("voice: sending offer to broker")
+	debugf("voice: sending offer to broker")
 	payload, _ := json.Marshal(wstypes.VoiceJoinPayload{
 		RoomID: roomID, SDPOffer: pc.LocalDescription().SDP,
 	})
@@ -329,7 +338,7 @@ func Join(roomID string) error {
 		Leave(roomID)
 		return fmt.Errorf("voice join: send: %w", err)
 	}
-	log.Printf("voice: offer sent, waiting for broker answer")
+	debugf("voice: offer sent, waiting for broker answer")
 
 	select {
 	case sdpAnswer := <-answerCh:
@@ -426,17 +435,17 @@ func handleIncoming(rpcName string, payload []byte) {
 			if err := sess.pc.SetRemoteDescription(webrtc.SessionDescription{
 				Type: webrtc.SDPTypeOffer, SDP: offer.SDPOffer,
 			}); err != nil {
-				log.Printf("voice: reneg set remote desc: %v", err)
+				debugf("voice: reneg set remote desc: %v", err)
 				return
 			}
 			answer, err := sess.pc.CreateAnswer(nil)
 			if err != nil {
-				log.Printf("voice: reneg create answer: %v", err)
+				debugf("voice: reneg create answer: %v", err)
 				return
 			}
 			gatherDone := webrtc.GatheringCompletePromise(sess.pc)
 			if err := sess.pc.SetLocalDescription(answer); err != nil {
-				log.Printf("voice: reneg set local desc: %v", err)
+				debugf("voice: reneg set local desc: %v", err)
 				return
 			}
 			<-gatherDone
@@ -476,12 +485,12 @@ func iceRestart(sess *voiceSession) {
 
 	offer, err := sess.pc.CreateOffer(&webrtc.OfferOptions{ICERestart: true})
 	if err != nil {
-		log.Printf("voice: ice restart create offer: %v", err)
+		debugf("voice: ice restart create offer: %v", err)
 		return
 	}
 	gatherDone := webrtc.GatheringCompletePromise(sess.pc)
 	if err := sess.pc.SetLocalDescription(offer); err != nil {
-		log.Printf("voice: ice restart set local desc: %v", err)
+		debugf("voice: ice restart set local desc: %v", err)
 		return
 	}
 	<-gatherDone
@@ -512,10 +521,10 @@ func iceRestart(sess *voiceSession) {
 		if err := sess.pc.SetRemoteDescription(webrtc.SessionDescription{
 			Type: webrtc.SDPTypeAnswer, SDP: sdpAnswer,
 		}); err != nil {
-			log.Printf("voice: ice restart set remote desc: %v", err)
+			debugf("voice: ice restart set remote desc: %v", err)
 		}
 	case <-time.After(10 * time.Second):
-		log.Printf("voice: ice restart timeout")
+		debugf("voice: ice restart timeout")
 	}
 }
 
@@ -526,12 +535,12 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 		Audio: func(c *media.MediaTrackConstraints) {},
 	})
 	if err != nil {
-		log.Printf("voice: get user media: %v", err)
+		debugf("voice: get user media: %v", err)
 		return
 	}
 	tracks := stream.GetAudioTracks()
 	if len(tracks) == 0 {
-		log.Printf("voice: no audio tracks from microphone")
+		debugf("voice: no audio tracks from microphone")
 		return
 	}
 	audioTrack := tracks[0]
@@ -539,7 +548,7 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 
 	enc, err := newOpusEncoder(sampleRate, numChannels)
 	if err != nil {
-		log.Printf("voice: new opus encoder: %v", err)
+		debugf("voice: new opus encoder: %v", err)
 		return
 	}
 	defer enc.close()
@@ -561,13 +570,13 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 
 		chunk, release, err := reader.Read()
 		if err != nil {
-			log.Printf("voice: reader read: %v", err)
+			debugf("voice: reader read: %v", err)
 			return
 		}
 		pcm, err := chunkToInt16(chunk)
 		release()
 		if err != nil {
-			log.Printf("voice: chunk convert: %v", err)
+			debugf("voice: chunk convert: %v", err)
 			continue
 		}
 		pcmAccum = append(pcmAccum, pcm...)
@@ -578,13 +587,13 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 
 			n, err := enc.encode(frame, opusBuf)
 			if err != nil {
-				log.Printf("voice: opus encode: %v", err)
+				debugf("voice: opus encode: %v", err)
 				continue
 			}
 
 			ciphertext, err := encryptFrame(aead, opusBuf[:n])
 			if err != nil {
-				log.Printf("voice: encrypt: %v", err)
+				debugf("voice: encrypt: %v", err)
 				continue
 			}
 
