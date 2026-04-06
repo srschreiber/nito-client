@@ -97,8 +97,8 @@ func (p *RoomChatPane) SetFocused(focused bool) {
 }
 
 // CanConsumeTab returns true while there are still internal stops to cycle through
-// (rooms list → Create → Invite). Returns false when chat history is the active
-// sub-focus, signalling the outer handler to advance to the next top-level component.
+// (rooms list → Create → Invite → Voice → TestAudio). Returns false when chat history
+// is the active sub-focus, signalling the outer handler to advance to the next top-level component.
 func (p *RoomChatPane) CanConsumeTab() bool {
 	return !p.histFocused
 }
@@ -150,7 +150,7 @@ func (p *RoomChatPane) Update(msg tea.Msg) tea.Cmd {
 	}
 }
 
-// handleTab cycles sub-focus: rooms list → Create → Invite → chat history → rooms list.
+// handleTab cycles sub-focus: rooms list → Create → Invite → Voice → TestAudio → chat history → rooms list.
 func (p *RoomChatPane) handleTab() tea.Cmd {
 	if p.histFocused {
 		// history → back to rooms list
@@ -160,7 +160,7 @@ func (p *RoomChatPane) handleTab() tea.Cmd {
 		p.rooms.area = roomsAreaList
 		return nil
 	}
-	// Advance through rooms areas: list → Create → Invite → Voice → history
+	// Advance through rooms areas: list → Create → Invite → Voice → TestAudio → history
 	switch p.rooms.area {
 	case roomsAreaList:
 		p.rooms.area = roomsAreaCreateBtn
@@ -168,8 +168,10 @@ func (p *RoomChatPane) handleTab() tea.Cmd {
 		p.rooms.area = roomsAreaInviteBtn
 	case roomsAreaInviteBtn:
 		p.rooms.area = roomsAreaVoiceBtn
+	case roomsAreaVoiceBtn:
+		p.rooms.area = roomsAreaTestAudioBtn
 	default:
-		// voiceBtn (or form) → switch to history
+		// testAudioBtn (or form) → switch to history
 		p.rooms.area = roomsAreaList
 		p.rooms.SetFocused(false)
 		p.histFocused = true
