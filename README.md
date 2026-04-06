@@ -21,6 +21,14 @@ make run-shell
 
 On first launch you will be prompted to log in or register. Point the client at your broker URL.
 
+## What's stopping me from building my own broker?
+
+Nothing. Seriously.
+
+We believe the only way an E2EE system can actually be trusted is through full transparency. If you read this code, understand it, and decide to fork it and build something entirely different — that's completely fine. There is nothing we can or will do about it, nor would we want to.
+
+The one thing we do ask is attribution, as required by the [MIT License](LICENSE). Keep the copyright notice in place and you're free to do whatever you like with the code.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
