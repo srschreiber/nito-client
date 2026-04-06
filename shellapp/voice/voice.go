@@ -26,7 +26,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-
+	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -61,7 +61,7 @@ const DebugLog = true
 
 func debugf(format string, args ...any) {
 	if DebugLog {
-		debugf(format, args...)
+		log.Printf(format, args...)
 	}
 }
 
