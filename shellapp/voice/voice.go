@@ -231,6 +231,8 @@ func Join(roomID string) error {
 	})
 
 	// Create offer and gather ICE.
+	// SetLocalDescription triggers mDNS registration which blocks forever on Windows,
+	// so we run the entire gather sequence in a goroutine and select on a result channel.
 	offer, err := pc.CreateOffer(nil)
 	if err != nil {
 		pc.Close()
@@ -238,16 +240,28 @@ func Join(roomID string) error {
 		return fmt.Errorf("voice join: create offer: %w", err)
 	}
 	gatherDone := webrtc.GatheringCompletePromise(pc)
-	if err := pc.SetLocalDescription(offer); err != nil {
-		pc.Close()
-		player.Close()
-		return fmt.Errorf("voice join: set local desc: %w", err)
-	}
+	setLocalErrCh := make(chan error, 1)
+	go func() {
+		if err := pc.SetLocalDescription(offer); err != nil {
+			setLocalErrCh <- err
+			return
+		}
+		<-gatherDone
+		setLocalErrCh <- nil
+	}()
 	select {
-	case <-gatherDone:
+	case err := <-setLocalErrCh:
+		if err != nil {
+			go func() {
+				_ = pw.Close()
+				_ = player.Close()
+				_ = pc.Close()
+			}()
+			return fmt.Errorf("voice join: set local desc: %w", err)
+		}
 	case <-time.After(10 * time.Second):
 		go func() {
-			_ = pw.Close() // EOF to player's pipe reader so oto stops blocking on read.
+			_ = pw.Close()
 			_ = player.Close()
 			_ = pc.Close()
 		}()
