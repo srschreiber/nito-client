@@ -57,7 +57,7 @@ const (
 )
 
 // DebugLog enables verbose voice-join diagnostic logging to stdout.
-const DebugLog = true
+const DebugLog = false
 
 func debugf(format string, args ...any) {
 	if DebugLog {
