@@ -617,9 +617,13 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 }
 
 // chunkToInt16 converts a mediadevices audio chunk to mono int16 PCM.
-// The returned slice is always a fresh copy — safe to use after release() is called.
-// chunkToInt16 converts a mediadevices audio chunk to mono int16 PCM at 48 kHz.
-// Multi-channel input is downmixed to mono by averaging all channels.
+//
+// On Windows, microphone drivers typically capture stereo (2-channel interleaved).
+// Passing stereo data straight to the mono Opus encoder doubles the apparent frame
+// size: 480 stereo pairs look like 960 mono samples, so the encoder treats 10ms of
+// audio as 20ms — producing half-speed, octave-low playback on the receiver.
+// We fix this by downmixing: averaging each (L+R) pair into one mono sample so the
+// frame count matches what the encoder expects.
 func chunkToInt16(chunk any) ([]int16, error) {
 	switch pcm := chunk.(type) {
 	case *wave.Int16Interleaved:
