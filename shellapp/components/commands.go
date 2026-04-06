@@ -51,6 +51,11 @@ func completeChatOp(prefix string) *chatOpDef {
 
 type cursorBlinkMsg struct{ gen int }
 
+type execResultMsg struct {
+	entries []historyEntry
+	signal  commands.Signal
+}
+
 const (
 	placeholderCmd     = "Type a command... (/chat  /dms  /notifications  /invites  or wcid for all commands)"
 	placeholderChat    = "Chat (/cmd to return to command mode)"
@@ -165,6 +170,51 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 				{text: "switched to room " + msg.RoomID + " — use /chat to switch to chat mode", isResponse: true},
 			}}
 		}
+	case execResultMsg:
+		userID := ""
+		if s := connection.CurrentSession(); s != nil {
+			userID = s.UserID
+		}
+		connMsg := types.ConnectionStatusMsg{
+			Connected: connection.IsConnected(),
+			BrokerURL: connection.BrokerURL(),
+			UserID:    userID,
+		}
+		emitConn := func() tea.Msg { return connMsg }
+		entries := msg.entries
+		switch msg.signal {
+		case commands.SignalClear:
+			return tea.Batch(func() tea.Msg { return ClearHistoryMsg{} }, emitConn)
+		case commands.SignalExit:
+			_ = history.Save(l.cmdHistory)
+			return tea.Quit
+		case commands.SignalRefreshRooms:
+			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn, func() tea.Msg { return types.RoomsFetchMsg{} })
+		case commands.SignalNeedPassword, commands.SignalNeedRegisterPassword:
+			pendingPasswordSignal = msg.signal
+			l.passwordMode = true
+			l.Placeholder = "Password:"
+			entries = append(entries, historyEntry{text: "Password:", isResponse: true})
+			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn)
+		case commands.SignalConnected:
+			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn, func() tea.Msg { return types.ConnectedMsg{} })
+		case commands.SignalRoomSelected:
+			roomID := connection.GetSessionRoomID()
+			if roomID == nil {
+				break
+			}
+			id := *roomID
+			entries = append(entries, historyEntry{text: "use /chat to switch to chat mode", isResponse: true})
+			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn, func() tea.Msg { return types.RoomSelectedMsg{RoomID: id} })
+		case commands.SignalStartDM:
+			user := commands.DMUser
+			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn, func() tea.Msg { return StartDMMsg{User: user} })
+		case commands.SignalJump:
+			line := commands.JumpLine
+			return func() tea.Msg { return JumpScrollMsg{Line: line} }
+		}
+		return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn)
+
 	case cursorBlinkMsg:
 		if msg.gen != l.blinkGen {
 			return nil // stale tick from before last reset
@@ -578,77 +628,18 @@ func (l *CommandComponent) handleEnter() tea.Cmd {
 		return func() tea.Msg { return AppendHistoryMsg{Entries: entries, Tab: TabChat} }
 	}
 
-	entries := []historyEntry{
-		{text: "> " + input},
-	}
-
-	output, signal, err := commands.ExecCommand(input)
-	if err != nil {
-		entries = append(entries, historyEntry{text: err.Error(), isResponse: true})
-	} else if output != "" {
-		entries = append(entries, historyEntry{text: output, isResponse: true})
-	}
-
-	userID := ""
-	if s := connection.CurrentSession(); s != nil {
-		userID = s.UserID
-	}
-	connMsg := types.ConnectionStatusMsg{
-		Connected: connection.IsConnected(),
-		BrokerURL: connection.BrokerURL(),
-		UserID:    userID,
-	}
-	emitConn := func() tea.Msg { return connMsg }
-
-	switch signal {
-	case commands.SignalClear:
-		return tea.Batch(func() tea.Msg { return ClearHistoryMsg{} }, emitConn)
-	case commands.SignalExit:
-		_ = history.Save(l.cmdHistory)
-		return tea.Quit
-	case commands.SignalRefreshRooms:
-		return tea.Batch(
-			func() tea.Msg { return AppendHistoryMsg{Entries: entries} },
-			emitConn,
-			func() tea.Msg { return types.RoomsFetchMsg{} },
-		)
-	case commands.SignalNeedPassword, commands.SignalNeedRegisterPassword:
-		pendingPasswordSignal = signal
-		l.passwordMode = true
-		l.Placeholder = "Password:"
-		entries = append(entries, historyEntry{text: "Password:", isResponse: true})
-		return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn)
-	case commands.SignalConnected:
-		return tea.Batch(
-			func() tea.Msg { return AppendHistoryMsg{Entries: entries} },
-			emitConn,
-			func() tea.Msg { return types.ConnectedMsg{} },
-		)
-	case commands.SignalRoomSelected:
-		roomID := connection.GetSessionRoomID()
-		if roomID == nil {
-			break
+	// Run ExecCommand off the UI goroutine so blocking commands (e.g. voice-join
+	// ICE gathering) don't freeze the event loop.
+	return func() tea.Msg {
+		output, signal, err := commands.ExecCommand(input)
+		entries := []historyEntry{{text: "> " + input}}
+		if err != nil {
+			entries = append(entries, historyEntry{text: err.Error(), isResponse: true})
+		} else if output != "" {
+			entries = append(entries, historyEntry{text: output, isResponse: true})
 		}
-		id := *roomID
-		entries = append(entries, historyEntry{text: "use /chat to switch to chat mode", isResponse: true})
-		return tea.Batch(
-			func() tea.Msg { return AppendHistoryMsg{Entries: entries} },
-			emitConn,
-			func() tea.Msg { return types.RoomSelectedMsg{RoomID: id} },
-		)
-	case commands.SignalStartDM:
-		user := commands.DMUser
-		return tea.Batch(
-			func() tea.Msg { return AppendHistoryMsg{Entries: entries} },
-			emitConn,
-			func() tea.Msg { return StartDMMsg{User: user} },
-		)
-	case commands.SignalJump:
-		line := commands.JumpLine
-		return func() tea.Msg { return JumpScrollMsg{Line: line} }
+		return execResultMsg{entries: entries, signal: signal}
 	}
-
-	return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn)
 }
 
 // ghostSuffix returns the grey inline suggestion text to display after the
