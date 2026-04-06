@@ -35,6 +35,7 @@ import (
 	"github.com/pion/ice/v4"
 	media "github.com/pion/mediadevices"
 	_ "github.com/pion/mediadevices/pkg/driver/microphone"
+	"github.com/pion/mediadevices/pkg/prop"
 	"github.com/pion/mediadevices/pkg/wave"
 	rtppkg "github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
@@ -532,7 +533,10 @@ func iceRestart(sess *voiceSession) {
 // and writes it to the WebRTC send track.
 func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLocalStaticRTP) {
 	stream, err := media.GetUserMedia(media.MediaStreamConstraints{
-		Audio: func(c *media.MediaTrackConstraints) {},
+		Audio: func(c *media.MediaTrackConstraints) {
+			c.SampleRate = prop.IntExact(sampleRate)
+			c.ChannelCount = prop.IntExact(numChannels)
+		},
 	})
 	if err != nil {
 		debugf("voice: get user media: %v", err)
