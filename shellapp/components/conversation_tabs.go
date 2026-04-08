@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
+	"github.com/srschreiber/nito-client/shellapp/clientlog"
 )
 
 // Component is the common interface satisfied by all focusable tab content components.
@@ -34,7 +35,7 @@ var (
 )
 
 // tabDefs lists tab names in order (index matches HistoryTab constants).
-var tabDefs = []string{"CMD", "Room Chat", "DMs", "Notifications", "Invites"}
+var tabDefs = []string{"CMD", "Room Chat", "DMs", "Notifications", "Invites", "Logs"}
 
 // ConversationTabs wraps separate conversation panes for all tabs.
 // It implements the Component interface as a drop-in replacement for ConversationHistory.
@@ -44,6 +45,7 @@ type ConversationTabs struct {
 	dmPane        *DMPane
 	notifications *ConversationHistory
 	invites       *InvitesPane
+	logs          *ConversationHistory
 	active        HistoryTab
 	width         int
 	height        int
@@ -59,12 +61,15 @@ func NewConversationTabs(width, height int) *ConversationTabs {
 	cmd.chatMode = false
 	notifs := NewConversationHistory(width, innerH)
 	notifs.chatMode = false
+	logs := NewConversationHistory(width, innerH)
+	logs.chatMode = false
 	return &ConversationTabs{
 		cmd:           cmd,
 		roomChat:      NewRoomChatPane(width, innerH),
 		dmPane:        NewDMPane(width, innerH),
 		notifications: notifs,
 		invites:       NewInvitesPane(width, innerH),
+		logs:          logs,
 		width:         width,
 		height:        height,
 		active:        TabCmd,

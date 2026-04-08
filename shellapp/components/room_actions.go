@@ -281,12 +281,12 @@ func (a *RoomActionsComponent) Render() string {
 				styles.FormCursorStyle.Render(string(runes[a.formCur])) +
 				string(runes[a.formCur+1:])
 		}
-		line1 := styles.Grey.Render(label) + fieldText
+		line1 := styles.DimText.Render(label) + fieldText
 		var line2 string
 		if a.formErr != "" {
 			line2 = styles.FormErrorStyle.Render(a.formErr)
 		} else {
-			line2 = styles.Grey.Render("enter submit  •  esc cancel")
+			line2 = styles.DimText.Render("enter submit  •  esc cancel")
 		}
 		body = line1 + "\n" + line2
 	} else {
@@ -324,7 +324,7 @@ func (a *RoomActionsComponent) Render() string {
 			}
 			var itemStr string
 			if disabled[i] {
-				itemStr = styles.ItemStyle.Render(cur + styles.Grey.Render(lbl))
+				itemStr = styles.ItemStyle.Render(cur + styles.DimText.Render(lbl))
 			} else if sel {
 				var rendered string
 				switch i {
@@ -369,7 +369,7 @@ func (a *RoomActionsComponent) Render() string {
 		body = strings.Join(lines, "\n")
 	}
 
-	body = title + "\n\n" + body
+	body = title + "\n" + body
 
 	borderColor := styles.PanelBorderColor
 	bg := styles.ComponentBg

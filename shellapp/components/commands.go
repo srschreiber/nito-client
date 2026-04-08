@@ -775,19 +775,19 @@ func (l *CommandComponent) Render() string {
 			// Use the first ghost char as the cursor highlight so the ghost
 			// text never shifts when the cursor blinks.
 			gr := []rune(ghost)
-			render = prompt + before + styles.CursorHighlightStyle.Render(string(gr[0])) + styles.Grey.Render(string(gr[1:]))
+			render = prompt + before + styles.CursorHighlightStyle.Render(string(gr[0])) + styles.DimText.Render(string(gr[1:]))
 		} else if len(runes) > 0 {
 			render = prompt + before + styles.CursorHighlightStyle.Render(" ")
 		} else {
 			// Empty input — highlight the first char of the placeholder in place
 			pr := []rune(l.Placeholder)
-			render = prompt + styles.CursorHighlightStyle.Render(string(pr[0])) + styles.Grey.Render(string(pr[1:]))
+			render = prompt + styles.CursorHighlightStyle.Render(string(pr[0])) + styles.DimText.Render(string(pr[1:]))
 		}
 	} else {
 		if len(runes) > 0 {
-			render = prompt + string(runes) + styles.Grey.Render(ghost)
+			render = prompt + string(runes) + styles.DimText.Render(ghost)
 		} else {
-			render = prompt + styles.Grey.Render(l.Placeholder)
+			render = prompt + styles.DimText.Render(l.Placeholder)
 		}
 	}
 

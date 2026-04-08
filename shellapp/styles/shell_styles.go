@@ -55,11 +55,10 @@ var (
 			Foreground(lipgloss.Color("#818cf8")).
 			Bold(true)
 
-	Grey = lipgloss.NewStyle().Foreground(lipgloss.Color("#5a5a8a"))
-
-	// DimText is slightly brighter than Grey — used for description labels in
-	// KEYS, sent-message lines in history, and status info like broker/userID.
-	DimText = lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8"))
+	// DimText is the standard dim label style — used for hints, descriptions,
+	// form labels, placeholder text, and secondary info throughout the UI.
+	// Background is explicitly cleared so it never inherits from a parent container.
+	DimText = lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8")).Background(lipgloss.NoColor{})
 
 	ResponseStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#c8c8e8"))
@@ -68,8 +67,7 @@ var (
 	SentStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#9090c8"))
 
-	LineStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#8080a8"))
+	LineStyle = DimText
 
 	CursorHighlightStyle = lipgloss.NewStyle().
 				Background(lipgloss.Color("#a855f7")).
@@ -82,10 +80,6 @@ var (
 	StatusDisconnectedStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#f87171")).
 				Bold(true)
-
-	StatusLabelStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#3a3a5a")).
-				Faint(true)
 
 	// SectionTitleStyle kept for any callsites not yet migrated.
 	SectionTitleStyle = lipgloss.NewStyle().

@@ -87,7 +87,7 @@ func (m *RoomMembersComponent) Render() string {
 	body := title + "\n"
 
 	if len(m.members) == 0 {
-		body += styles.Grey.Render("  no members")
+		body += styles.DimText.Render("  no members")
 	} else {
 		for _, member := range m.members {
 			dot := styles.MemberOfflineStyle.Render("●")

@@ -128,12 +128,12 @@ func (r *RoomsComponent) Render() string {
 	listH := r.listHeight()
 	var listLines []string
 	if len(r.rooms) == 0 {
-		listLines = append(listLines, styles.Grey.Render("  no rooms"))
+		listLines = append(listLines, styles.DimText.Render("  no rooms"))
 	} else {
 		for i, room := range r.rooms {
 			name := room.Name
 			if room.IsOwner {
-				name += " " + styles.Grey.Render("(owner)")
+				name += " " + styles.DimText.Render("(owner)")
 			}
 			cursor := "  "
 			if room.ID == utils.DerefOrZero(r.selected) {

@@ -9,6 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
+	"github.com/srschreiber/nito-client/shellapp/clientlog"
 	"github.com/srschreiber/nito-client/shellapp/styles"
 )
 
@@ -27,6 +28,7 @@ const (
 	TabDM            HistoryTab = 2 // direct messages (routed via AppendDMHistoryMsg, not AppendHistoryMsg)
 	TabNotifications HistoryTab = 3 // server notifications
 	TabInvites       HistoryTab = 4 // interactive pending invites list
+	TabLogs          HistoryTab = 5 // client-side structured logs
 )
 
 // AppendHistoryMsg is emitted by CommandComponent when entries should be added.
@@ -92,6 +94,21 @@ type AppendDMHistoryMsg struct {
 // NewNotificationAppendMsg builds an AppendHistoryMsg targeted at the Notifications tab.
 func NewNotificationAppendMsg(text string) AppendHistoryMsg {
 	return AppendHistoryMsg{Entries: []historyEntry{{text: text, isResponse: true}}, Tab: TabNotifications}
+}
+
+// NewClientLogAppendMsg converts a clientlog.Msg into an AppendHistoryMsg for the Logs tab.
+// The level prefix is included inline so the history component needs no special rendering logic.
+func NewClientLogAppendMsg(msg clientlog.Msg) AppendHistoryMsg {
+	prefix := "[INFO] "
+	switch msg.Level {
+	case clientlog.LevelWarn:
+		prefix = "[WARN] "
+	case clientlog.LevelError:
+		prefix = "[ERROR] "
+	}
+	ts := msg.At.Format("15:04:05")
+	text := ts + " " + prefix + msg.Text
+	return AppendHistoryMsg{Entries: []historyEntry{{text: text, isResponse: true}}, Tab: TabLogs}
 }
 
 // NewDMResponseAppendMsg builds an AppendDMHistoryMsg for a message received from a DM peer.

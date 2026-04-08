@@ -127,13 +127,13 @@ func (p *InvitesPane) Render() string {
 	var lines []string
 
 	if len(p.invites) == 0 {
-		lines = append(lines, styles.Grey.Render("  no pending invites"))
+		lines = append(lines, styles.DimText.Render("  no pending invites"))
 	} else {
 		acceptBtn := styles.InviteAcceptBtnStyle.Render("Accept")
 
 		for i, inv := range p.invites {
 			cursor := "  "
-			nameStyle := styles.Grey
+			nameStyle := styles.DimText
 			selected := i == p.cursor && p.focused
 			if selected {
 				cursor = styles.CursorStyle.Render("› ")
@@ -161,7 +161,7 @@ func (p *InvitesPane) Render() string {
 
 	body := title + "\n\n" + strings.Join(lines, "\n")
 	if p.status != "" {
-		body += "\n\n" + styles.Grey.Render(p.status)
+		body += "\n\n" + styles.DimText.Render(p.status)
 	}
 
 	borderColor := styles.PanelBorderColor
