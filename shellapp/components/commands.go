@@ -58,7 +58,7 @@ type execResultMsg struct {
 }
 
 const (
-	placeholderCmd     = "Type a command... (/chat  /dms  /notifications  /invites  or wcid for all commands)"
+	placeholderCmd     = "Type a command... (/chat  /dms  /notifications  /invites  /logs  or wcid for all commands)"
 	placeholderChat    = "Chat (/cmd to return to command mode)"
 	placeholderDM      = "DMs — use .dm <user> or ↑/↓ to select a conversation"
 	placeholderInvites = "Invites (read-only — use ↑/↓ enter to accept, /cmd to leave)"
@@ -585,6 +585,7 @@ func (l *CommandComponent) handleEnter() tea.Cmd {
 		"/dms":           TabDM,
 		"/notifications": TabNotifications,
 		"/invites":       TabInvites,
+		"/logs":          TabLogs,
 	}
 	if tab, ok := tabSwitchCmds[input]; ok {
 		l.activeTab = tab
@@ -680,7 +681,7 @@ func (l *CommandComponent) ghostSuffix() string {
 		return dmHint[len(text):]
 	}
 	// Tab-switching slash commands autocomplete.
-	for _, cmd := range []string{"/chat", "/cmd", "/dms", "/notifications", "/invites"} {
+	for _, cmd := range []string{"/chat", "/cmd", "/dms", "/notifications", "/invites", "/logs"} {
 		if strings.HasPrefix(cmd, text) && text != cmd {
 			return cmd[len(text):]
 		}
@@ -727,7 +728,7 @@ func (l *CommandComponent) completionTemplate() string {
 		return dmHint
 	}
 	// Tab-switching slash commands.
-	for _, cmd := range []string{"/chat", "/cmd", "/dms", "/notifications", "/invites"} {
+	for _, cmd := range []string{"/chat", "/cmd", "/dms", "/notifications", "/invites", "/logs"} {
 		if strings.HasPrefix(cmd, text) && text != cmd {
 			return cmd
 		}

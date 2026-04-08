@@ -18,6 +18,7 @@ import (
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	"github.com/srschreiber/nito-client/shared/utils"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
+	"github.com/srschreiber/nito-client/shellapp/clientlog"
 	"github.com/srschreiber/nito-client/shellapp/keys"
 )
 
@@ -208,6 +209,7 @@ func Connect(brokerURL, userID, jwtToken string) error {
 	notifChan = nc
 
 	go readLoop(c, echoChan, roomMessageChan, dmChan, nc)
+	clientlog.Info("connected to broker %s as %s", brokerURL, userID)
 	return nil
 }
 
@@ -311,6 +313,7 @@ func NotifChan() <-chan []byte {
 }
 
 func Disconnect() {
+	clientlog.Info("disconnecting from broker")
 	mu.Lock()
 	defer mu.Unlock()
 	if conn != nil {
@@ -497,6 +500,7 @@ func SetSessionRoom(roomID string) error {
 	session.EncryptedRoomKey = &rk
 	session.RoomKeyVersion = &kv
 	session.RoomInfo = info
+	clientlog.Info("joined room %s", roomID)
 	return nil
 }
 
@@ -793,7 +797,10 @@ func AcceptInvite(roomID string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("accept invite: broker returned %s", resp.Status)
+		err := fmt.Errorf("accept invite: broker returned %s", resp.Status)
+		clientlog.Error("invite accept failed: %v", err)
+		return err
 	}
+	clientlog.Info("accepted invite to room %s", roomID)
 	return nil
 }

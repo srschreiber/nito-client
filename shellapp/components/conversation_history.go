@@ -97,18 +97,20 @@ func NewNotificationAppendMsg(text string) AppendHistoryMsg {
 }
 
 // NewClientLogAppendMsg converts a clientlog.Msg into an AppendHistoryMsg for the Logs tab.
-// The level prefix is included inline so the history component needs no special rendering logic.
+// The level prefix is colorized inline via lipgloss so the history component needs no special rendering logic.
 func NewClientLogAppendMsg(msg clientlog.Msg) AppendHistoryMsg {
-	prefix := "[INFO] "
+	var prefix string
 	switch msg.Level {
 	case clientlog.LevelWarn:
-		prefix = "[WARN] "
+		prefix = lipgloss.NewStyle().Foreground(lipgloss.Color("#facc15")).Render("[WARN]") + " "
 	case clientlog.LevelError:
-		prefix = "[ERROR] "
+		prefix = lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171")).Render("[ERROR]") + " "
+	default:
+		prefix = styles.DimText.Render("[INFO]") + " "
 	}
-	ts := msg.At.Format("15:04:05")
+	ts := styles.DimText.Render(msg.At.Format("15:04:05"))
 	text := ts + " " + prefix + msg.Text
-	return AppendHistoryMsg{Entries: []historyEntry{{text: text, isResponse: true}}, Tab: TabLogs}
+	return AppendHistoryMsg{Entries: []historyEntry{{text: text, isResponse: true, isRaw: true}}, Tab: TabLogs}
 }
 
 // NewDMResponseAppendMsg builds an AppendDMHistoryMsg for a message received from a DM peer.

@@ -88,6 +88,7 @@ func (t *ConversationTabs) SetSize(width, height int) {
 	t.dmPane.SetSize(width, innerH)
 	t.notifications.SetSize(width, innerH)
 	t.invites.SetSize(width, innerH)
+	t.logs.SetSize(width, innerH)
 }
 
 // activeComponent returns the component for the current tab.
@@ -101,6 +102,8 @@ func (t *ConversationTabs) activeComponent() Component {
 		return t.notifications
 	case TabInvites:
 		return t.invites
+	case TabLogs:
+		return t.logs
 	default:
 		return t.cmd
 	}
@@ -113,11 +116,12 @@ func (t *ConversationTabs) SetFocused(focused bool) {
 	t.dmPane.SetFocused(false)
 	t.notifications.SetFocused(false)
 	t.invites.SetFocused(false)
+	t.logs.SetFocused(false)
 	t.activeComponent().SetFocused(focused)
 }
 
 func (t *ConversationTabs) Init() tea.Cmd {
-	return tea.Batch(t.cmd.Init(), t.roomChat.Init(), t.dmPane.Init(), t.notifications.Init(), t.invites.Init())
+	return tea.Batch(t.cmd.Init(), t.roomChat.Init(), t.dmPane.Init(), t.notifications.Init(), t.invites.Init(), t.logs.Init())
 }
 
 // switchTabInternal updates the active tab and focus state without emitting messages.
@@ -128,6 +132,7 @@ func (t *ConversationTabs) switchTabInternal(newTab HistoryTab) {
 	t.dmPane.SetFocused(false)
 	t.notifications.SetFocused(false)
 	t.invites.SetFocused(false)
+	t.logs.SetFocused(false)
 	t.activeComponent().SetFocused(t.focused)
 }
 
@@ -136,7 +141,7 @@ func (t *ConversationTabs) switchTabInternal(newTab HistoryTab) {
 func (t *ConversationTabs) switchTabWithMessages(newTab HistoryTab) tea.Cmd {
 	t.switchTabInternal(newTab)
 	switch newTab {
-	case TabCmd, TabNotifications, TabInvites:
+	case TabCmd, TabNotifications, TabInvites, TabLogs:
 		return tea.Batch(
 			func() tea.Msg { return ModeChangedMsg{ChatMode: false} },
 			func() tea.Msg { return DMTargetChangedMsg{User: ""} },
@@ -168,6 +173,8 @@ func (t *ConversationTabs) CanFocus() bool {
 		return t.cmd.CanFocus()
 	case TabNotifications:
 		return t.notifications.CanFocus()
+	case TabLogs:
+		return t.logs.CanFocus()
 	case TabChat:
 		return true // rooms panel is always worth navigating
 	default:
@@ -188,12 +195,16 @@ func (t *ConversationTabs) CanConsumeTab() bool {
 
 func (t *ConversationTabs) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
+	case clientlog.Msg:
+		return t.logs.Update(NewClientLogAppendMsg(msg))
 	case AppendHistoryMsg:
 		switch msg.Tab {
 		case TabChat:
 			return t.roomChat.chat.Update(msg)
 		case TabNotifications:
 			return t.notifications.Update(msg)
+		case TabLogs:
+			return t.logs.Update(msg)
 		default: // TabCmd (and any unrecognised value)
 			return t.cmd.Update(msg)
 		}
@@ -205,7 +216,7 @@ func (t *ConversationTabs) Update(msg tea.Msg) tea.Cmd {
 		// /chat and /cmd commands drive tab switching; DM, Notifications, and Invites tabs are NOT affected.
 		if msg.ChatMode {
 			t.switchTabInternal(TabChat)
-		} else if t.active != TabDM && t.active != TabNotifications && t.active != TabInvites {
+		} else if t.active != TabDM && t.active != TabNotifications && t.active != TabInvites && t.active != TabLogs {
 			t.switchTabInternal(TabCmd)
 		}
 		return nil

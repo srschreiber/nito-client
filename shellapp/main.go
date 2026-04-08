@@ -14,6 +14,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
+	"github.com/srschreiber/nito-client/shellapp/clientlog"
 	"github.com/srschreiber/nito-client/shellapp/components"
 	"github.com/srschreiber/nito-client/shellapp/connection"
 	"github.com/srschreiber/nito-client/shellapp/keys"
@@ -345,6 +346,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		text := fmt.Sprintf("[%s]: %s", from, msg.Text)
 		notifText := fmt.Sprintf("[DM from %s]: %s", from, msg.Text)
 		toastText := from + " messaged you"
+		clientlog.Info("DM from %s: %s", from, msg.Text)
 		return m, tea.Batch(
 			func() tea.Msg { return components.NewDMResponseAppendMsg(from, text) },
 			func() tea.Msg { return components.NewNotificationAppendMsg(notifText) },
@@ -355,6 +357,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(waitNotification(), waitEcho(), waitRoomMessages(), waitDM())
 	case notificationMsg:
 		text := msg.Text
+		clientlog.Info("notification: %s", text)
 		cmds := []tea.Cmd{
 			func() tea.Msg { return components.NewNotificationAppendMsg(text) },
 			waitNotification(),
@@ -561,6 +564,7 @@ func main() {
 		startupSuccessMsg = form.successMsg
 
 		p := tea.NewProgram(initialModel())
+		clientlog.Init(func(msg any) { p.Send(msg) })
 		result, err := p.Run()
 		if err != nil {
 			fmt.Println("error:", err)

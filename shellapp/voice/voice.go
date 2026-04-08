@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -41,6 +40,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
+	"github.com/srschreiber/nito-client/shellapp/clientlog"
 	"github.com/srschreiber/nito-client/shellapp/connection"
 	"github.com/srschreiber/nito-client/shellapp/keys"
 )
@@ -56,13 +56,8 @@ const (
 	opusBufMax       = 4096
 )
 
-// DebugLog enables verbose voice-join diagnostic logging to stdout.
-const DebugLog = false
-
 func debugf(format string, args ...any) {
-	if DebugLog {
-		log.Printf(format, args...)
-	}
+	clientlog.Info(format, args...)
 }
 
 var (
@@ -366,9 +361,11 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		if err := pc.SetRemoteDescription(webrtc.SessionDescription{
 			Type: webrtc.SDPTypeAnswer, SDP: sdpAnswer,
 		}); err != nil {
+			debugf("voice: set remote desc error: %v", err)
 			Leave(roomID)
 			return fmt.Errorf("voice join: set remote desc: %w", err)
 		}
+		debugf("voice: remote description set, join complete")
 	case <-time.After(10 * time.Second):
 		Leave(roomID)
 		return fmt.Errorf("voice join: timeout waiting for broker answer")

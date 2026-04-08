@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
+	"github.com/srschreiber/nito-client/shellapp/clientlog"
 	"github.com/srschreiber/nito-client/shellapp/commands"
 	"github.com/srschreiber/nito-client/shellapp/styles"
 	"github.com/srschreiber/nito-client/shellapp/types"
@@ -178,10 +179,18 @@ func (a *RoomActionsComponent) activate() tea.Cmd {
 		joining := !a.voiceActive
 		return func() tea.Msg {
 			if joining {
+				clientlog.Info("joining voice chat")
 				err := commands.VoiceJoinDirect()
+				if err != nil {
+					clientlog.Error("voice join failed: %v", err)
+				}
 				return roomsVoiceResultMsg{joined: true, err: err}
 			}
+			clientlog.Info("leaving voice chat")
 			err := commands.VoiceLeaveDirect()
+			if err != nil {
+				clientlog.Error("voice leave failed: %v", err)
+			}
 			return roomsVoiceResultMsg{joined: false, err: err}
 		}
 	case roomActionAudio:
@@ -191,10 +200,18 @@ func (a *RoomActionsComponent) activate() tea.Cmd {
 		starting := !a.testAudioActive
 		return func() tea.Msg {
 			if starting {
+				clientlog.Info("starting test audio")
 				err := commands.VoiceTestAudioDirect()
+				if err != nil {
+					clientlog.Error("test audio start failed: %v", err)
+				}
 				return roomsTestAudioResultMsg{active: true, err: err}
 			}
+			clientlog.Info("stopping test audio")
 			err := commands.VoiceLeaveTestAudioDirect()
+			if err != nil {
+				clientlog.Error("test audio stop failed: %v", err)
+			}
 			return roomsTestAudioResultMsg{active: false, err: err}
 		}
 	}
@@ -218,10 +235,18 @@ func (a *RoomActionsComponent) submitForm() tea.Cmd {
 		var err error
 		var refresh bool
 		if mode == actionsFormCreate {
+			clientlog.Info("creating room: %s", val)
 			text, err = commands.CreateRoomDirect(val)
+			if err != nil {
+				clientlog.Error("create room failed: %v", err)
+			}
 			refresh = err == nil
 		} else {
+			clientlog.Info("inviting user: %s", val)
 			text, err = commands.InviteUserDirect(val)
+			if err != nil {
+				clientlog.Error("invite user failed: %v", err)
+			}
 		}
 		return roomsOpResultMsg{text: text, err: err, refresh: refresh}
 	}

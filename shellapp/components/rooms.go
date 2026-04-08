@@ -102,12 +102,12 @@ func (r *RoomsComponent) updateList(msg tea.KeyPressMsg) tea.Cmd {
 			room := r.rooms[r.cursor]
 			selected := room.ID
 			r.selected = &selected
-			if err := connection.SetSessionRoom(room.ID); err != nil {
-				return func() tea.Msg {
+			return func() tea.Msg {
+				if err := connection.SetSessionRoom(room.ID); err != nil {
 					return types.ErrorMsg{Message: fmt.Sprintf("Failed to select room: %v", err)}
 				}
+				return types.RoomSelectedMsg{RoomID: room.ID}
 			}
-			return func() tea.Msg { return types.RoomSelectedMsg{RoomID: room.ID} }
 		}
 	}
 	return nil

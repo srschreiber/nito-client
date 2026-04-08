@@ -122,8 +122,6 @@ func (p *InvitesPane) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (p *InvitesPane) Render() string {
-	title := styles.InvitesBadge.Render("INVITES")
-
 	var lines []string
 
 	if len(p.invites) == 0 {
@@ -159,7 +157,7 @@ func (p *InvitesPane) Render() string {
 		lines = lines[:maxLines]
 	}
 
-	body := title + "\n\n" + strings.Join(lines, "\n")
+	body := strings.Join(lines, "\n")
 	if p.status != "" {
 		body += "\n\n" + styles.DimText.Render(p.status)
 	}

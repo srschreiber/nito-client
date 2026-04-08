@@ -9,6 +9,7 @@ package clientlog
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 )
@@ -41,26 +42,37 @@ type Msg struct {
 }
 
 var (
-	mu     sync.RWMutex
-	sender func(any)
+	mu      sync.RWMutex
+	sender  func(any)
+	logFile *os.File
 )
 
 // Init registers the sender that the logger will use to forward entries to the TUI.
+// It also opens logs.txt in the current working directory for append-only writing.
 // Call this once from main after the bubbletea program is created, passing p.Send.
 func Init(s func(any)) {
 	mu.Lock()
 	sender = s
+	f, err := os.OpenFile("logs.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err == nil {
+		logFile = f
+	}
 	mu.Unlock()
 }
 
 func send(level Level, text string) {
+	now := time.Now()
 	mu.RLock()
 	s := sender
+	f := logFile
 	mu.RUnlock()
-	if s == nil {
-		return
+	if s != nil {
+		s(Msg{Level: level, Text: text, At: now})
 	}
-	s(Msg{Level: level, Text: text, At: time.Now()})
+	if f != nil {
+		line := fmt.Sprintf("%s [%s] %s\n", now.Format("15:04:05"), level, text)
+		_, _ = f.WriteString(line)
+	}
 }
 
 // Info logs an informational message.
