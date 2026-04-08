@@ -129,19 +129,15 @@ func (p *InvitesPane) Render() string {
 	if len(p.invites) == 0 {
 		lines = append(lines, styles.Grey.Render("  no pending invites"))
 	} else {
-		acceptBtn := lipgloss.NewStyle().
-			Background(lipgloss.Color("#5b21b6")).
-			Foreground(lipgloss.Color("#e9d5ff")).
-			Padding(0, 1).
-			Bold(true).
-			Render("Accept")
+		acceptBtn := styles.InviteAcceptBtnStyle.Render("Accept")
 
 		for i, inv := range p.invites {
 			cursor := "  "
 			nameStyle := styles.Grey
-			if i == p.cursor && p.focused {
+			selected := i == p.cursor && p.focused
+			if selected {
 				cursor = styles.CursorStyle.Render("› ")
-				nameStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#e2e2ff")).Bold(true)
+				nameStyle = styles.InviteSelectedItemStyle
 			}
 			name := nameStyle.Render(inv.RoomName)
 			// pad name to fill width, then place Accept on right
@@ -150,6 +146,9 @@ func (p *InvitesPane) Render() string {
 				gap = 1
 			}
 			line := cursor + name + strings.Repeat(" ", gap) + acceptBtn
+			if selected {
+				line = styles.SelectionRowStyle.Render(line)
+			}
 			lines = append(lines, line)
 		}
 	}
@@ -168,9 +167,9 @@ func (p *InvitesPane) Render() string {
 		body += "\n\n" + styles.Grey.Render(p.status)
 	}
 
-	borderColor := lipgloss.Color("#4a4a7a")
+	borderColor := styles.PanelBorderColor
 	if p.focused {
-		borderColor = lipgloss.Color("#a855f7")
+		borderColor = styles.PanelFocusedBorderColor
 	}
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).

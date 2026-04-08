@@ -363,6 +363,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, func() tea.Msg {
 				return components.ShowToastMsg{Text: "You have a new room invite — check Notifications tab"}
 			})
+			cmds = append(cmds, func() tea.Msg { return components.NewInvitesAppendMsg() })
 		}
 		return m, tea.Batch(cmds...)
 	case echoWsMsg:

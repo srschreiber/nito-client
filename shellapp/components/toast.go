@@ -7,7 +7,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	lipgloss "charm.land/lipgloss/v2"
+	"github.com/srschreiber/nito-client/shellapp/styles"
 )
 
 const toastDuration = 5 * time.Second
@@ -60,12 +60,5 @@ func (t *ToastComponent) Render() string {
 	if !t.visible {
 		return ""
 	}
-	return lipgloss.NewStyle().
-		Background(lipgloss.Color("57")).
-		Foreground(lipgloss.Color("255")).
-		Bold(true).
-		Padding(0, 2).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("213")).
-		Render("💬 " + t.text)
+	return styles.ToastStyle.Render("💬 " + t.text)
 }

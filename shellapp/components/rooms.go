@@ -359,7 +359,11 @@ func (r *RoomsComponent) Render() string {
 			if i == r.cursor && (r.area == roomsAreaList || !r.focused) {
 				cursor = styles.CursorStyle.Render("› ")
 			}
-			listLines = append(listLines, styles.ItemStyle.Render(cursor+name))
+			row := styles.ItemStyle.Render(cursor + name)
+			if i == r.cursor && r.focused {
+				row = styles.SelectionRowStyle.Render(row)
+			}
+			listLines = append(listLines, row)
 		}
 	}
 	// Clip to available height.
@@ -381,16 +385,15 @@ func (r *RoomsComponent) Render() string {
 		runes := []rune(r.formVal)
 		var fieldText string
 		if r.formCur >= len(runes) {
-			fieldText = r.formVal + lipgloss.NewStyle().
-				Background(lipgloss.Color("213")).Render(" ")
+			fieldText = r.formVal + styles.FormCursorStyle.Render(" ")
 		} else {
 			fieldText = string(runes[:r.formCur]) +
-				lipgloss.NewStyle().Background(lipgloss.Color("213")).Render(string(runes[r.formCur])) +
+				styles.FormCursorStyle.Render(string(runes[r.formCur])) +
 				string(runes[r.formCur+1:])
 		}
 		line1 = styles.Grey.Render(label) + fieldText
 		if r.formErr != "" {
-			line2 = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render(r.formErr)
+			line2 = styles.FormErrorStyle.Render(r.formErr)
 		} else {
 			line2 = styles.Grey.Render("enter  submit  •  esc  cancel")
 		}
@@ -412,9 +415,9 @@ func (r *RoomsComponent) Render() string {
 		"\n" +
 		testAudioBtn
 
-	borderColor := lipgloss.Color("#4a4a7a")
+	borderColor := styles.PanelBorderColor
 	if r.focused {
-		borderColor = lipgloss.Color("#a855f7")
+		borderColor = styles.PanelFocusedBorderColor
 	}
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -427,57 +430,40 @@ func (r *RoomsComponent) Render() string {
 }
 
 func renderRoomBtn(label string, active bool) string {
-	s := lipgloss.NewStyle().Padding(0, 1).MarginRight(1)
 	if active {
-		s = s.Background(lipgloss.Color("213")).Foreground(lipgloss.Color("0")).Bold(true)
-	} else {
-		s = s.Background(lipgloss.Color("238")).Foreground(lipgloss.Color("250"))
+		return styles.RoomBtnActiveStyle.Render(label)
 	}
-	return s.Render(label)
+	return styles.RoomBtnStyle.Render(label)
 }
 
 func renderVoiceBtn(inVoice, active, disabled bool) string {
-	var label string
-	s := lipgloss.NewStyle().Padding(0, 1).MarginRight(1)
 	if disabled {
-		return s.Background(lipgloss.Color("236")).Foreground(lipgloss.Color("240")).Render("> Join Voice")
+		return styles.BtnDisabledStyle.Render("> Join Voice")
 	}
 	if inVoice {
-		label = "* Leave Voice"
 		if active {
-			s = s.Background(lipgloss.Color("#7f1d1d")).Foreground(lipgloss.Color("#fca5a5")).Bold(true)
-		} else {
-			s = s.Background(lipgloss.Color("#450a0a")).Foreground(lipgloss.Color("#f87171"))
+			return styles.VoiceLeaveFocusedStyle.Render("* Leave Voice")
 		}
-	} else {
-		label = "> Join Voice"
-		if active {
-			s = s.Background(lipgloss.Color("213")).Foreground(lipgloss.Color("0")).Bold(true)
-		} else {
-			s = s.Background(lipgloss.Color("238")).Foreground(lipgloss.Color("250"))
-		}
+		return styles.VoiceLeaveStyle.Render("* Leave Voice")
 	}
-	return s.Render(label)
+	if active {
+		return styles.RoomBtnActiveStyle.Render("> Join Voice")
+	}
+	return styles.RoomBtnStyle.Render("> Join Voice")
 }
 
 func renderTestAudioBtn(active, focused, disabled bool) string {
-	s := lipgloss.NewStyle().Padding(0, 1).MarginRight(1)
 	if disabled {
-		return s.Background(lipgloss.Color("236")).Foreground(lipgloss.Color("240")).Render("~ Test Audio")
+		return styles.BtnDisabledStyle.Render("~ Test Audio")
 	}
 	if active {
-		label := "* Stop Test Audio"
 		if focused {
-			s = s.Background(lipgloss.Color("#7f1d1d")).Foreground(lipgloss.Color("#fca5a5")).Bold(true)
-		} else {
-			s = s.Background(lipgloss.Color("#450a0a")).Foreground(lipgloss.Color("#f87171"))
+			return styles.VoiceLeaveFocusedStyle.Render("* Stop Test Audio")
 		}
-		return s.Render(label)
+		return styles.VoiceLeaveStyle.Render("* Stop Test Audio")
 	}
 	if focused {
-		s = s.Background(lipgloss.Color("213")).Foreground(lipgloss.Color("0")).Bold(true)
-	} else {
-		s = s.Background(lipgloss.Color("238")).Foreground(lipgloss.Color("250"))
+		return styles.RoomBtnActiveStyle.Render("~ Test Audio")
 	}
-	return s.Render("~ Test Audio")
+	return styles.RoomBtnStyle.Render("~ Test Audio")
 }

@@ -83,7 +83,11 @@ func (l *ListSelectionComponent) Render() string {
 		}
 
 		row := fmt.Sprintf("%s [%s] %s", cursor, checked, choice)
-		s += styles.ItemStyle.Render(row) + "\n"
+		rendered := styles.ItemStyle.Render(row)
+		if l.FocusedElementIndex == i {
+			rendered = styles.SelectionRowStyle.Render(rendered)
+		}
+		s += rendered + "\n"
 	}
 
 	if l.focused {

@@ -89,12 +89,10 @@ func (m *RoomMembersComponent) Render() string {
 	if len(m.members) == 0 {
 		body += styles.Grey.Render("  no members")
 	} else {
-		onlineStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#4ade80"))
-		offlineStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171"))
 		for _, member := range m.members {
-			dot := offlineStyle.Render("●")
+			dot := styles.MemberOfflineStyle.Render("●")
 			if member.Online {
-				dot = onlineStyle.Render("●")
+				dot = styles.MemberOnlineStyle.Render("●")
 			}
 			body += styles.ItemStyle.Render(dot+" "+member.Username) + "\n"
 		}
@@ -102,7 +100,7 @@ func (m *RoomMembersComponent) Render() string {
 
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#4a4a7a")).
+		BorderForeground(styles.PanelBorderColor).
 		Background(styles.ComponentBg).
 		Padding(0, 1).
 		Width(m.width).

@@ -180,9 +180,9 @@ func (p *DMPane) Render() string {
 }
 
 func (p *DMPane) renderUserList() string {
-	borderColor := lipgloss.Color("238")
+	borderColor := styles.DMListBorderColor
 	if p.focused && !p.historyFocused {
-		borderColor = lipgloss.Color("213")
+		borderColor = styles.DMListFocusedBorderColor
 	}
 
 	title := styles.DMsBadge.Render("DMS")
@@ -194,12 +194,11 @@ func (p *DMPane) renderUserList() string {
 		rows = append(rows, styles.DimText.Render(".dm <user> to start"))
 	} else {
 		for i, user := range p.users {
-			line := user
+			var line string
 			if i == p.cursor {
-				line = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("213")).
-					Bold(true).
-					Render(fmt.Sprintf("> %s", user))
+				line = styles.SelectionRowStyle.Render(
+					styles.DMSelectedUserStyle.Render(fmt.Sprintf("> %s", user)),
+				)
 			} else {
 				line = styles.DimText.Render(fmt.Sprintf("  %s", user))
 			}
@@ -224,7 +223,7 @@ func (p *DMPane) renderHistory() string {
 		hint := styles.DimText.Render("Use .dm <username> or dm -u <username> to start a conversation.")
 		style := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#4a4a7a")).
+			BorderForeground(styles.PanelBorderColor).
 			Background(styles.ComponentBg).
 			Padding(0, 1).
 			Width(histW).
@@ -237,7 +236,7 @@ func (p *DMPane) renderHistory() string {
 	if h == nil {
 		style := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#4a4a7a")).
+			BorderForeground(styles.PanelBorderColor).
 			Background(styles.ComponentBg).
 			Padding(0, 1).
 			Width(histW).

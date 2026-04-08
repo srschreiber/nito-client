@@ -323,9 +323,9 @@ func (h *ConversationHistory) Render() string {
 		rows = append(rows, styles.LineStyle.Render(fmt.Sprintf("L%d/%d  (jump -L <n> to navigate)", end, total)))
 	}
 
-	borderColor := lipgloss.Color("#4a4a7a")
+	borderColor := styles.PanelBorderColor
 	if h.focused {
-		borderColor = lipgloss.Color("#a855f7")
+		borderColor = styles.PanelFocusedBorderColor
 	}
 	style := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).

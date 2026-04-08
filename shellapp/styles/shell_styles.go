@@ -127,4 +127,108 @@ var (
 			Foreground(lipgloss.Color("#fbcfe8")).
 			Bold(true).
 			Padding(0, 1)
+
+	// --- Shared border colors for rounded-border panels ---
+
+	// PanelBorderColor is the unfocused border for all rounded side panels.
+	PanelBorderColor = lipgloss.Color("#4a4a7a")
+	// PanelFocusedBorderColor is the focused border for all rounded side panels.
+	PanelFocusedBorderColor = lipgloss.Color("#a855f7")
+	// DMListBorderColor is the unfocused border for the DM user-list panel.
+	DMListBorderColor = lipgloss.Color("238")
+	// DMListFocusedBorderColor is the focused border for the DM user-list panel.
+	DMListFocusedBorderColor = lipgloss.Color("213")
+
+	// --- List selection ---
+
+	// SelectionRowStyle is a subtle background highlight for the focused row in any list.
+	SelectionRowStyle = lipgloss.NewStyle().Background(lipgloss.Color("#181b2e"))
+
+	// InviteAcceptBtnStyle is the "Accept" button in the invites pane.
+	InviteAcceptBtnStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color("#5b21b6")).
+				Foreground(lipgloss.Color("#e9d5ff")).
+				Padding(0, 1).
+				Bold(true)
+
+	// InviteSelectedItemStyle is applied to the room name on the focused invite row.
+	InviteSelectedItemStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#e2e2ff")).
+				Bold(true)
+
+	// DMSelectedUserStyle is applied to the selected username in the DM user list.
+	DMSelectedUserStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("213")).
+				Bold(true)
+
+	// --- Room action buttons ---
+
+	// RoomBtnActiveStyle is a room action button with keyboard focus.
+	RoomBtnActiveStyle = lipgloss.NewStyle().
+				Padding(0, 1).
+				MarginRight(1).
+				Background(lipgloss.Color("213")).
+				Foreground(lipgloss.Color("0")).
+				Bold(true)
+
+	// RoomBtnStyle is a room action button without keyboard focus.
+	RoomBtnStyle = lipgloss.NewStyle().
+			Padding(0, 1).
+			MarginRight(1).
+			Background(lipgloss.Color("238")).
+			Foreground(lipgloss.Color("250"))
+
+	// BtnDisabledStyle is a disabled action button.
+	BtnDisabledStyle = lipgloss.NewStyle().
+				Padding(0, 1).
+				MarginRight(1).
+				Background(lipgloss.Color("236")).
+				Foreground(lipgloss.Color("240"))
+
+	// VoiceLeaveFocusedStyle is the "Leave Voice / Stop Test Audio" button when focused.
+	VoiceLeaveFocusedStyle = lipgloss.NewStyle().
+				Padding(0, 1).
+				MarginRight(1).
+				Background(lipgloss.Color("#7f1d1d")).
+				Foreground(lipgloss.Color("#fca5a5")).
+				Bold(true)
+
+	// VoiceLeaveStyle is the "Leave Voice / Stop Test Audio" button when unfocused.
+	VoiceLeaveStyle = lipgloss.NewStyle().
+			Padding(0, 1).
+			MarginRight(1).
+			Background(lipgloss.Color("#450a0a")).
+			Foreground(lipgloss.Color("#f87171"))
+
+	// --- Inline form fields ---
+
+	// FormCursorStyle highlights the character under the cursor in inline form fields.
+	FormCursorStyle = lipgloss.NewStyle().Background(lipgloss.Color("213"))
+
+	// FormErrorStyle renders inline form validation errors.
+	FormErrorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+
+	// --- Room members ---
+
+	// MemberOnlineStyle renders the online presence dot.
+	MemberOnlineStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#4ade80"))
+
+	// MemberOfflineStyle renders the offline presence dot.
+	MemberOfflineStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171"))
+
+	// --- Hints panel ---
+
+	// HintKeyStyle renders keyboard shortcut key labels.
+	HintKeyStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("222")).Bold(true)
+
+	// --- Toast ---
+
+	// ToastStyle is the floating notification popup.
+	ToastStyle = lipgloss.NewStyle().
+			Background(lipgloss.Color("57")).
+			Foreground(lipgloss.Color("255")).
+			Bold(true).
+			Padding(0, 2).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("213"))
 )

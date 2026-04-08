@@ -55,7 +55,7 @@ func (h *HintsComponent) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (h *HintsComponent) Render() string {
-	k := lipgloss.NewStyle().Foreground(lipgloss.Color("222")).Bold(true)
+	k := styles.HintKeyStyle
 	d := styles.DimText
 	sep := d.Render("  •  ")
 
@@ -122,7 +122,7 @@ func (h *HintsComponent) Render() string {
 
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#4a4a7a")).
+		BorderForeground(styles.PanelBorderColor).
 		Background(styles.ComponentBg).
 		Padding(0, 1).
 		Width(h.width).

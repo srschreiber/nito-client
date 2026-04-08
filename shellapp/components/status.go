@@ -75,9 +75,9 @@ func (s *StatusComponent) Render() string {
 
 	body := label + "\n" + statusLine
 
-	borderColor := lipgloss.Color("#4a4a7a")
+	borderColor := styles.PanelBorderColor
 	if s.focused {
-		borderColor = lipgloss.Color("#a855f7")
+		borderColor = styles.PanelFocusedBorderColor
 	}
 	style := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
