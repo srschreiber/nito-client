@@ -136,8 +136,10 @@ func (t *ConversationTabs) switchTabInternal(newTab HistoryTab) {
 	t.activeComponent().SetFocused(t.focused)
 }
 
-// switchTabWithMessages switches the active tab and returns mode-change commands
-// so that CommandComponent and HintsComponent stay in sync.
+// switchTabWithMessages switches the active tab and emits ModeChangedMsg / DMTargetChangedMsg
+// so that CommandComponent and HintsComponent stay in sync with the new tab's input mode.
+// ConversationTabs itself does NOT react to ModeChangedMsg — tab switching is driven solely
+// by SwitchTabMsg (from CommandComponent slash commands) or directly via arrow keys here.
 func (t *ConversationTabs) switchTabWithMessages(newTab HistoryTab) tea.Cmd {
 	t.switchTabInternal(newTab)
 	switch newTab {
@@ -212,14 +214,6 @@ func (t *ConversationTabs) Update(msg tea.Msg) tea.Cmd {
 		return t.dmPane.Update(msg)
 	case ClearHistoryMsg:
 		return t.cmd.Update(msg)
-	case ModeChangedMsg:
-		// /chat and /cmd commands drive tab switching; DM, Notifications, and Invites tabs are NOT affected.
-		if msg.ChatMode {
-			t.switchTabInternal(TabChat)
-		} else if t.active != TabDM && t.active != TabNotifications && t.active != TabInvites && t.active != TabLogs {
-			t.switchTabInternal(TabCmd)
-		}
-		return nil
 	case SwitchTabMsg:
 		return t.switchTabWithMessages(msg.Tab)
 	case StartDMMsg:

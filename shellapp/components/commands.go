@@ -561,6 +561,7 @@ func (l *CommandComponent) handleEnter() tea.Cmd {
 					{text: "Switched to chat mode. Type messages and press enter to send.", isResponse: true},
 				}}
 			},
+			func() tea.Msg { return SwitchTabMsg{Tab: TabChat} },
 			func() tea.Msg { return ModeChangedMsg{ChatMode: true} },
 		)
 	}
@@ -576,6 +577,7 @@ func (l *CommandComponent) handleEnter() tea.Cmd {
 					{text: "Switched to command mode.", isResponse: true},
 				}}
 			},
+			func() tea.Msg { return SwitchTabMsg{Tab: TabCmd} },
 			func() tea.Msg { return ModeChangedMsg{ChatMode: false} },
 		)
 	}
