@@ -18,6 +18,9 @@ import (
 const invitesPollInterval = 30 * time.Second
 
 type invitesPollMsg struct{}
+type invitesAppendMsg struct{}
+
+func NewInvitesAppendMsg() tea.Msg { return invitesAppendMsg{} }
 
 type invitesFetchedMsg struct {
 	invites []apitypes.PendingInvite
@@ -83,6 +86,9 @@ func (p *InvitesPane) Update(msg tea.Msg) tea.Cmd {
 				p.cursor = max(0, len(p.invites)-1)
 			}
 		}
+	case invitesAppendMsg:
+		// for reactively responding to notification
+		return p.fetch()
 	case invitesAcceptResultMsg:
 		if msg.err != nil {
 			p.status = "error: " + msg.err.Error()
