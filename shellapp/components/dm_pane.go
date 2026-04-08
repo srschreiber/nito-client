@@ -196,9 +196,7 @@ func (p *DMPane) renderUserList() string {
 		for i, user := range p.users {
 			var line string
 			if i == p.cursor {
-				line = styles.SelectionRowStyle.Render(
-					styles.DMSelectedUserStyle.Render(fmt.Sprintf("> %s", user)),
-				)
+				line = styles.DMSelectedUserStyle.Render(fmt.Sprintf("> %s", user))
 			} else {
 				line = styles.DimText.Render(fmt.Sprintf("  %s", user))
 			}
@@ -206,10 +204,14 @@ func (p *DMPane) renderUserList() string {
 		}
 	}
 
+	bg := styles.ComponentBg
+	if p.focused && !p.historyFocused {
+		bg = styles.ComponentFocusedBg
+	}
 	style := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
-		Background(styles.ComponentBg).
+		Background(bg).
 		Padding(0, 1).
 		Width(userListInnerW).
 		Height(p.height)

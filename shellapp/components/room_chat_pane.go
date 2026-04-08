@@ -17,14 +17,15 @@ const roomsChatPanelOuterW = 32
 // in a side-by-side layout. Tab cycles: rooms list → Create btn → Invite btn →
 // chat history → rooms list.
 type RoomChatPane struct {
-	chat        *ConversationHistory
-	rooms       *RoomsComponent
-	members     *RoomMembersComponent
-	width       int
-	height      int
-	focused     bool
-	histFocused bool // when true, chat history has sub-focus; otherwise rooms has it
-	showMembers bool
+	chat          *ConversationHistory
+	rooms         *RoomsComponent
+	members       *RoomMembersComponent
+	width         int
+	height        int
+	focused       bool
+	histFocused   bool // when true, chat history has sub-focus; otherwise rooms has it
+	showMembers   bool
+	cycleComplete bool // set when internal tab cycle finishes without being able to focus history
 }
 
 func NewRoomChatPane(width, height int) *RoomChatPane {
@@ -83,6 +84,7 @@ func (p *RoomChatPane) resizeChildren() {
 
 func (p *RoomChatPane) SetFocused(focused bool) {
 	p.focused = focused
+	p.cycleComplete = false
 	if !focused {
 		p.histFocused = false
 		p.rooms.SetFocused(false)
@@ -100,7 +102,12 @@ func (p *RoomChatPane) SetFocused(focused bool) {
 // (rooms list → Create → Invite → Voice → TestAudio). Returns false when chat history
 // is the active sub-focus, signalling the outer handler to advance to the next top-level component.
 func (p *RoomChatPane) CanConsumeTab() bool {
-	return !p.histFocused
+	return !p.histFocused && !p.cycleComplete
+}
+
+// CanFocus reports whether the chat history pane has scrollable content.
+func (p *RoomChatPane) CanFocus() bool {
+	return p.chat.CanFocus()
 }
 
 func (p *RoomChatPane) Init() tea.Cmd {
@@ -171,11 +178,15 @@ func (p *RoomChatPane) handleTab() tea.Cmd {
 	case roomsAreaVoiceBtn:
 		p.rooms.area = roomsAreaTestAudioBtn
 	default:
-		// testAudioBtn (or form) → switch to history
+		// testAudioBtn (or form) → switch to history only if it has scrollable content
 		p.rooms.area = roomsAreaList
-		p.rooms.SetFocused(false)
-		p.histFocused = true
-		p.chat.SetFocused(true)
+		if p.chat.CanFocus() {
+			p.rooms.SetFocused(false)
+			p.histFocused = true
+			p.chat.SetFocused(true)
+		} else {
+			p.cycleComplete = true
+		}
 	}
 	return nil
 }

@@ -146,9 +146,6 @@ func (p *InvitesPane) Render() string {
 				gap = 1
 			}
 			line := cursor + name + strings.Repeat(" ", gap) + acceptBtn
-			if selected {
-				line = styles.SelectionRowStyle.Render(line)
-			}
 			lines = append(lines, line)
 		}
 	}
@@ -168,13 +165,15 @@ func (p *InvitesPane) Render() string {
 	}
 
 	borderColor := styles.PanelBorderColor
+	bg := styles.ComponentBg
 	if p.focused {
 		borderColor = styles.PanelFocusedBorderColor
+		bg = styles.ComponentFocusedBg
 	}
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
-		Background(styles.ComponentBg).
+		Background(bg).
 		Padding(0, 1).
 		Width(p.width).
 		Height(p.height).

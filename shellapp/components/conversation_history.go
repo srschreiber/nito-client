@@ -129,6 +129,13 @@ func (h *ConversationHistory) SetFocused(focused bool) {
 	h.focused = focused
 }
 
+// CanFocus reports whether focusing this history pane is useful.
+// Returns true if already focused (e.g. after a resize) or if there is
+// overflow content the user can scroll through.
+func (h *ConversationHistory) CanFocus() bool {
+	return h.focused || len(h.allLines()) > h.contentBudget()
+}
+
 // textWidth is the usable text column width inside the border and padding.
 // The style uses Padding(0,1) so each horizontal side consumes 1 column.
 func (h *ConversationHistory) textWidth() int {
@@ -324,13 +331,15 @@ func (h *ConversationHistory) Render() string {
 	}
 
 	borderColor := styles.PanelBorderColor
+	bg := styles.ComponentBg
 	if h.focused {
 		borderColor = styles.PanelFocusedBorderColor
+		bg = styles.ComponentFocusedBg
 	}
 	style := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
-		Background(styles.ComponentBg).
+		Background(bg).
 		Padding(0, 1).
 		Width(h.width).
 		Height(h.height)

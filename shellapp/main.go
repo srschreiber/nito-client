@@ -405,16 +405,38 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
+		case "/":
+			// Always focus the command component on /; don't type the character.
+			if m.comps[m.focusable[m.focusedComponent]] != m.command {
+				m.comps[m.focusable[m.focusedComponent]].SetFocused(false)
+				for i, fi := range m.focusable {
+					if m.comps[fi] == m.command {
+						m.focusedComponent = i
+						break
+					}
+				}
+				m.comps[m.focusable[m.focusedComponent]].SetFocused(true)
+				m.hints.SetFocusedComp(m.focusable[m.focusedComponent])
+				return m, nil
+			}
+			return m, m.comps[m.focusable[m.focusedComponent]].Update(msg)
+		case "left", "right":
+			// Always route left/right to history for tab switching regardless of focus.
+			return m, m.history.Update(msg)
 		case "tab":
 			if m.command.HasSuggestion() {
 				return m, m.comps[m.focusable[m.focusedComponent]].Update(msg)
 			}
-			// When the DM tab is active, let it consume tab for internal sub-focus cycling.
+			// Let history consume tab for internal sub-focus cycling (rooms → buttons → history).
 			if m.history.CanConsumeTab() {
 				return m, m.history.Update(msg)
 			}
 			m.comps[m.focusable[m.focusedComponent]].SetFocused(false)
 			m.focusedComponent = (m.focusedComponent + 1) % len(m.focusable)
+			// Skip history if the active tab has no scrollable content to focus.
+			if m.comps[m.focusable[m.focusedComponent]] == m.history && !m.history.CanFocus() {
+				m.focusedComponent = (m.focusedComponent + 1) % len(m.focusable)
+			}
 			m.comps[m.focusable[m.focusedComponent]].SetFocused(true)
 			m.hints.SetFocusedComp(m.focusable[m.focusedComponent])
 			return m, nil
@@ -444,7 +466,7 @@ func (m model) View() tea.View {
 	topRow := lipgloss.JoinHorizontal(lipgloss.Top, m.history.Render(), rightCol)
 	s := topRow + "\n" + m.command.Render()
 
-	helpText := styles.HelpStyle.Render("  tab  switch focus  •  ctrl+c  quit")
+	helpText := styles.HelpStyle.Render("  tab  switch focus  •  /  focus cmd  •  ctrl+c  quit")
 	if m.toast.Visible() {
 		toastStr := m.toast.Render()
 		usableW := m.termW - appPaddingW

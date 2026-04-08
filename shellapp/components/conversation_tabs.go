@@ -144,6 +144,24 @@ func (t *ConversationTabs) switchTabWithMessages(newTab HistoryTab) tea.Cmd {
 // internal sub-focus cycling rather than letting the outer focus cycle run.
 // For TabChat this delegates to RoomChatPane so tab bubbles up once we reach
 // the end of the internal cycle (depth-first: last child → next sibling).
+// CanFocus reports whether the currently active tab can usefully receive focus.
+// CMD, Chat, and Notifications tabs require scrollable overflow; DM and Invites
+// are always focusable (DM for user-list navigation, Invites for accepting).
+func (t *ConversationTabs) CanFocus() bool {
+	switch t.active {
+	case TabDM, TabInvites:
+		return true
+	case TabCmd:
+		return t.cmd.CanFocus()
+	case TabNotifications:
+		return t.notifications.CanFocus()
+	case TabChat:
+		return true // rooms panel is always worth navigating
+	default:
+		return true
+	}
+}
+
 func (t *ConversationTabs) CanConsumeTab() bool {
 	if t.active == TabDM && t.focused && t.dmPane.activeHistory() != nil {
 		// Only consume when history isn't yet focused; once it is, bubble out to the outer cycle.

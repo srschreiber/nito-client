@@ -8,8 +8,9 @@ import lipgloss "charm.land/lipgloss/v2"
 // Dark synthwave palette
 var (
 	// Background fills used inside component boxes.
-	ComponentBg = lipgloss.Color("#0d0f1a")
-	PanelBg     = lipgloss.Color("#111320")
+	ComponentBg        = lipgloss.Color("#0d0f1a")
+	ComponentFocusedBg = lipgloss.Color("#0f1120")
+	PanelBg            = lipgloss.Color("#111320")
 
 	AppStyle = lipgloss.NewStyle().
 			Padding(1, 2)
@@ -142,7 +143,7 @@ var (
 	// --- List selection ---
 
 	// SelectionRowStyle is a subtle background highlight for the focused row in any list.
-	SelectionRowStyle = lipgloss.NewStyle().Background(lipgloss.Color("#181b2e"))
+	SelectionRowStyle = lipgloss.NewStyle().Background(lipgloss.Color("#1e2235"))
 
 	// InviteAcceptBtnStyle is the "Accept" button in the invites pane.
 	InviteAcceptBtnStyle = lipgloss.NewStyle().

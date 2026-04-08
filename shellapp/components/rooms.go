@@ -354,16 +354,12 @@ func (r *RoomsComponent) Render() string {
 			}
 			cursor := "  "
 			if room.ID == utils.DerefOrZero(r.selected) {
-				name = fmt.Sprintf("%s %s", name, styles.SelectedStyle.Render("✓"))
+				name = fmt.Sprintf("%s %s", name, styles.SelectedStyle.Render("◆"))
 			}
-			if i == r.cursor && (r.area == roomsAreaList || !r.focused) {
-				cursor = styles.CursorStyle.Render("› ")
+			if i == r.cursor && r.focused && r.area == roomsAreaList {
+				cursor = styles.CursorStyle.Render("▶ ")
 			}
-			row := styles.ItemStyle.Render(cursor + name)
-			if i == r.cursor && r.focused {
-				row = styles.SelectionRowStyle.Render(row)
-			}
-			listLines = append(listLines, row)
+			listLines = append(listLines, styles.ItemStyle.Render(cursor+name))
 		}
 	}
 	// Clip to available height.
@@ -416,13 +412,15 @@ func (r *RoomsComponent) Render() string {
 		testAudioBtn
 
 	borderColor := styles.PanelBorderColor
+	bg := styles.ComponentBg
 	if r.focused {
 		borderColor = styles.PanelFocusedBorderColor
+		bg = styles.ComponentFocusedBg
 	}
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
-		Background(styles.ComponentBg).
+		Background(bg).
 		Padding(0, 1).
 		Width(r.width).
 		Height(r.height).
