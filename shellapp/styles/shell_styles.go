@@ -9,7 +9,7 @@ import lipgloss "charm.land/lipgloss/v2"
 var (
 	// Background fills used inside component boxes.
 	ComponentBg        = lipgloss.Color("#0d0f1a")
-	ComponentFocusedBg = lipgloss.Color("#0f1120")
+	ComponentFocusedBg = lipgloss.Color("#161928")
 	PanelBg            = lipgloss.Color("#111320")
 
 	AppStyle = lipgloss.NewStyle().
@@ -126,6 +126,13 @@ var (
 	InvitesBadge = lipgloss.NewStyle().
 			Background(lipgloss.Color("#831843")).
 			Foreground(lipgloss.Color("#fbcfe8")).
+			Bold(true).
+			Padding(0, 1)
+
+	// RoomOpsBadge is the label badge for the room actions panel.
+	RoomOpsBadge = lipgloss.NewStyle().
+			Background(lipgloss.Color("#7f1d1d")).
+			Foreground(lipgloss.Color("#fca5a5")).
 			Bold(true).
 			Padding(0, 1)
 

@@ -72,7 +72,6 @@ func (h *HintsComponent) Render() string {
 			lines = []string{
 				k.Render("←/→") + d.Render("  switch tabs"),
 				k.Render("↑/↓") + d.Render(" / ") + k.Render("ctrl+p/n") + d.Render("  scroll"),
-				k.Render("jump -L <n>") + d.Render("  go to line"),
 			}
 		}
 	default: // command (idx 2)
@@ -95,6 +94,7 @@ func (h *HintsComponent) Render() string {
 				styles.KeysBadge.Render("COMMANDS"),
 				k.Render(".image") + d.Render(" <file> [-h <height>]"),
 				k.Render(".dm") + d.Render(" <user>"),
+				k.Render(".jump") + d.Render(" <line>"),
 			}
 		} else {
 			lines = []string{

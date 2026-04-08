@@ -12,49 +12,12 @@ import (
 	lipgloss "charm.land/lipgloss/v2"
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	"github.com/srschreiber/nito-client/shared/utils"
-	"github.com/srschreiber/nito-client/shellapp/commands"
 	"github.com/srschreiber/nito-client/shellapp/connection"
 	"github.com/srschreiber/nito-client/shellapp/styles"
 	"github.com/srschreiber/nito-client/shellapp/types"
 )
 
 type roomsPollMsg struct{}
-
-type roomsOpResultMsg struct {
-	text string
-	err  error
-	// refresh signals rooms list should be re-fetched after this op.
-	refresh bool
-}
-
-type roomsVoiceResultMsg struct {
-	joined bool
-	err    error
-}
-
-type roomsTestAudioResultMsg struct {
-	active bool
-	err    error
-}
-
-// roomsArea tracks which part of the component has focus.
-type roomsArea int
-
-const (
-	roomsAreaList         roomsArea = iota // navigating room list
-	roomsAreaCreateBtn                     // Create button highlighted
-	roomsAreaInviteBtn                     // Invite button highlighted
-	roomsAreaForm                          // text input for create/invite
-	roomsAreaVoiceBtn                      // Voice Chat button highlighted
-	roomsAreaTestAudioBtn                  // Test Audio button highlighted
-)
-
-type roomsFormMode int
-
-const (
-	roomsFormCreate roomsFormMode = iota
-	roomsFormInvite
-)
 
 type RoomsComponent struct {
 	rooms    []apitypes.RoomEntry
@@ -63,14 +26,6 @@ type RoomsComponent struct {
 	focused  bool
 	width    int
 	height   int
-
-	area            roomsArea
-	formMode        roomsFormMode
-	formVal         string
-	formCur         int
-	formErr         string
-	voiceActive     bool // true when currently in voice chat
-	testAudioActive bool // true when loopback audio test is running
 }
 
 func NewRoomsComponent(width, height int) *RoomsComponent {
@@ -84,13 +39,6 @@ func (r *RoomsComponent) SetSize(width, height int) {
 
 func (r *RoomsComponent) SetFocused(focused bool) {
 	r.focused = focused
-	if !focused {
-		// reset to list area when focus leaves
-		r.area = roomsAreaList
-		r.formVal = ""
-		r.formCur = 0
-		r.formErr = ""
-	}
 }
 
 func (r *RoomsComponent) Init() tea.Cmd {
@@ -113,32 +61,6 @@ func (r *RoomsComponent) fetch() tea.Cmd {
 	}
 }
 
-func (r *RoomsComponent) submitForm() tea.Cmd {
-	val := strings.TrimSpace(r.formVal)
-	if val == "" {
-		if r.formMode == roomsFormCreate {
-			r.formErr = "room name required"
-		} else {
-			r.formErr = "username required"
-		}
-		return nil
-	}
-	r.formErr = ""
-	mode := r.formMode
-	return func() tea.Msg {
-		var text string
-		var err error
-		var refresh bool
-		if mode == roomsFormCreate {
-			text, err = commands.CreateRoomDirect(val)
-			refresh = err == nil
-		} else {
-			text, err = commands.InviteUserDirect(val)
-		}
-		return roomsOpResultMsg{text: text, err: err, refresh: refresh}
-	}
-}
-
 func (r *RoomsComponent) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case roomsPollMsg:
@@ -156,54 +78,11 @@ func (r *RoomsComponent) Update(msg tea.Msg) tea.Cmd {
 		}
 	case types.RoomSelectedMsg:
 		r.selected = &msg.RoomID
-	case roomsOpResultMsg:
-		r.formVal = ""
-		r.formCur = 0
-		r.formErr = ""
-		r.area = roomsAreaList
-		text := msg.text
-		if msg.err != nil {
-			text = "error: " + msg.err.Error()
-		}
-		if msg.refresh {
-			return tea.Batch(r.fetch(), func() tea.Msg { return NewChatResponseAppendMsg(text) })
-		}
-		return func() tea.Msg { return NewChatResponseAppendMsg(text) }
-	case roomsVoiceResultMsg:
-		if msg.err != nil {
-			errText := "voice: " + msg.err.Error()
-			return func() tea.Msg { return NewChatResponseAppendMsg(errText) }
-		}
-		r.voiceActive = msg.joined
-		action := "joined voice chat"
-		if !msg.joined {
-			action = "left voice chat"
-		}
-		return func() tea.Msg { return NewChatResponseAppendMsg(action) }
-
-	case roomsTestAudioResultMsg:
-		if msg.err != nil {
-			return func() tea.Msg { return NewChatResponseAppendMsg("test audio: " + msg.err.Error()) }
-		}
-		r.testAudioActive = msg.active
-		action := "test audio started"
-		if !msg.active {
-			action = "test audio stopped"
-		}
-		return func() tea.Msg { return NewChatResponseAppendMsg(action) }
-
 	case tea.KeyPressMsg:
 		if !r.focused {
 			return nil
 		}
-		switch r.area {
-		case roomsAreaList:
-			return r.updateList(msg)
-		case roomsAreaCreateBtn, roomsAreaInviteBtn, roomsAreaVoiceBtn, roomsAreaTestAudioBtn:
-			return r.updateButtons(msg)
-		case roomsAreaForm:
-			return r.updateForm(msg)
-		}
+		return r.updateList(msg)
 	}
 	return nil
 }
@@ -230,108 +109,13 @@ func (r *RoomsComponent) updateList(msg tea.KeyPressMsg) tea.Cmd {
 			}
 			return func() tea.Msg { return types.RoomSelectedMsg{RoomID: room.ID} }
 		}
-	case "tab":
-		r.area = roomsAreaCreateBtn
-		r.formErr = ""
 	}
 	return nil
 }
 
-func (r *RoomsComponent) updateButtons(msg tea.KeyPressMsg) tea.Cmd {
-	switch msg.String() {
-	case "esc":
-		r.area = roomsAreaList
-	case "enter", " ":
-		switch r.area {
-		case roomsAreaVoiceBtn:
-			if r.testAudioActive {
-				return nil // mutually exclusive with test audio
-			}
-			joining := !r.voiceActive
-			return func() tea.Msg {
-				if joining {
-					err := commands.VoiceJoinDirect()
-					return roomsVoiceResultMsg{joined: true, err: err}
-				}
-				err := commands.VoiceLeaveDirect()
-				return roomsVoiceResultMsg{joined: false, err: err}
-			}
-		case roomsAreaTestAudioBtn:
-			if r.voiceActive {
-				return nil // mutually exclusive with voice chat
-			}
-			starting := !r.testAudioActive
-			return func() tea.Msg {
-				if starting {
-					err := commands.VoiceTestAudioDirect()
-					return roomsTestAudioResultMsg{active: true, err: err}
-				}
-				err := commands.VoiceLeaveTestAudioDirect()
-				return roomsTestAudioResultMsg{active: false, err: err}
-			}
-		case roomsAreaCreateBtn:
-			r.formMode = roomsFormCreate
-			r.formVal = ""
-			r.formCur = 0
-			r.formErr = ""
-			r.area = roomsAreaForm
-		case roomsAreaInviteBtn:
-			r.formMode = roomsFormInvite
-			r.formVal = ""
-			r.formCur = 0
-			r.formErr = ""
-			r.area = roomsAreaForm
-		}
-	}
-	return nil
-}
-
-func (r *RoomsComponent) updateForm(msg tea.KeyPressMsg) tea.Cmd {
-	switch msg.String() {
-	case "esc":
-		r.area = roomsAreaCreateBtn
-		if r.formMode == roomsFormInvite {
-			r.area = roomsAreaInviteBtn
-		}
-		r.formErr = ""
-		return nil
-	case "enter":
-		return r.submitForm()
-	case "backspace":
-		runes := []rune(r.formVal)
-		if r.formCur > 0 {
-			r.formVal = string(append(runes[:r.formCur-1], runes[r.formCur:]...))
-			r.formCur--
-		}
-	case "left", "ctrl+b":
-		if r.formCur > 0 {
-			r.formCur--
-		}
-	case "right", "ctrl+f":
-		if r.formCur < len([]rune(r.formVal)) {
-			r.formCur++
-		}
-	case "ctrl+a":
-		r.formCur = 0
-	case "ctrl+e":
-		r.formCur = len([]rune(r.formVal))
-	default:
-		text := msg.Key().Text
-		if text != "" {
-			runes := []rune(r.formVal)
-			r.formVal = string(runes[:r.formCur]) + text + string(runes[r.formCur:])
-			r.formCur += len([]rune(text))
-			r.formErr = ""
-		}
-	}
-	return nil
-}
-
-// listHeight returns the number of lines available for the room list.
-// Reserved: title(1) + two lines used by buttons or the inline form(2) = 3.
+// listHeight returns the number of content lines available for the room list.
 func (r *RoomsComponent) listHeight() int {
-	reserved := 12
-	h := r.height - reserved
+	h := r.height - 3 // outer border(2) + title(1)
 	if h < 1 {
 		h = 1
 	}
@@ -341,7 +125,6 @@ func (r *RoomsComponent) listHeight() int {
 func (r *RoomsComponent) Render() string {
 	title := styles.RoomsBadge.Render("ROOMS")
 
-	// Room list.
 	listH := r.listHeight()
 	var listLines []string
 	if len(r.rooms) == 0 {
@@ -356,60 +139,20 @@ func (r *RoomsComponent) Render() string {
 			if room.ID == utils.DerefOrZero(r.selected) {
 				name = fmt.Sprintf("%s %s", name, styles.SelectedStyle.Render("◆"))
 			}
-			if i == r.cursor && r.focused && r.area == roomsAreaList {
+			if i == r.cursor && r.focused {
 				cursor = styles.CursorStyle.Render("▶ ")
 			}
 			listLines = append(listLines, styles.ItemStyle.Render(cursor+name))
 		}
 	}
-	// Clip to available height.
 	if len(listLines) > listH {
 		listLines = listLines[len(listLines)-listH:]
 	}
-	// Pad to keep layout stable.
 	for len(listLines) < listH {
 		listLines = append(listLines, "")
 	}
 
-	// Two lines below the list: either buttons or the active form.
-	var line1, line2 string
-	if r.area == roomsAreaForm {
-		label := "Room name: "
-		if r.formMode == roomsFormInvite {
-			label = "Username:  "
-		}
-		runes := []rune(r.formVal)
-		var fieldText string
-		if r.formCur >= len(runes) {
-			fieldText = r.formVal + styles.FormCursorStyle.Render(" ")
-		} else {
-			fieldText = string(runes[:r.formCur]) +
-				styles.FormCursorStyle.Render(string(runes[r.formCur])) +
-				string(runes[r.formCur+1:])
-		}
-		line1 = styles.Grey.Render(label) + fieldText
-		if r.formErr != "" {
-			line2 = styles.FormErrorStyle.Render(r.formErr)
-		} else {
-			line2 = styles.Grey.Render("enter  submit  •  esc  cancel")
-		}
-	} else {
-		line1 = renderRoomBtn("+ Create", r.focused && r.area == roomsAreaCreateBtn)
-		line2 = renderRoomBtn("+ Invite", r.focused && r.area == roomsAreaInviteBtn)
-	}
-
-	voiceBtn := renderVoiceBtn(r.voiceActive, r.focused && r.area == roomsAreaVoiceBtn, r.testAudioActive)
-	testAudioBtn := renderTestAudioBtn(r.testAudioActive, r.focused && r.area == roomsAreaTestAudioBtn, r.voiceActive)
-
-	body := title + "\n" +
-		strings.Join(listLines, "\n") + "\n" +
-		line1 + "\n" +
-		"\n" +
-		line2 + "\n" +
-		"\n" +
-		voiceBtn + "\n" +
-		"\n" +
-		testAudioBtn
+	body := title + "\n" + strings.Join(listLines, "\n")
 
 	borderColor := styles.PanelBorderColor
 	bg := styles.ComponentBg
@@ -425,43 +168,4 @@ func (r *RoomsComponent) Render() string {
 		Width(r.width).
 		Height(r.height).
 		Render(body)
-}
-
-func renderRoomBtn(label string, active bool) string {
-	if active {
-		return styles.RoomBtnActiveStyle.Render(label)
-	}
-	return styles.RoomBtnStyle.Render(label)
-}
-
-func renderVoiceBtn(inVoice, active, disabled bool) string {
-	if disabled {
-		return styles.BtnDisabledStyle.Render("> Join Voice")
-	}
-	if inVoice {
-		if active {
-			return styles.VoiceLeaveFocusedStyle.Render("* Leave Voice")
-		}
-		return styles.VoiceLeaveStyle.Render("* Leave Voice")
-	}
-	if active {
-		return styles.RoomBtnActiveStyle.Render("> Join Voice")
-	}
-	return styles.RoomBtnStyle.Render("> Join Voice")
-}
-
-func renderTestAudioBtn(active, focused, disabled bool) string {
-	if disabled {
-		return styles.BtnDisabledStyle.Render("~ Test Audio")
-	}
-	if active {
-		if focused {
-			return styles.VoiceLeaveFocusedStyle.Render("* Stop Test Audio")
-		}
-		return styles.VoiceLeaveStyle.Render("* Stop Test Audio")
-	}
-	if focused {
-		return styles.RoomBtnActiveStyle.Render("~ Test Audio")
-	}
-	return styles.RoomBtnStyle.Render("~ Test Audio")
 }

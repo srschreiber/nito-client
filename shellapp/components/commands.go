@@ -34,6 +34,7 @@ type chatOpDef struct {
 
 var chatOps = []chatOpDef{
 	{name: ".image", argHint: "<filename> [-h <height>]"},
+	{name: ".jump", argHint: "<line>"},
 }
 
 // completeChatOp returns the first op whose name starts with prefix, or nil.
@@ -359,6 +360,23 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 	parts := strings.SplitN(input, " ", 2)
 	op := parts[0]
 	switch op {
+	case ".jump":
+		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".jump: usage: .jump <line>", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		n, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+		if err != nil {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".jump: line must be an integer", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		return func() tea.Msg { return JumpScrollMsg{Line: n} }
 	case ".image":
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
@@ -775,7 +793,7 @@ func (l *CommandComponent) Render() string {
 
 	style := styles.UnfocusedBorderStyle
 	if l.focused {
-		style = styles.FocusedBorderStyle
+		style = styles.FocusedBorderStyle.Background(styles.ComponentFocusedBg)
 	}
 	if l.width > 0 {
 		style = style.Width(l.width)

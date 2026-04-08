@@ -10,6 +10,14 @@ import (
 	lipgloss "charm.land/lipgloss/v2"
 )
 
+// Component is the common interface satisfied by all focusable tab content components.
+type Component interface {
+	SetFocused(focused bool)
+	Init() tea.Cmd
+	Update(msg tea.Msg) tea.Cmd
+	Render() string
+}
+
 // tabBarLines is the number of terminal rows consumed by the tab bar rendered
 // above the history box (top border row + text row + bottom border row).
 const tabBarLines = 3

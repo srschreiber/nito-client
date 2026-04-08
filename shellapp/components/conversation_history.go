@@ -327,7 +327,7 @@ func (h *ConversationHistory) Render() string {
 		}
 
 		// Fixed last row: position indicator.
-		rows = append(rows, styles.LineStyle.Render(fmt.Sprintf("L%d/%d  (jump -L <n> to navigate)", end, total)))
+		rows = append(rows, styles.LineStyle.Render(fmt.Sprintf("L%d/%d  (.jump <n> to navigate)", end, total)))
 	}
 
 	borderColor := styles.PanelBorderColor

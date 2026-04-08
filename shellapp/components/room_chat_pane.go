@@ -13,19 +13,30 @@ import (
 // (inner = roomsChatPanelOuterW - border(2) - padding(2)).
 const roomsChatPanelOuterW = 32
 
-// RoomChatPane combines the Room Chat history with the Rooms and Members panels
-// in a side-by-side layout. Tab cycles: rooms list → Create btn → Invite btn →
-// chat history → rooms list.
+// roomActionsOuterH is the fixed outer height of the actions panel (border(2) + title(1) + blank(1) + 4 items).
+const roomActionsOuterH = 8
+
+// roomChatSubFocus tracks which sub-component holds keyboard focus inside RoomChatPane.
+type roomChatSubFocus int
+
+const (
+	subFocusRooms   roomChatSubFocus = iota
+	subFocusActions                  // actions panel (Create/Invite/Voice/Audio)
+	subFocusHistory                  // chat history
+)
+
+// RoomChatPane combines the Room Chat history with the Rooms, Actions, and Members panels
+// in a side-by-side layout. Tab cycles: rooms list → actions panel → chat history → [exit to parent].
 type RoomChatPane struct {
-	chat          *ConversationHistory
-	rooms         *RoomsComponent
-	members       *RoomMembersComponent
-	width         int
-	height        int
-	focused       bool
-	histFocused   bool // when true, chat history has sub-focus; otherwise rooms has it
-	showMembers   bool
-	cycleComplete bool // set when internal tab cycle finishes without being able to focus history
+	chat        *ConversationHistory
+	rooms       *RoomsComponent
+	actions     *RoomActionsComponent
+	members     *RoomMembersComponent
+	width       int
+	height      int
+	focused     bool
+	subFocus    roomChatSubFocus
+	showMembers bool
 }
 
 func NewRoomChatPane(width, height int) *RoomChatPane {
@@ -39,7 +50,8 @@ func NewRoomChatPane(width, height int) *RoomChatPane {
 	}
 	p := &RoomChatPane{
 		chat:    NewConversationHistory(chatW, height),
-		rooms:   NewRoomsComponent(panelInnerW, height),
+		rooms:   NewRoomsComponent(panelInnerW, height-roomActionsOuterH),
+		actions: NewRoomActionsComponent(panelInnerW, roomActionsOuterH),
 		members: NewRoomMembersComponent(panelInnerW, 0),
 		width:   width,
 		height:  height,
@@ -64,45 +76,54 @@ func (p *RoomChatPane) resizeChildren() {
 		chatW = 10
 	}
 	p.chat.SetSize(chatW, p.height)
+	p.actions.SetSize(panelInnerW, roomActionsOuterH)
 
 	if p.showMembers {
-		roomsH := int(float64(p.height) * 0.6)
+		remaining := p.height - roomActionsOuterH
+		roomsH := int(float64(remaining) * 0.6)
 		if roomsH < 3 {
 			roomsH = 3
 		}
-		membersH := p.height - roomsH
+		membersH := remaining - roomsH
 		if membersH < 3 {
 			membersH = 3
 		}
 		p.rooms.SetSize(panelInnerW, roomsH)
 		p.members.SetSize(panelInnerW, membersH)
 	} else {
-		p.rooms.SetSize(panelInnerW, p.height)
+		p.rooms.SetSize(panelInnerW, p.height-roomActionsOuterH)
 		p.members.SetSize(panelInnerW, 0)
 	}
 }
 
 func (p *RoomChatPane) SetFocused(focused bool) {
 	p.focused = focused
-	p.cycleComplete = false
 	if !focused {
-		p.histFocused = false
+		p.subFocus = subFocusRooms
 		p.rooms.SetFocused(false)
+		p.actions.SetFocused(false)
 		p.chat.SetFocused(false)
 	} else {
-		// Default: rooms focused when entering the pane.
-		p.histFocused = false
+		p.subFocus = subFocusRooms
 		p.rooms.SetFocused(true)
-		p.rooms.area = roomsAreaList
+		p.actions.SetFocused(false)
 		p.chat.SetFocused(false)
 	}
 }
 
-// CanConsumeTab returns true while there are still internal stops to cycle through
-// (rooms list → Create → Invite → Voice → TestAudio). Returns false when chat history
-// is the active sub-focus, signalling the outer handler to advance to the next top-level component.
+// CanConsumeTab returns true while there are still internal tab stops to cycle through:
+// - rooms (always advances to actions)
+// - actions (advances to history only if chat has scrollable content)
+// Returns false otherwise, signalling the outer handler to advance to the next top-level component.
 func (p *RoomChatPane) CanConsumeTab() bool {
-	return !p.histFocused && !p.cycleComplete
+	switch p.subFocus {
+	case subFocusRooms:
+		return true
+	case subFocusActions:
+		return p.chat.CanFocus()
+	default: // subFocusHistory
+		return false
+	}
 }
 
 // CanFocus reports whether the chat history pane has scrollable content.
@@ -139,15 +160,22 @@ func (p *RoomChatPane) Update(msg tea.Msg) tea.Cmd {
 		if msg.String() == "tab" {
 			return p.handleTab()
 		}
-		if p.histFocused {
+		switch p.subFocus {
+		case subFocusHistory:
 			return p.chat.Update(msg)
+		case subFocusActions:
+			return p.actions.Update(msg)
+		default:
+			return p.rooms.Update(msg)
 		}
-		return p.rooms.Update(msg)
 
 	default:
-		// Always forward background events (polling, room/member updates) to rooms+members.
+		// Always forward background events (polling, room/member updates) to all sub-components.
 		var cmds []tea.Cmd
 		if cmd := p.rooms.Update(msg); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+		if cmd := p.actions.Update(msg); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
 		if cmd := p.members.Update(msg); cmd != nil {
@@ -157,36 +185,24 @@ func (p *RoomChatPane) Update(msg tea.Msg) tea.Cmd {
 	}
 }
 
-// handleTab cycles sub-focus: rooms list → Create → Invite → Voice → TestAudio → chat history → rooms list.
+// handleTab cycles sub-focus: rooms list → actions panel → chat history → rooms list.
 func (p *RoomChatPane) handleTab() tea.Cmd {
-	if p.histFocused {
+	switch p.subFocus {
+	case subFocusHistory:
 		// history → back to rooms list
-		p.histFocused = false
 		p.chat.SetFocused(false)
 		p.rooms.SetFocused(true)
-		p.rooms.area = roomsAreaList
-		return nil
-	}
-	// Advance through rooms areas: list → Create → Invite → Voice → TestAudio → history
-	switch p.rooms.area {
-	case roomsAreaList:
-		p.rooms.area = roomsAreaCreateBtn
-	case roomsAreaCreateBtn:
-		p.rooms.area = roomsAreaInviteBtn
-	case roomsAreaInviteBtn:
-		p.rooms.area = roomsAreaVoiceBtn
-	case roomsAreaVoiceBtn:
-		p.rooms.area = roomsAreaTestAudioBtn
-	default:
-		// testAudioBtn (or form) → switch to history only if it has scrollable content
-		if p.chat.CanFocus() {
-			p.rooms.area = roomsAreaList
-			p.rooms.SetFocused(false)
-			p.histFocused = true
-			p.chat.SetFocused(true)
-		} else {
-			p.cycleComplete = true
-		}
+		p.subFocus = subFocusRooms
+	case subFocusRooms:
+		// rooms list → actions panel
+		p.rooms.SetFocused(false)
+		p.actions.SetFocused(true)
+		p.subFocus = subFocusActions
+	case subFocusActions:
+		// Only reached when chat.CanFocus() is true (CanConsumeTab returns false otherwise).
+		p.actions.SetFocused(false)
+		p.chat.SetFocused(true)
+		p.subFocus = subFocusHistory
 	}
 	return nil
 }
@@ -196,11 +212,18 @@ func (p *RoomChatPane) Render() string {
 
 	var sidePanel string
 	if p.showMembers {
-		sidePanel = lipgloss.JoinVertical(lipgloss.Left, p.rooms.Render(), p.members.Render())
+		sidePanel = lipgloss.JoinVertical(lipgloss.Left,
+			p.rooms.Render(),
+			p.actions.Render(),
+			p.members.Render(),
+		)
 	} else {
-		sidePanel = p.rooms.Render()
+		sidePanel = lipgloss.JoinVertical(lipgloss.Left,
+			p.rooms.Render(),
+			p.actions.Render(),
+		)
 	}
 
-	// Side panel on the left, chat history on the right (consistent with DMs tab layout).
+	// Side panel on the left, chat history on the right.
 	return lipgloss.JoinHorizontal(lipgloss.Top, sidePanel, chatStr)
 }
