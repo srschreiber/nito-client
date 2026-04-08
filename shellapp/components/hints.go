@@ -106,6 +106,9 @@ func (h *HintsComponent) Render() string {
 		}
 	}
 
+	// Always append the "/" quick-focus hint.
+	lines = append(lines, k.Render("/")+" "+d.Render("quick-select input"))
+
 	// Clip lines to available height (reserve 5 rows: title + border/padding overhead).
 	maxLines := h.height - 5
 	if maxLines < 1 {

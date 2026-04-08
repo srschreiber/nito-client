@@ -445,7 +445,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case types.ErrorMsg:
 		text := fmt.Sprintf("error: %s", msg.Message)
-		return m, func() tea.Msg { return components.NewResponseAppendMsg(text) }
+		cmdOut := func() tea.Msg { return components.NewResponseAppendMsg(text) }
+		toast := func() tea.Msg { return components.ShowToastMsg{Text: text[:64]} }
+		return m, tea.Batch(cmdOut, toast)
 	default:
 		// Broadcast non-key messages to all components.
 		var cmds []tea.Cmd

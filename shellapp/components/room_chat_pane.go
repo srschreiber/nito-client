@@ -179,8 +179,8 @@ func (p *RoomChatPane) handleTab() tea.Cmd {
 		p.rooms.area = roomsAreaTestAudioBtn
 	default:
 		// testAudioBtn (or form) → switch to history only if it has scrollable content
-		p.rooms.area = roomsAreaList
 		if p.chat.CanFocus() {
+			p.rooms.area = roomsAreaList
 			p.rooms.SetFocused(false)
 			p.histFocused = true
 			p.chat.SetFocused(true)
