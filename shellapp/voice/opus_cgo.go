@@ -18,6 +18,10 @@ static int encoder_set_bitrate(OpusEncoder *enc, int bitrate) {
 static int encoder_set_packet_loss_perc(OpusEncoder *enc, int perc) {
     return opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC(perc));
 }
+
+static int encoder_set_dtx(OpusEncoder *enc, int dtx) {
+    return opus_encoder_ctl(enc, OPUS_SET_DTX(dtx));
+}
 */
 import "C"
 import (
@@ -44,6 +48,14 @@ func (e *opusEncoder) setBitrate(bitrate int) {
 
 func (e *opusEncoder) setPacketLossPerc(loss int) {
 	C.encoder_set_packet_loss_perc(e.enc, C.int(loss))
+}
+
+func (e *opusEncoder) setDTX(enabled bool) {
+	v := 0
+	if enabled {
+		v = 1
+	}
+	C.encoder_set_dtx(e.enc, C.int(v))
 }
 
 // encode encodes a frame of mono int16 PCM samples into out.

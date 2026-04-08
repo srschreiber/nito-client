@@ -572,6 +572,7 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 	defer enc.close()
 	enc.setBitrate(32000)
 	enc.setPacketLossPerc(5)
+	enc.setDTX(true)
 
 	reader := audioTrack.(*media.AudioTrack).NewReader(false)
 	var seq uint32
