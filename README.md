@@ -38,6 +38,14 @@ The one thing we do ask is attribution, as required by the [MIT License](LICENSE
 
 I only open sourced the client to be transparent. The broker, on the other hand, doesn't need to be released for you to verify the E2EE claims because you can see that nothing (including UDP data) flows to the broker unencrypted, except metadata such as usernames, room names, who is in what room, timestamps, etc (see /shared to see exactly what the broker can/can't see). Eventually, I would like to experience what it is like to run a small side-gig where users pay a modest montly fee (3-4 dollars to keep the lights on) and where I maintain the broker and develop features. If the broker is open source, it removes the incentive of paying for a service. It's unlikely that _anyone_ will ever pay for this service, however I would like to keep this option open.
 
+## mac
+git clone https://github.com/xiph/rnnoise.git
+cd rnnoise
+./autogen.sh
+./configure
+make
+sudo make install
+
 ## windows
 
 dumped from chat gpt, will format later. my findings on getting it up and running on my windows machine
@@ -61,7 +69,8 @@ pacman -S --needed \
   mingw-w64-ucrt-x86_64-gcc \
   mingw-w64-ucrt-x86_64-go \
   mingw-w64-ucrt-x86_64-pkgconf \
-  mingw-w64-ucrt-x86_64-opus
+  mingw-w64-ucrt-x86_64-opus \
+  mingw-w64-ucrt-x86_64-rnnoise
 4. Fixed Go environment (GOROOT issue)
 
 Set Go paths manually:

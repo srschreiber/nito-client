@@ -569,6 +569,12 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 		debugf("voice: new opus encoder: %v", err)
 		return
 	}
+
+	denoise, err := newRNNoiseState()
+	if err != nil {
+		debugf("voice: new rnnoise state, will not denoise: %v", err)
+	}
+
 	defer enc.close()
 	enc.setBitrate(32000)
 	enc.setPacketLossPerc(5)
@@ -603,6 +609,17 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 		for len(pcmAccum) >= opusFrameSamples*numChannels {
 			frame := pcmAccum[:opusFrameSamples*numChannels]
 			pcmAccum = pcmAccum[opusFrameSamples*numChannels:]
+
+			if denoise != nil {
+				// convert to float 32 so we can use RNNoise
+				f32 := pcm16ToFloat32(frame)
+				err = denoise.ProcessFrame(f32)
+				if err != nil {
+					//debugf("voice: rnnoise process frame: %v", err)
+				}
+
+				frame = float32ToPCM16(f32)
+			}
 
 			n, err := enc.encode(frame, opusBuf)
 			if err != nil {
@@ -686,6 +703,7 @@ func chunkToInt16(chunk any) ([]int16, error) {
 	}
 }
 
+// int16ToBytes converts to	mono int16 PCM to little-endian byte format for writing to the Oto player.
 func int16ToBytes(pcm []int16) []byte {
 	b := make([]byte, len(pcm)*2)
 	for i, v := range pcm {
@@ -693,4 +711,25 @@ func int16ToBytes(pcm []int16) []byte {
 		b[i*2+1] = byte(v >> 8)
 	}
 	return b
+}
+
+func pcm16ToFloat32(in []int16) []float32 {
+	out := make([]float32, len(in))
+	for i, s := range in {
+		out[i] = float32(s) // not float32(s)/32768
+	}
+	return out
+}
+
+func float32ToPCM16(in []float32) []int16 {
+	out := make([]int16, len(in))
+	for i, s := range in {
+		if s > 32767 {
+			s = 32767
+		} else if s < -32768 {
+			s = -32768
+		}
+		out[i] = int16(s)
+	}
+	return out
 }
