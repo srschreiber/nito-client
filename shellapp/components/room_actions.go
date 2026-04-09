@@ -11,8 +11,10 @@ import (
 	lipgloss "charm.land/lipgloss/v2"
 	"github.com/srschreiber/nito-client/shellapp/clientlog"
 	"github.com/srschreiber/nito-client/shellapp/commands"
+	"github.com/srschreiber/nito-client/shellapp/connection"
 	"github.com/srschreiber/nito-client/shellapp/styles"
 	"github.com/srschreiber/nito-client/shellapp/types"
+	"github.com/srschreiber/nito-client/shellapp/voice"
 )
 
 // Room action indices.
@@ -55,8 +57,6 @@ type roomsTestAudioResultMsg struct {
 type RoomActionsComponent struct {
 	focused         bool
 	cursor          int
-	voiceActive     bool
-	voiceConnecting bool
 	spinnerFrame    int
 	testAudioActive bool // mirrors VoiceSettingsScreen state for voice mutual exclusion
 	width           int
@@ -110,18 +110,16 @@ func (a *RoomActionsComponent) Update(msg tea.Msg) tea.Cmd {
 		return func() tea.Msg { return NewChatResponseAppendMsg(msg.text) }
 
 	case vsSpinnerTickMsg:
-		if a.voiceConnecting {
+		if voice.IsConnecting() {
 			a.spinnerFrame = (a.spinnerFrame + 1) % len(spinnerFrames)
 			return tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return vsSpinnerTickMsg{} })
 		}
 
 	case roomsVoiceResultMsg:
-		a.voiceConnecting = false
 		if msg.err != nil {
 			errText := msg.err.Error()
 			return func() tea.Msg { return ShowToastMsg{Text: "voice: " + errText} }
 		}
-		a.voiceActive = msg.joined
 		action := "joined voice chat"
 		if !msg.joined {
 			action = "left voice chat"
@@ -183,11 +181,10 @@ func (a *RoomActionsComponent) activate() tea.Cmd {
 		a.formCur = 0
 		a.formErr = ""
 	case roomActionVoice:
-		if a.testAudioActive || a.voiceConnecting {
+		if a.testAudioActive || voice.IsConnecting() {
 			return nil
 		}
-		if !a.voiceActive {
-			a.voiceConnecting = true
+		if !voice.IsActive() {
 			a.spinnerFrame = 0
 			return tea.Batch(
 				tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return vsSpinnerTickMsg{} }),
@@ -312,15 +309,12 @@ func (a *RoomActionsComponent) Render() string {
 		}
 		body = line1 + "\n" + line2
 	} else {
-		type actionItem struct {
-			label    string
-			inactive string // override label when voice/audio is active
-			disabled bool
-		}
+		voiceConnecting := voice.IsConnecting()
+		voiceActive := voice.IsActive()
 		voiceLabel := "Join Voice"
-		if a.voiceConnecting {
+		if voiceConnecting {
 			voiceLabel = spinnerFrames[a.spinnerFrame] + " Connecting..."
-		} else if a.voiceActive {
+		} else if voiceActive {
 			voiceLabel = "Leave Voice"
 		}
 		items := []string{
@@ -329,11 +323,12 @@ func (a *RoomActionsComponent) Render() string {
 			voiceLabel,
 			"Voice Settings",
 		}
+		inRoom := connection.GetSessionRoomID() != nil
 		disabled := [roomActionCount]bool{
 			false,
 			false,
-			a.testAudioActive || a.voiceConnecting,
-			false, // voice settings always available
+			!inRoom || voiceConnecting || voiceActive,
+			false,
 		}
 		lines := make([]string, roomActionCount)
 		for i, lbl := range items {
@@ -347,7 +342,7 @@ func (a *RoomActionsComponent) Render() string {
 				itemStr = styles.ItemStyle.Render(cur + styles.DimText.Render(lbl))
 			} else if sel {
 				var rendered string
-				if i == roomActionVoice && a.voiceActive {
+				if i == roomActionVoice && voiceActive {
 					rendered = styles.VoiceLeaveFocusedStyle.Render(lbl)
 				} else {
 					rendered = styles.RoomBtnActiveStyle.Render(lbl)
@@ -355,7 +350,7 @@ func (a *RoomActionsComponent) Render() string {
 				itemStr = cur + rendered
 			} else {
 				var rendered string
-				if i == roomActionVoice && a.voiceActive {
+				if i == roomActionVoice && voiceActive {
 					rendered = styles.VoiceLeaveStyle.Render(lbl)
 				} else {
 					rendered = styles.ItemStyle.Render(lbl)

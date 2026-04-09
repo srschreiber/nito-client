@@ -32,8 +32,13 @@ const (
 
 var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
-// vsSpinnerTickMsg drives the connecting spinner animation.
+// vsSpinnerTickMsg drives the voice-connecting spinner in RoomActionsComponent.
 type vsSpinnerTickMsg struct{}
+
+// vsTestAudioTickMsg drives the test-audio connecting spinner in VoiceSettingsScreen.
+// Kept separate from vsSpinnerTickMsg to prevent the two tick loops from
+// cross-scheduling each other into an exponential storm.
+type vsTestAudioTickMsg struct{}
 
 // VoiceSettingsScreen is a full-screen overlay for audio device selection and test audio.
 type VoiceSettingsScreen struct {
@@ -74,7 +79,7 @@ func (s *VoiceSettingsScreen) Reset() {
 func (s *VoiceSettingsScreen) Init() tea.Cmd { return nil }
 
 func (s *VoiceSettingsScreen) spinnerTick() tea.Cmd {
-	return tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return vsSpinnerTickMsg{} })
+	return tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return vsTestAudioTickMsg{} })
 }
 
 func (s *VoiceSettingsScreen) Update(msg tea.Msg) tea.Cmd {
@@ -88,7 +93,7 @@ func (s *VoiceSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 		if msg.err == nil {
 			s.testAudioActive = msg.active
 		}
-	case vsSpinnerTickMsg:
+	case vsTestAudioTickMsg:
 		if s.testAudioConnecting {
 			s.spinnerFrame = (s.spinnerFrame + 1) % len(spinnerFrames)
 			return s.spinnerTick()
@@ -102,6 +107,18 @@ func (s *VoiceSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	switch msg.String() {
 	case "esc":
+		if s.testAudioConnecting {
+			return nil // blocked; wait for connect to finish
+		}
+		if s.testAudioActive {
+			return tea.Batch(
+				func() tea.Msg {
+					err := commands.VoiceLeaveTestAudioDirect()
+					return roomsTestAudioResultMsg{active: false, err: err}
+				},
+				func() tea.Msg { return HideVoiceSettingsMsg{} },
+			)
+		}
 		return func() tea.Msg { return HideVoiceSettingsMsg{} }
 	case "tab":
 		s.section = (s.section + 1) % vsSectionCount

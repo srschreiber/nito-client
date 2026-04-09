@@ -50,7 +50,7 @@ func VoiceTestAudioDirect() error {
 	return voice.JoinSelf()
 }
 
-// VoiceLeaveTestAudioDirect stops the loopback audio test.
+// VoiceLeaveTestAudioDirect stops the loopback test audio session.
 func VoiceLeaveTestAudioDirect() error {
 	return voice.Leave(voice.SelfRoomID)
 }

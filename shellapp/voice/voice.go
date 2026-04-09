@@ -137,10 +137,21 @@ func debugf(format string, args ...any) {
 var (
 	mu            sync.Mutex
 	activeSession *voiceSession
+	connecting    atomic.Bool
 
 	otoOnce sync.Once
 	otoCtx  *oto.Context
 )
+
+// IsConnecting reports whether a voice join is currently in progress.
+func IsConnecting() bool { return connecting.Load() }
+
+// IsActive reports whether a voice session is currently live.
+func IsActive() bool {
+	mu.Lock()
+	defer mu.Unlock()
+	return activeSession != nil
+}
 
 type voiceSession struct {
 	roomID       string
@@ -150,6 +161,7 @@ type voiceSession struct {
 	player       oto.Player
 	pw           *io.PipeWriter
 	cancel       context.CancelFunc
+	ctx          context.Context
 	answerCh     chan string // receives the initial SDP answer; closed after use
 	iceRestartCh chan string // receives the SDP answer after an ICE restart
 	restarting   atomic.Bool
@@ -252,6 +264,7 @@ func JoinSelf() error {
 
 		mu.Lock()
 		trackCh := activeSession.onTrackCh
+		sessCtx := activeSession.ctx
 		mu.Unlock()
 
 		select {
@@ -260,6 +273,9 @@ func JoinSelf() error {
 				debugf("voice: self-test loopback established on attempt %d", attempt)
 			}
 			return nil
+		case <-sessCtx.Done():
+			// External Leave() was called — abort retries.
+			return fmt.Errorf("voice test: cancelled")
 		case <-time.After(trackTimeout):
 			_ = Leave(SelfRoomID)
 			if attempt < maxAttempts {
@@ -296,6 +312,8 @@ func Join(roomID string) error {
 }
 
 func joinWithAEAD(roomID string, aead cipher.AEAD) error {
+	connecting.Store(true)
+	defer connecting.Store(false)
 	debugf("voice: join start roomID=%s", roomID)
 	mu.Lock()
 	if activeSession != nil {
@@ -429,7 +447,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	sess := &voiceSession{
 		roomID: roomID, pc: pc, sendTrack: sendTrack,
-		aead: aead, player: player, pw: pw, cancel: cancel,
+		aead: aead, player: player, pw: pw, ctx: ctx, cancel: cancel,
 		answerCh: answerCh, iceRestartCh: make(chan string, 1),
 		onTrackCh: onTrackCh,
 	}
