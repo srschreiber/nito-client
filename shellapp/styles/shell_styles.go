@@ -130,6 +130,18 @@ var (
 			Bold(true).
 			Padding(0, 1)
 
+	// VoiceSettingsBadge is the label badge for the voice settings screen title.
+	VoiceSettingsBadge = lipgloss.NewStyle().
+				Background(lipgloss.Color("#0c4a6e")).
+				Foreground(lipgloss.Color("#7dd3fc")).
+				Bold(true).
+				Padding(0, 1)
+
+	// VoiceSettingsActiveSectionStyle highlights the active section header.
+	VoiceSettingsActiveSectionStyle = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("213")).
+					Bold(true)
+
 	// --- Shared border colors for rounded-border panels ---
 
 	// PanelBorderColor is the unfocused border for all rounded side panels.

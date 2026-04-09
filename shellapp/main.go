@@ -99,17 +99,19 @@ func computeLayout(termW, termH int) layout {
 }
 
 type model struct {
-	history          *components.ConversationTabs
-	status           *components.StatusComponent
-	command          *components.CommandComponent
-	hints            *components.HintsComponent
-	toast            *components.ToastComponent
-	comps            []components.Component
-	focusable        []int
-	focusedComponent int
-	termW, termH     int
-	offlineStreak    int  // consecutive failed pings
-	kickedToLogin    bool // set true when kicked back to login screen
+	history           *components.ConversationTabs
+	status            *components.StatusComponent
+	command           *components.CommandComponent
+	hints             *components.HintsComponent
+	toast             *components.ToastComponent
+	voiceSettings     *components.VoiceSettingsScreen
+	showVoiceSettings bool
+	comps             []components.Component
+	focusable         []int
+	focusedComponent  int
+	termW, termH      int
+	offlineStreak     int  // consecutive failed pings
+	kickedToLogin     bool // set true when kicked back to login screen
 }
 
 // startupSuccessMsg holds the auth result message to display on first launch.
@@ -131,6 +133,7 @@ func initialModel() model {
 		command:          command,
 		hints:            hints,
 		toast:            toast,
+		voiceSettings:    components.NewVoiceSettingsScreen(termW, termH),
 		comps:            []components.Component{history, status, command, hints},
 		focusable:        []int{0, 2},
 		focusedComponent: 1, // index into focusable → comps[2] = command
@@ -149,6 +152,7 @@ func (m *model) relayout(termW, termH int) {
 	m.hints.SetSize(l.hintsW, l.hintsH)
 	m.status.SetSize(l.statW, l.statH)
 	m.command.SetWidth(l.cmdW)
+	m.voiceSettings.SetSize(termW, termH)
 }
 
 // notificationMsg is delivered to the model when the readLoop routes a
@@ -404,7 +408,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		cmds = append(cmds, loadRoomHistory(roomID))
 		return m, tea.Batch(cmds...)
+	case components.ShowVoiceSettingsMsg:
+		m.showVoiceSettings = true
+		m.voiceSettings.Reset()
+		return m, nil
+	case components.HideVoiceSettingsMsg:
+		m.showVoiceSettings = false
+		return m, nil
 	case tea.KeyPressMsg:
+		if m.showVoiceSettings {
+			if msg.String() == "ctrl+c" {
+				return m, tea.Quit
+			}
+			return m, m.voiceSettings.Update(msg)
+		}
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
@@ -459,6 +476,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, cmd)
 			}
 		}
+		if cmd := m.voiceSettings.Update(msg); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 		if cmd := m.toast.Update(msg); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
@@ -467,6 +487,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() tea.View {
+	if m.showVoiceSettings {
+		v := tea.NewView(styles.AppStyle.Render(m.voiceSettings.Render()))
+		v.AltScreen = true
+		return v
+	}
+
 	rightCol := lipgloss.JoinHorizontal(lipgloss.Top, m.hints.Render(), m.status.Render())
 	topRow := lipgloss.JoinHorizontal(lipgloss.Top, m.history.Render(), rightCol)
 	s := topRow + "\n" + m.command.Render()

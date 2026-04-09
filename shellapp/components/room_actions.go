@@ -16,11 +16,11 @@ import (
 
 // Room action indices.
 const (
-	roomActionCreate = 0
-	roomActionInvite = 1
-	roomActionVoice  = 2
-	roomActionAudio  = 3
-	roomActionCount  = 4
+	roomActionCreate   = 0
+	roomActionInvite   = 1
+	roomActionVoice    = 2
+	roomActionSettings = 3
+	roomActionCount    = 4
 )
 
 type roomActionsFormMode int
@@ -50,12 +50,12 @@ type roomsTestAudioResultMsg struct {
 }
 
 // RoomActionsComponent renders a small panel with Create / Invite / Join Voice /
-// Test Audio actions. Items are navigated with up/down or ctrl+p/ctrl+n; Enter/Space activates.
+// Voice Settings actions. Items are navigated with up/down or ctrl+p/ctrl+n; Enter/Space activates.
 type RoomActionsComponent struct {
 	focused         bool
 	cursor          int
 	voiceActive     bool
-	testAudioActive bool
+	testAudioActive bool // mirrors VoiceSettingsScreen state for voice mutual exclusion
 	width           int
 	height          int
 
@@ -193,27 +193,8 @@ func (a *RoomActionsComponent) activate() tea.Cmd {
 			}
 			return roomsVoiceResultMsg{joined: false, err: err}
 		}
-	case roomActionAudio:
-		if a.voiceActive {
-			return nil // mutually exclusive with voice chat
-		}
-		starting := !a.testAudioActive
-		return func() tea.Msg {
-			if starting {
-				clientlog.Info("starting test audio")
-				err := commands.VoiceTestAudioDirect()
-				if err != nil {
-					clientlog.Error("test audio start failed: %v", err)
-				}
-				return roomsTestAudioResultMsg{active: true, err: err}
-			}
-			clientlog.Info("stopping test audio")
-			err := commands.VoiceLeaveTestAudioDirect()
-			if err != nil {
-				clientlog.Error("test audio stop failed: %v", err)
-			}
-			return roomsTestAudioResultMsg{active: false, err: err}
-		}
+	case roomActionSettings:
+		return func() tea.Msg { return ShowVoiceSettingsMsg{} }
 	}
 	return nil
 }
@@ -324,21 +305,17 @@ func (a *RoomActionsComponent) Render() string {
 		if a.voiceActive {
 			voiceLabel = "Leave Voice"
 		}
-		audioLabel := "Test Audio"
-		if a.testAudioActive {
-			audioLabel = "Stop Test Audio"
-		}
 		items := []string{
 			"Create",
 			"Invite",
 			voiceLabel,
-			audioLabel,
+			"Voice Settings",
 		}
 		disabled := [roomActionCount]bool{
 			false,
 			false,
 			a.testAudioActive, // voice disabled when test audio running
-			a.voiceActive,     // audio disabled when voice active
+			false,             // voice settings always available
 		}
 		lines := make([]string, roomActionCount)
 		for i, lbl := range items {
@@ -352,39 +329,17 @@ func (a *RoomActionsComponent) Render() string {
 				itemStr = styles.ItemStyle.Render(cur + styles.DimText.Render(lbl))
 			} else if sel {
 				var rendered string
-				switch i {
-				case roomActionVoice:
-					if a.voiceActive {
-						rendered = styles.VoiceLeaveFocusedStyle.Render(lbl)
-					} else {
-						rendered = styles.RoomBtnActiveStyle.Render(lbl)
-					}
-				case roomActionAudio:
-					if a.testAudioActive {
-						rendered = styles.VoiceLeaveFocusedStyle.Render(lbl)
-					} else {
-						rendered = styles.RoomBtnActiveStyle.Render(lbl)
-					}
-				default:
+				if i == roomActionVoice && a.voiceActive {
+					rendered = styles.VoiceLeaveFocusedStyle.Render(lbl)
+				} else {
 					rendered = styles.RoomBtnActiveStyle.Render(lbl)
 				}
 				itemStr = cur + rendered
 			} else {
 				var rendered string
-				switch i {
-				case roomActionVoice:
-					if a.voiceActive {
-						rendered = styles.VoiceLeaveStyle.Render(lbl)
-					} else {
-						rendered = styles.ItemStyle.Render(lbl)
-					}
-				case roomActionAudio:
-					if a.testAudioActive {
-						rendered = styles.VoiceLeaveStyle.Render(lbl)
-					} else {
-						rendered = styles.ItemStyle.Render(lbl)
-					}
-				default:
+				if i == roomActionVoice && a.voiceActive {
+					rendered = styles.VoiceLeaveStyle.Render(lbl)
+				} else {
 					rendered = styles.ItemStyle.Render(lbl)
 				}
 				itemStr = cur + rendered

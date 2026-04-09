@@ -13,8 +13,6 @@
 //
 // The broker never sees plaintext audio; it only forwards encrypted RTP payloads./
 // The AES-256-GCM key is derived via HKDF(roomKey, "voice").
-//
-// TODO: apply HKDF(roomKey, "chat") for message encryption too.
 package voice
 
 import (
@@ -23,9 +21,11 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -34,6 +34,7 @@ import (
 	"github.com/pion/ice/v4"
 	media "github.com/pion/mediadevices"
 	_ "github.com/pion/mediadevices/pkg/driver/microphone"
+	"github.com/pion/mediadevices/pkg/prop"
 	"github.com/pion/mediadevices/pkg/wave"
 	rtppkg "github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
@@ -55,6 +56,79 @@ const (
 	opusFrameSamples = sampleRate * opusFrameMs / 1000 // 960 samples
 	opusBufMax       = 4096
 )
+
+// AudioDevice represents a system audio input device.
+type AudioDevice struct {
+	ID    string
+	Label string
+}
+
+var (
+	muSelected          sync.Mutex
+	selectedInputDevice string // empty = system default
+)
+
+// SetInputDevice stores the device ID used for the next voice/test-audio session.
+func SetInputDevice(id string) {
+	muSelected.Lock()
+	selectedInputDevice = id
+	muSelected.Unlock()
+}
+
+// SelectedInputDevice returns the currently selected input device ID (empty = system default).
+func SelectedInputDevice() string {
+	muSelected.Lock()
+	defer muSelected.Unlock()
+	return selectedInputDevice
+}
+
+// ListAudioInputs returns available audio input devices registered with mediadevices.
+// Always includes a "System Default" entry at index 0 with an empty ID.
+func ListAudioInputs() []AudioDevice {
+	out := []AudioDevice{{ID: "", Label: "System Default"}}
+	for _, d := range media.EnumerateDevices() {
+		if d.Kind == media.AudioInput {
+			out = append(out, AudioDevice{ID: d.DeviceID, Label: prettifyDeviceLabel(d.Label)})
+		}
+	}
+	return out
+}
+
+// prettifyDeviceLabel decodes the hex-encoded CoreAudio UID that pion/mediadevices
+// returns as the Label field and converts it to a readable name.
+//
+// CoreAudio USB device UIDs have the form:
+//
+//	AppleUSBAudioEngine:Manufacturer:DeviceName:Serial:Index
+//
+// Built-in devices use names like "BuiltInMicrophoneDevice".
+func prettifyDeviceLabel(raw string) string {
+	b, err := hex.DecodeString(raw)
+	if err != nil {
+		return raw // already a plain string; return as-is
+	}
+	s := string(b)
+
+	// USB audio engine — extract the device name field (index 2).
+	if strings.HasPrefix(s, "AppleUSBAudioEngine:") {
+		parts := strings.SplitN(s, ":", 5)
+		if len(parts) >= 3 && parts[2] != "" {
+			return parts[2]
+		}
+	}
+
+	// Well-known built-in device UIDs.
+	switch s {
+	case "BuiltInMicrophoneDevice":
+		return "Built-in Microphone"
+	case "BuiltInHeadphoneInputDevice":
+		return "Built-in Headphone Input"
+	case "BuiltInLineInDevice":
+		return "Built-in Line In"
+	}
+
+	return s
+}
 
 func debugf(format string, args ...any) {
 	clientlog.Info(format, args...)
@@ -450,6 +524,19 @@ func handleIncoming(rpcName string, payload []byte) {
 			return
 		}
 		go func() {
+			// The broker may send a renegotiation offer before the client has finished
+			// processing the initial answer (i.e. while in have-local-offer state).
+			// Wait for stable state before applying the renegotiation.
+			for i := 0; i < 50; i++ {
+				if sess.pc.SignalingState() == webrtc.SignalingStateStable {
+					break
+				}
+				time.Sleep(100 * time.Millisecond)
+			}
+			if sess.pc.SignalingState() != webrtc.SignalingStateStable {
+				debugf("voice: reneg: timed out waiting for stable state, dropping offer")
+				return
+			}
 			if err := sess.pc.SetRemoteDescription(webrtc.SessionDescription{
 				Type: webrtc.SDPTypeOffer, SDP: offer.SDPOffer,
 			}); err != nil {
@@ -549,11 +636,35 @@ func iceRestart(sess *voiceSession) {
 // captureAndSend captures microphone audio, encodes each 20ms frame to Opus,
 // and writes it to the WebRTC send track.
 func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLocalStaticRTP) {
+	muSelected.Lock()
+	inputID := selectedInputDevice
+	muSelected.Unlock()
+
+	// Log available input devices for diagnostics.
+	var inputDeviceIDs []string
+	for _, d := range media.EnumerateDevices() {
+		if d.Kind == media.AudioInput {
+			inputDeviceIDs = append(inputDeviceIDs, d.DeviceID)
+		}
+	}
+	clientlog.Info("captureAndSend: selected=%q available inputs=%d %v", inputID, len(inputDeviceIDs), inputDeviceIDs)
+
 	stream, err := media.GetUserMedia(media.MediaStreamConstraints{
-		Audio: func(c *media.MediaTrackConstraints) {},
+		Audio: func(c *media.MediaTrackConstraints) {
+			if inputID != "" {
+				c.DeviceID = prop.StringExact(inputID)
+			}
+		},
 	})
+	if err != nil && inputID != "" {
+		// Selected device unavailable — fall back to system default.
+		clientlog.Warn("audio input device unavailable, falling back to default: %v", err)
+		stream, err = media.GetUserMedia(media.MediaStreamConstraints{
+			Audio: func(c *media.MediaTrackConstraints) {},
+		})
+	}
 	if err != nil {
-		debugf("voice: get user media: %v", err)
+		clientlog.Error("voice: get user media failed: %v", err)
 		return
 	}
 	tracks := stream.GetAudioTracks()
@@ -562,7 +673,7 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 		return
 	}
 	audioTrack := tracks[0]
-	defer audioTrack.Close()
+	defer func() { _ = audioTrack.Close() }()
 
 	enc, err := newOpusEncoder(sampleRate, numChannels)
 	if err != nil {
