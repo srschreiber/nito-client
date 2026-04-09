@@ -5,6 +5,7 @@ package components
 
 import (
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
@@ -29,14 +30,21 @@ const (
 	vsSectionCount
 )
 
+var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
+// vsSpinnerTickMsg drives the connecting spinner animation.
+type vsSpinnerTickMsg struct{}
+
 // VoiceSettingsScreen is a full-screen overlay for audio device selection and test audio.
 type VoiceSettingsScreen struct {
-	width, height   int
-	section         vsSection
-	inputDevices    []voice.AudioDevice
-	inputCursor     int
-	testAudioActive bool
-	voiceActive     bool // disables test audio while voice chat is running
+	width, height       int
+	section             vsSection
+	inputDevices        []voice.AudioDevice
+	inputCursor         int
+	testAudioActive     bool
+	testAudioConnecting bool // true while JoinSelf is in progress
+	spinnerFrame        int
+	voiceActive         bool // disables test audio while voice chat is running
 }
 
 func NewVoiceSettingsScreen(termW, termH int) *VoiceSettingsScreen {
@@ -65,6 +73,10 @@ func (s *VoiceSettingsScreen) Reset() {
 
 func (s *VoiceSettingsScreen) Init() tea.Cmd { return nil }
 
+func (s *VoiceSettingsScreen) spinnerTick() tea.Cmd {
+	return tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return vsSpinnerTickMsg{} })
+}
+
 func (s *VoiceSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case roomsVoiceResultMsg:
@@ -72,8 +84,14 @@ func (s *VoiceSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 			s.voiceActive = msg.joined
 		}
 	case roomsTestAudioResultMsg:
+		s.testAudioConnecting = false
 		if msg.err == nil {
 			s.testAudioActive = msg.active
+		}
+	case vsSpinnerTickMsg:
+		if s.testAudioConnecting {
+			s.spinnerFrame = (s.spinnerFrame + 1) % len(spinnerFrames)
+			return s.spinnerTick()
 		}
 	case tea.KeyPressMsg:
 		return s.handleKey(msg)
@@ -115,19 +133,25 @@ func (s *VoiceSettingsScreen) activate() tea.Cmd {
 			return nil
 		}
 	case vsSectionTest:
-		if s.voiceActive {
-			return nil // mutually exclusive with voice chat
+		if s.voiceActive || s.testAudioConnecting {
+			return nil // mutually exclusive with voice chat, or already connecting
 		}
-		starting := !s.testAudioActive
+		if !s.testAudioActive {
+			s.testAudioConnecting = true
+			s.spinnerFrame = 0
+			return tea.Batch(
+				s.spinnerTick(),
+				func() tea.Msg {
+					clientlog.Info("starting test audio")
+					err := commands.VoiceTestAudioDirect()
+					if err != nil {
+						clientlog.Error("test audio start failed: %v", err)
+					}
+					return roomsTestAudioResultMsg{active: err == nil, err: err}
+				},
+			)
+		}
 		return func() tea.Msg {
-			if starting {
-				clientlog.Info("starting test audio")
-				err := commands.VoiceTestAudioDirect()
-				if err != nil {
-					clientlog.Error("test audio start failed: %v", err)
-				}
-				return roomsTestAudioResultMsg{active: true, err: err}
-			}
 			clientlog.Info("stopping test audio")
 			err := commands.VoiceLeaveTestAudioDirect()
 			if err != nil {
@@ -214,28 +238,27 @@ func (s *VoiceSettingsScreen) Render() string {
 
 	// ── Test Audio ──────────────────────────────────────────────────────────
 	lines = append(lines, s.sectionHeader("TEST AUDIO", s.section == vsSectionTest, innerW))
-	testLabel := "Start Test Audio"
-	if s.testAudioActive {
-		testLabel = "Stop Test Audio"
-	}
 	cursor := "  "
 	if s.section == vsSectionTest {
 		cursor = styles.CursorStyle.Render("▶ ")
 	}
 	var testItem string
 	if s.voiceActive {
-		testItem = "  " + styles.DimText.Render(testLabel+" (unavailable while in voice chat)")
+		testItem = "  " + styles.DimText.Render("Start Test Audio (unavailable while in voice chat)")
+	} else if s.testAudioConnecting {
+		spinner := styles.DimText.Render(spinnerFrames[s.spinnerFrame])
+		testItem = "  " + spinner + " " + styles.DimText.Render("Connecting...")
 	} else if s.section == vsSectionTest {
 		if s.testAudioActive {
-			testItem = cursor + styles.VoiceLeaveFocusedStyle.Render(testLabel)
+			testItem = cursor + styles.VoiceLeaveFocusedStyle.Render("Stop Test Audio")
 		} else {
-			testItem = cursor + styles.RoomBtnActiveStyle.Render(testLabel)
+			testItem = cursor + styles.RoomBtnActiveStyle.Render("Start Test Audio")
 		}
 	} else {
 		if s.testAudioActive {
-			testItem = cursor + styles.VoiceLeaveStyle.Render(testLabel)
+			testItem = cursor + styles.VoiceLeaveStyle.Render("Stop Test Audio")
 		} else {
-			testItem = cursor + styles.ItemStyle.Render(testLabel)
+			testItem = cursor + styles.ItemStyle.Render("Start Test Audio")
 		}
 	}
 	lines = append(lines, testItem)

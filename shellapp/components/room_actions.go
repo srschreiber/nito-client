@@ -5,6 +5,7 @@ package components
 
 import (
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
@@ -55,6 +56,8 @@ type RoomActionsComponent struct {
 	focused         bool
 	cursor          int
 	voiceActive     bool
+	voiceConnecting bool
+	spinnerFrame    int
 	testAudioActive bool // mirrors VoiceSettingsScreen state for voice mutual exclusion
 	width           int
 	height          int
@@ -106,7 +109,14 @@ func (a *RoomActionsComponent) Update(msg tea.Msg) tea.Cmd {
 		}
 		return func() tea.Msg { return NewChatResponseAppendMsg(msg.text) }
 
+	case vsSpinnerTickMsg:
+		if a.voiceConnecting {
+			a.spinnerFrame = (a.spinnerFrame + 1) % len(spinnerFrames)
+			return tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return vsSpinnerTickMsg{} })
+		}
+
 	case roomsVoiceResultMsg:
+		a.voiceConnecting = false
 		if msg.err != nil {
 			errText := msg.err.Error()
 			return func() tea.Msg { return ShowToastMsg{Text: "voice: " + errText} }
@@ -173,19 +183,25 @@ func (a *RoomActionsComponent) activate() tea.Cmd {
 		a.formCur = 0
 		a.formErr = ""
 	case roomActionVoice:
-		if a.testAudioActive {
-			return nil // mutually exclusive with test audio
+		if a.testAudioActive || a.voiceConnecting {
+			return nil
 		}
-		joining := !a.voiceActive
+		if !a.voiceActive {
+			a.voiceConnecting = true
+			a.spinnerFrame = 0
+			return tea.Batch(
+				tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return vsSpinnerTickMsg{} }),
+				func() tea.Msg {
+					clientlog.Info("joining voice chat")
+					err := commands.VoiceJoinDirect()
+					if err != nil {
+						clientlog.Error("voice join failed: %v", err)
+					}
+					return roomsVoiceResultMsg{joined: err == nil, err: err}
+				},
+			)
+		}
 		return func() tea.Msg {
-			if joining {
-				clientlog.Info("joining voice chat")
-				err := commands.VoiceJoinDirect()
-				if err != nil {
-					clientlog.Error("voice join failed: %v", err)
-				}
-				return roomsVoiceResultMsg{joined: true, err: err}
-			}
 			clientlog.Info("leaving voice chat")
 			err := commands.VoiceLeaveDirect()
 			if err != nil {
@@ -302,7 +318,9 @@ func (a *RoomActionsComponent) Render() string {
 			disabled bool
 		}
 		voiceLabel := "Join Voice"
-		if a.voiceActive {
+		if a.voiceConnecting {
+			voiceLabel = spinnerFrames[a.spinnerFrame] + " Connecting..."
+		} else if a.voiceActive {
 			voiceLabel = "Leave Voice"
 		}
 		items := []string{
@@ -314,8 +332,8 @@ func (a *RoomActionsComponent) Render() string {
 		disabled := [roomActionCount]bool{
 			false,
 			false,
-			a.testAudioActive, // voice disabled when test audio running
-			false,             // voice settings always available
+			a.testAudioActive || a.voiceConnecting,
+			false, // voice settings always available
 		}
 		lines := make([]string, roomActionCount)
 		for i, lbl := range items {

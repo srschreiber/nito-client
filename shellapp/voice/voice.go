@@ -153,6 +153,7 @@ type voiceSession struct {
 	answerCh     chan string // receives the initial SDP answer; closed after use
 	iceRestartCh chan string // receives the SDP answer after an ICE restart
 	restarting   atomic.Bool
+	onTrackCh    chan struct{} // closed when the first remote track arrives
 }
 
 func getOtoCtx() (*oto.Context, error) {
@@ -229,16 +230,45 @@ const SelfRoomID = "self"
 // JoinSelf starts a loopback audio test: audio is sent to the broker with roomID "self"
 // and the broker relays it straight back. Uses a random ephemeral key since both the
 // encrypt and decrypt paths are in the same process.
+//
+// The broker occasionally doesn't set up the return track on the first connection.
+// JoinSelf retries automatically (up to 3 attempts) if no remote track arrives within 3s.
 func JoinSelf() error {
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		return fmt.Errorf("voice test: generate key: %w", err)
+	const maxAttempts = 3
+	const trackTimeout = 10 * time.Second
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		key := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			return fmt.Errorf("voice test: generate key: %w", err)
+		}
+		aead, err := newAEAD(key)
+		if err != nil {
+			return fmt.Errorf("voice test: aead: %w", err)
+		}
+		if err := joinWithAEAD(SelfRoomID, aead); err != nil {
+			return err
+		}
+
+		mu.Lock()
+		trackCh := activeSession.onTrackCh
+		mu.Unlock()
+
+		select {
+		case <-trackCh:
+			if attempt > 1 {
+				debugf("voice: self-test loopback established on attempt %d", attempt)
+			}
+			return nil
+		case <-time.After(trackTimeout):
+			_ = Leave(SelfRoomID)
+			if attempt < maxAttempts {
+				debugf("voice: self-test no return track after %.0fs, retrying (%d/%d)", trackTimeout.Seconds(), attempt, maxAttempts)
+				time.Sleep(200 * time.Millisecond)
+			}
+		}
 	}
-	aead, err := newAEAD(key)
-	if err != nil {
-		return fmt.Errorf("voice test: aead: %w", err)
-	}
-	return joinWithAEAD(SelfRoomID, aead)
+	return fmt.Errorf("voice test: loopback not established after %d attempts", maxAttempts)
 }
 
 // Join starts a voice call in roomID. Requires an active session with a selected room.
@@ -310,8 +340,13 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	go player.Play() // Play() can block on Windows waiting for the audio device; don't hold up Join.
 	debugf("voice: player started")
 
+	onTrackCh := make(chan struct{})
+	var onTrackOnce sync.Once
+
 	// Receive incoming tracks: decrypt → decode Opus → PCM → speakers.
 	pc.OnTrack(func(remote *webrtc.TrackRemote, _ *webrtc.RTPReceiver) {
+		debugf("voice: OnTrack fired, ssrc=%d", remote.SSRC())
+		onTrackOnce.Do(func() { close(onTrackCh) })
 		dec, err := newOpusDecoder(sampleRate, numChannels)
 		if err != nil {
 			return
@@ -396,6 +431,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		roomID: roomID, pc: pc, sendTrack: sendTrack,
 		aead: aead, player: player, pw: pw, cancel: cancel,
 		answerCh: answerCh, iceRestartCh: make(chan string, 1),
+		onTrackCh: onTrackCh,
 	}
 	mu.Lock()
 	activeSession = sess
