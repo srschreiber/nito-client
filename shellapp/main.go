@@ -590,7 +590,7 @@ func main() {
 		startupSuccessMsg = form.successMsg
 
 		p := tea.NewProgram(initialModel())
-		clientlog.Init(func(msg any) { p.Send(msg) })
+		clientlog.Init(func(msg any) { go p.Send(msg) })
 		result, err := p.Run()
 		if err != nil {
 			fmt.Println("error:", err)
