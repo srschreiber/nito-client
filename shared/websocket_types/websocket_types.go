@@ -130,11 +130,13 @@ const (
 	NotificationTypeRoomKeyRotated      NotificationType = "room_key_rotated"
 	NotificationTypeUserAddedToRoom     NotificationType = "user_added_to_room"
 	NotificationTypeUserJoinedVoiceChat NotificationType = "user_joined_voice_chat"
+	NotificationTypeUserLeftVoiceChat   NotificationType = "user_left_voice_chat"
 )
 
 type NotificationPayload struct {
-	Type NotificationType `json:"type"`
-	Text string           `json:"text"`
+	Type     NotificationType `json:"type"`
+	Text     string           `json:"text"`
+	Username string           `json:"username,omitempty"` // populated for voice chat notifications
 }
 
 type DirectMessagePayload struct {

@@ -36,3 +36,13 @@ type RoomMembersFetchMsg struct {
 type ErrorMsg struct {
 	Message string
 }
+
+// UserJoinedVoiceChatMsg is broadcast when a room member joins the voice call.
+type UserJoinedVoiceChatMsg struct {
+	Username string
+}
+
+// UserLeftVoiceChatMsg is broadcast when a room member leaves the voice call.
+type UserLeftVoiceChatMsg struct {
+	Username string
+}

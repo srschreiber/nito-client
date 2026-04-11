@@ -389,9 +389,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 		case wstypes.NotificationTypeUserJoinedVoiceChat:
 			toastText := text
-			cmds = append(cmds, func() tea.Msg {
-				return components.ShowToastMsg{Text: toastText}
-			})
+			username := msg.Username
+			cmds = append(cmds,
+				func() tea.Msg { return components.ShowToastMsg{Text: toastText} },
+				func() tea.Msg { return types.UserJoinedVoiceChatMsg{Username: username} },
+			)
+		case wstypes.NotificationTypeUserLeftVoiceChat:
+			username := msg.Username
+			cmds = append(cmds,
+				func() tea.Msg { return types.UserLeftVoiceChatMsg{Username: username} },
+			)
 		}
 		return m, tea.Batch(cmds...)
 	case echoWsMsg:
