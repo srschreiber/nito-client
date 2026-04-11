@@ -4,6 +4,8 @@
 package main
 
 import (
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -189,6 +191,17 @@ func (m startupModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.done = true
 		return m, tea.Quit
 
+	case tea.PasteMsg:
+		if !m.loading && m.state == sStateForm && m.focus < sfRememberMe {
+			text := msg.Content
+			if text != "" {
+				i := m.focus
+				runes := []rune(m.vals[i])
+				m.vals[i] = string(runes[:m.curs[i]]) + text + string(runes[m.curs[i]:])
+				m.curs[i] += len([]rune(text))
+			}
+		}
+
 	case tea.KeyPressMsg:
 		if m.loading {
 			return m, nil
@@ -302,8 +315,40 @@ func (m startupModel) updateForm(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// normalizeBrokerURL ensures public hosts always use https.
+// If no scheme is provided, https is added for public hosts and http for private/local ones.
+// An explicit http:// on a public host is upgraded to https://.
+func normalizeBrokerURL(raw string) string {
+	s := raw
+	if !strings.Contains(s, "://") {
+		s = "placeholder://" + s
+	}
+	u, err := url.Parse(s)
+	if err != nil || u.Host == "" {
+		return raw
+	}
+	host := u.Hostname()
+	private := host == "localhost" || !strings.Contains(host, ".")
+	if !private {
+		ip := net.ParseIP(host)
+		if ip != nil {
+			private = ip.IsLoopback() || ip.IsPrivate()
+		}
+	}
+	if private {
+		if !strings.HasPrefix(raw, "http://") && !strings.HasPrefix(raw, "https://") {
+			u.Scheme = "http"
+			return u.String()
+		}
+		return raw
+	}
+	// Public host — always https.
+	u.Scheme = "https"
+	return u.String()
+}
+
 func (m startupModel) submit() (tea.Model, tea.Cmd) {
-	broker := strings.TrimSpace(m.vals[sfBroker])
+	broker := normalizeBrokerURL(strings.TrimSpace(m.vals[sfBroker]))
 	username := strings.TrimSpace(m.vals[sfUsername])
 	password := m.vals[sfPassword]
 
