@@ -375,9 +375,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case wstypes.NotificationTypeUserJoinedRoom:
 			sounds.PlayEnter()
 			toastText := text
-			cmds = append(cmds, func() tea.Msg {
-				return components.ShowToastMsg{Text: toastText}
-			})
+			cmds = append(cmds,
+				func() tea.Msg { return components.ShowToastMsg{Text: toastText} },
+				func() tea.Msg { return types.MembersUpdatedMsg{} },
+			)
+		case wstypes.NotificationTypeUserLeftRoom:
+			sounds.PlayExit()
+			toastText := text
+			cmds = append(cmds,
+				func() tea.Msg { return components.ShowToastMsg{Text: toastText} },
+				func() tea.Msg { return types.MembersUpdatedMsg{} },
+			)
 		case wstypes.NotificationTypeUserJoinedVoiceChat:
 			toastText := text
 			cmds = append(cmds, func() tea.Msg {
