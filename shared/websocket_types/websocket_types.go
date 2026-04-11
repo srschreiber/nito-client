@@ -108,8 +108,20 @@ type RoomMessagePayload struct {
 	MessageType        string `json:"messageType,omitempty"` // "text" (default) or "image"
 }
 
+// NotificationType identifies what kind of notification the broker is sending.
+type NotificationType string
+
+const (
+	NotificationTypeUserJoinedRoom      NotificationType = "user_joined_room"
+	NotificationTypeUserLeftRoom        NotificationType = "user_left_room"
+	NotificationTypeRoomKeyRotated      NotificationType = "room_key_rotated"
+	NotificationTypeUserAddedToRoom     NotificationType = "user_added_to_room"
+	NotificationTypeUserJoinedVoiceChat NotificationType = "user_joined_voice_chat"
+)
+
 type NotificationPayload struct {
-	Text string `json:"text"`
+	Type NotificationType `json:"type"`
+	Text string           `json:"text"`
 }
 
 type DirectMessagePayload struct {

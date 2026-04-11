@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -361,12 +360,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(waitNotification(), waitEcho(), waitRoomMessages(), waitDM())
 	case notificationMsg:
 		text := msg.Text
-		clientlog.Info("notification: %s", text)
+		clientlog.Info("notification: %s [type=%s]", text, msg.Type)
 		cmds := []tea.Cmd{
 			func() tea.Msg { return components.NewNotificationAppendMsg(text) },
 			waitNotification(),
 		}
-		if strings.Contains(text, "invited you to") {
+		switch msg.Type {
+		case wstypes.NotificationTypeUserAddedToRoom:
 			cmds = append(cmds, func() tea.Msg {
 				return components.ShowToastMsg{Text: "You have a new room invite — check Notifications tab"}
 			})
