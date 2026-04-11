@@ -267,6 +267,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			lines = append(lines, item)
 		}
 	}
+	lines = append(lines, "  "+styles.DimText.Render("Don't see your device? Plug it in before starting the app."))
 	lines = append(lines, "")
 
 	// ── Audio Output ────────────────────────────────────────────────────────
