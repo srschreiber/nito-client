@@ -5,6 +5,7 @@ package connection
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -97,14 +98,19 @@ func normalizeURL(url string) string {
 
 // Register sends username and public key to the broker, creating a DB entry if the user
 // doesn't exist yet. Returns the user's ID and whether they were already registered.
-func Register(brokerURL, username, password, publicKey string) (*apitypes.RegisterResponse, error) {
+func Register(ctx context.Context, brokerURL, username, password, publicKey string) (*apitypes.RegisterResponse, error) {
 	brokerURL = normalizeURL(brokerURL)
 	body, _ := json.Marshal(apitypes.RegisterRequest{
 		Username:  username,
 		Password:  password,
 		PublicKey: publicKey,
 	})
-	resp, err := http.Post("http://"+brokerURL+"/api/v0/register", "application/json", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+brokerURL+"/api/v0/register", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("register: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("register: %w", err)
 	}
@@ -121,12 +127,17 @@ func Register(brokerURL, username, password, publicKey string) (*apitypes.Regist
 
 // Login performs the full authentication flow against the broker:
 // requests a challenge, signs it, and exchanges credentials for a JWT token.
-func Login(brokerURL, username, password string) (string, error) {
+func Login(ctx context.Context, brokerURL, username, password string) (string, error) {
 	brokerURL = normalizeURL(brokerURL)
 
 	// Request challenge.
 	challengeBody, _ := json.Marshal(apitypes.LoginChallengeRequest{Username: username})
-	resp, err := http.Post("http://"+brokerURL+"/api/v0/login/challenge", "application/json", bytes.NewReader(challengeBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+brokerURL+"/api/v0/login/challenge", bytes.NewReader(challengeBody))
+	if err != nil {
+		return "", fmt.Errorf("login challenge: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("login challenge: %w", err)
 	}
@@ -153,7 +164,12 @@ func Login(brokerURL, username, password string) (string, error) {
 		Challenge: challengeResp.Challenge,
 		Signature: sig,
 	})
-	loginResp, err := http.Post("http://"+brokerURL+"/api/v0/login", "application/json", bytes.NewReader(loginBody))
+	loginReq, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+brokerURL+"/api/v0/login", bytes.NewReader(loginBody))
+	if err != nil {
+		return "", fmt.Errorf("login: %w", err)
+	}
+	loginReq.Header.Set("Content-Type", "application/json")
+	loginResp, err := http.DefaultClient.Do(loginReq)
 	if err != nil {
 		return "", fmt.Errorf("login: %w", err)
 	}
@@ -170,7 +186,7 @@ func Login(brokerURL, username, password string) (string, error) {
 
 // Connect establishes a persistent WebSocket connection to the broker.
 // jwtToken must be obtained first via Login.
-func Connect(brokerURL, userID, jwtToken string) error {
+func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -190,7 +206,7 @@ func Connect(brokerURL, userID, jwtToken string) error {
 	headers.Set("X-Signature", sig)
 	headers.Set("Authorization", "Bearer "+jwtToken)
 	dialer := &websocket.Dialer{HandshakeTimeout: 5 * time.Second}
-	c, _, err := dialer.Dial("ws://"+brokerURL+"/ws?user_id="+userID, headers)
+	c, _, err := dialer.DialContext(ctx, "ws://"+brokerURL+"/ws?user_id="+userID, headers)
 	if err != nil {
 		return err
 	}

@@ -4,11 +4,13 @@
 package main
 
 import (
+	"context"
 	"net"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
@@ -378,13 +380,15 @@ func (m startupModel) submit() (tea.Model, tea.Cmd) {
 	m.errMsg = ""
 	isLogin := m.login
 	return m, func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
 		var msg string
 		var sig commands.Signal
 		var err error
 		if isLogin {
-			msg, sig, err = commands.LoginDirect(broker, username, password)
+			msg, sig, err = commands.LoginDirect(ctx, broker, username, password)
 		} else {
-			msg, sig, err = commands.RegisterDirect(broker, username, password)
+			msg, sig, err = commands.RegisterDirect(ctx, broker, username, password)
 		}
 		return startupAuthMsg{msg: msg, signal: sig, err: err}
 	}

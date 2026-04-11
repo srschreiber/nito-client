@@ -4,6 +4,7 @@
 package components
 
 import (
+	"context"
 	"fmt"
 	"image"
 	_ "image/gif"
@@ -322,9 +323,9 @@ func (l *CommandComponent) handlePasswordSubmit(password string) tea.Cmd {
 
 	switch pendingPasswordSignal {
 	case commands.SignalNeedRegisterPassword:
-		out, signal, err = commands.CompleteRegister(password)
+		out, signal, err = commands.CompleteRegister(context.Background(), password)
 	default:
-		out, signal, err = commands.CompleteLogin(password)
+		out, signal, err = commands.CompleteLogin(context.Background(), password)
 	}
 	pendingPasswordSignal = commands.SignalNone
 

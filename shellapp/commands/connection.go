@@ -4,6 +4,7 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,7 +34,7 @@ func registerCmd(args []Argument) (Signal, error) {
 }
 
 // CompleteRegister finishes the register flow with the password the user entered.
-func CompleteRegister(password string) (string, Signal, error) {
+func CompleteRegister(ctx context.Context, password string) (string, Signal, error) {
 	broker := pendingRegisterBroker
 	username := pendingRegisterUsername
 	pendingRegisterBroker = ""
@@ -43,7 +44,7 @@ func CompleteRegister(password string) (string, Signal, error) {
 	if err != nil {
 		return "", SignalNone, fmt.Errorf("register: key setup failed: %w", err)
 	}
-	resp, err := connection.Register(broker, username, password, publicKey)
+	resp, err := connection.Register(ctx, broker, username, password, publicKey)
 	if err != nil {
 		return "", SignalNone, err
 	}
@@ -76,40 +77,40 @@ func loginCmd(args []Argument) (Signal, error) {
 }
 
 // CompleteLogin finishes the login flow with the password the user entered.
-func CompleteLogin(password string) (string, Signal, error) {
+func CompleteLogin(ctx context.Context, password string) (string, Signal, error) {
 	broker := pendingLoginBroker
 	username := pendingLoginUsername
 	pendingLoginBroker = ""
 	pendingLoginUsername = ""
 
-	token, err := connection.Login(broker, username, password)
+	token, err := connection.Login(ctx, broker, username, password)
 	if err != nil {
 		return "", SignalNone, err
 	}
-	if err := connection.Connect(broker, username, token); err != nil {
+	if err := connection.Connect(ctx, broker, username, token); err != nil {
 		return "", SignalNone, fmt.Errorf("connect: %w", err)
 	}
 	return fmt.Sprintf("logged in to %s as %q", connection.BrokerURL(), username), SignalConnected, nil
 }
 
 // LoginDirect performs the full login flow synchronously with known credentials.
-func LoginDirect(broker, username, password string) (string, Signal, error) {
+func LoginDirect(ctx context.Context, broker, username, password string) (string, Signal, error) {
 	pendingLoginBroker = broker
 	pendingLoginUsername = username
-	return CompleteLogin(password)
+	return CompleteLogin(ctx, password)
 }
 
 // RegisterDirect registers a new user then immediately logs them in.
-func RegisterDirect(broker, username, password string) (string, Signal, error) {
+func RegisterDirect(ctx context.Context, broker, username, password string) (string, Signal, error) {
 	pendingRegisterBroker = broker
 	pendingRegisterUsername = username
-	regMsg, _, err := CompleteRegister(password)
+	regMsg, _, err := CompleteRegister(ctx, password)
 	if err != nil {
 		return "", SignalNone, err
 	}
 	pendingLoginBroker = broker
 	pendingLoginUsername = username
-	loginMsg, sig, err := CompleteLogin(password)
+	loginMsg, sig, err := CompleteLogin(ctx, password)
 	if err != nil {
 		return regMsg, SignalNone, err
 	}
