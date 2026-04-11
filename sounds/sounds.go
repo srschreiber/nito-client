@@ -7,6 +7,7 @@ package sounds
 import (
 	"bytes"
 	_ "embed"
+	"time"
 
 	"github.com/hajimehoshi/go-mp3"
 	"github.com/srschreiber/nito-client/shellapp/clientlog"
@@ -32,8 +33,11 @@ func playSound(name string, data []byte) {
 			return
 		}
 		player := ctx.NewPlayer(dec)
-		defer player.Close()
 		player.Play()
+		for player.IsPlaying() {
+			time.Sleep(10 * time.Millisecond)
+		}
+		player.Close()
 	}()
 }
 
