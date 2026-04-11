@@ -141,7 +141,16 @@ var (
 
 	otoOnce sync.Once
 	otoCtx  *oto.Context
+
+	sendPacketCount atomic.Uint64
+	sendByteCount   atomic.Uint64
 )
+
+// DrainSendStats returns the number of packets and bytes sent since the last call, resetting both counters.
+// Intended to be called once per second to compute rates.
+func DrainSendStats() (packets uint64, bytes uint64) {
+	return sendPacketCount.Swap(0), sendByteCount.Swap(0)
+}
 
 // IsConnecting reports whether a voice join is currently in progress.
 func IsConnecting() bool { return connecting.Load() }
@@ -812,6 +821,8 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 			if err := track.WriteRTP(pkt); err != nil {
 				return
 			}
+			sendPacketCount.Add(1)
+			sendByteCount.Add(uint64(len(ciphertext)))
 			ts += uint32(opusFrameSamples)
 		}
 	}

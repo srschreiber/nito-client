@@ -4,6 +4,7 @@
 package components
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -40,6 +41,9 @@ type vsSpinnerTickMsg struct{}
 // cross-scheduling each other into an exponential storm.
 type vsTestAudioTickMsg struct{}
 
+// vsStatsTickMsg fires every second to refresh send metrics while test audio is active.
+type vsStatsTickMsg struct{}
+
 // VoiceSettingsScreen is a full-screen overlay for audio device selection and test audio.
 type VoiceSettingsScreen struct {
 	width, height       int
@@ -50,6 +54,8 @@ type VoiceSettingsScreen struct {
 	testAudioConnecting bool // true while JoinSelf is in progress
 	spinnerFrame        int
 	voiceActive         bool // disables test audio while voice chat is running
+	sendPacketsPerSec   float64
+	sendKBPerSec        float64
 }
 
 func NewVoiceSettingsScreen(termW, termH int) *VoiceSettingsScreen {
@@ -82,6 +88,10 @@ func (s *VoiceSettingsScreen) spinnerTick() tea.Cmd {
 	return tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg { return vsTestAudioTickMsg{} })
 }
 
+func (s *VoiceSettingsScreen) statsTick() tea.Cmd {
+	return tea.Tick(time.Second, func(time.Time) tea.Msg { return vsStatsTickMsg{} })
+}
+
 func (s *VoiceSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case roomsVoiceResultMsg:
@@ -92,11 +102,23 @@ func (s *VoiceSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 		s.testAudioConnecting = false
 		if msg.err == nil {
 			s.testAudioActive = msg.active
+			if msg.active {
+				return s.statsTick()
+			}
+			s.sendPacketsPerSec = 0
+			s.sendKBPerSec = 0
 		}
 	case vsTestAudioTickMsg:
 		if s.testAudioConnecting {
 			s.spinnerFrame = (s.spinnerFrame + 1) % len(spinnerFrames)
 			return s.spinnerTick()
+		}
+	case vsStatsTickMsg:
+		if s.testAudioActive {
+			pkts, bytes := voice.DrainSendStats()
+			s.sendPacketsPerSec = float64(pkts)
+			s.sendKBPerSec = float64(bytes) / 1024.0
+			return s.statsTick()
 		}
 	case tea.KeyPressMsg:
 		return s.handleKey(msg)
@@ -279,6 +301,10 @@ func (s *VoiceSettingsScreen) Render() string {
 		}
 	}
 	lines = append(lines, testItem)
+	if s.testAudioActive {
+		stats := fmt.Sprintf("  %.0f pkt/s  %.1f KB/s", s.sendPacketsPerSec, s.sendKBPerSec)
+		lines = append(lines, styles.DimText.Render(stats))
+	}
 
 	content := strings.Join(lines, "\n")
 
