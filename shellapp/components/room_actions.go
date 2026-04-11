@@ -120,11 +120,19 @@ func (a *RoomActionsComponent) Update(msg tea.Msg) tea.Cmd {
 			errText := msg.err.Error()
 			return func() tea.Msg { return ShowToastMsg{Text: "voice: " + errText} }
 		}
-		action := "joined voice chat"
-		if !msg.joined {
-			action = "left voice chat"
+		username := connection.GetSessionUserID()
+		if msg.joined {
+			action := "joined voice chat"
+			return tea.Batch(
+				func() tea.Msg { return NewChatResponseAppendMsg(action) },
+				func() tea.Msg { return types.UserJoinedVoiceChatMsg{Username: username} },
+			)
 		}
-		return func() tea.Msg { return NewChatResponseAppendMsg(action) }
+		action := "left voice chat"
+		return tea.Batch(
+			func() tea.Msg { return NewChatResponseAppendMsg(action) },
+			func() tea.Msg { return types.UserLeftVoiceChatMsg{Username: username} },
+		)
 
 	case roomsTestAudioResultMsg:
 		if msg.err != nil {
