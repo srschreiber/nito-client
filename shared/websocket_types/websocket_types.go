@@ -112,6 +112,7 @@ type RoomMessagePayload struct {
 type NotificationType string
 
 const (
+	NotificationTypeGeneric             NotificationType = "generic"
 	NotificationTypeUserJoinedRoom      NotificationType = "user_joined_room"
 	NotificationTypeUserLeftRoom        NotificationType = "user_left_room"
 	NotificationTypeRoomKeyRotated      NotificationType = "room_key_rotated"

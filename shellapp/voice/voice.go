@@ -177,6 +177,9 @@ type voiceSession struct {
 	onTrackCh    chan struct{} // closed when the first remote track arrives
 }
 
+// GetOtoCtx returns the shared oto audio context, initializing it on first call.
+func GetOtoCtx() (*oto.Context, error) { return getOtoCtx() }
+
 func getOtoCtx() (*oto.Context, error) {
 	var initErr error
 	otoOnce.Do(func() {

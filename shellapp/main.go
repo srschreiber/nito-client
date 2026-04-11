@@ -19,6 +19,7 @@ import (
 	"github.com/srschreiber/nito-client/shellapp/keys"
 	"github.com/srschreiber/nito-client/shellapp/styles"
 	"github.com/srschreiber/nito-client/shellapp/types"
+	"github.com/srschreiber/nito-client/sounds"
 )
 
 // Box overhead constants (lipgloss borders + padding).
@@ -371,6 +372,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return components.ShowToastMsg{Text: "You have a new room invite — check Notifications tab"}
 			})
 			cmds = append(cmds, func() tea.Msg { return components.NewInvitesAppendMsg() })
+		case wstypes.NotificationTypeUserJoinedRoom:
+			sounds.PlayEnter()
+			toastText := text
+			cmds = append(cmds, func() tea.Msg {
+				return components.ShowToastMsg{Text: toastText}
+			})
+		case wstypes.NotificationTypeUserJoinedVoiceChat:
+			toastText := text
+			cmds = append(cmds, func() tea.Msg {
+				return components.ShowToastMsg{Text: toastText}
+			})
 		}
 		return m, tea.Batch(cmds...)
 	case echoWsMsg:
