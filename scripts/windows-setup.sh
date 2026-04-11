@@ -26,6 +26,7 @@ echo "==> Installing build dependencies..."
 pacman -S --needed --noconfirm \
   mingw-w64-ucrt-x86_64-gcc \
   mingw-w64-ucrt-x86_64-go \
+  mingw-w64-ucrt-x86_64-make \
   mingw-w64-ucrt-x86_64-pkgconf \
   mingw-w64-ucrt-x86_64-opus \
   mingw-w64-ucrt-x86_64-rnnoise

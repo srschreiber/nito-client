@@ -184,7 +184,7 @@ func getOtoCtx() (*oto.Context, error) {
 	var initErr error
 	otoOnce.Do(func() {
 		var ready chan struct{}
-		otoCtx, ready, initErr = oto.NewContext(sampleRate, numChannels, oto.FormatSignedInt16LE)
+		otoCtx, ready, initErr = oto.NewContext(sampleRate, 2, oto.FormatSignedInt16LE)
 		if initErr == nil {
 			<-ready
 		}
@@ -884,12 +884,15 @@ func chunkToInt16(chunk any) ([]int16, error) {
 	}
 }
 
-// int16ToBytes converts to	mono int16 PCM to little-endian byte format for writing to the Oto player.
+// int16ToBytes converts mono int16 PCM to stereo little-endian bytes for the oto player.
+// oto is initialized with 2 channels; we upmix by duplicating each mono sample to L and R.
 func int16ToBytes(pcm []int16) []byte {
-	b := make([]byte, len(pcm)*2)
+	b := make([]byte, len(pcm)*4) // 2 channels × 2 bytes per sample
 	for i, v := range pcm {
-		b[i*2] = byte(v)
-		b[i*2+1] = byte(v >> 8)
+		b[i*4] = byte(v)
+		b[i*4+1] = byte(v >> 8)
+		b[i*4+2] = byte(v)
+		b[i*4+3] = byte(v >> 8)
 	}
 	return b
 }
