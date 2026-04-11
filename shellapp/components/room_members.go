@@ -17,14 +17,15 @@ import (
 type membersPollMsg struct{}
 
 type RoomMembersComponent struct {
-	members []apitypes.RoomMemberEntry
-	roomID  *string
-	width   int
-	height  int
+	members    []apitypes.RoomMemberEntry
+	voiceUsers map[string]bool // usernames currently in voice chat
+	roomID     *string
+	width      int
+	height     int
 }
 
 func NewRoomMembersComponent(width, height int) *RoomMembersComponent {
-	return &RoomMembersComponent{width: width, height: height}
+	return &RoomMembersComponent{width: width, height: height, voiceUsers: map[string]bool{}}
 }
 
 func (m *RoomMembersComponent) SetSize(width, height int) {
@@ -66,6 +67,7 @@ func (m *RoomMembersComponent) Update(msg tea.Msg) tea.Cmd {
 	case types.RoomSelectedMsg:
 		m.roomID = &msg.RoomID
 		m.members = nil
+		m.voiceUsers = map[string]bool{}
 		return m.fetch()
 	case types.RoomMembersFetchMsg:
 		m.roomID = &msg.RoomID
@@ -74,6 +76,10 @@ func (m *RoomMembersComponent) Update(msg tea.Msg) tea.Cmd {
 		return m.fetch()
 	case types.RoomMembersUpdatedMsg:
 		m.members = msg.Members
+	case types.UserJoinedVoiceChatMsg:
+		m.voiceUsers[msg.Username] = true
+	case types.UserLeftVoiceChatMsg:
+		delete(m.voiceUsers, msg.Username)
 	}
 	return nil
 }
@@ -95,7 +101,11 @@ func (m *RoomMembersComponent) Render() string {
 			if member.Online || member.Username == currentUser {
 				dot = styles.MemberOnlineStyle.Render("●")
 			}
-			body += styles.ItemStyle.Render(dot+" "+member.Username) + "\n"
+			label := member.Username
+			if m.voiceUsers[member.Username] {
+				label += " " + styles.DimText.Render("🔊")
+			}
+			body += styles.ItemStyle.Render(dot+" "+label) + "\n"
 		}
 	}
 
