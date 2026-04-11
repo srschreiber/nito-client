@@ -1,6 +1,6 @@
 # nito
 
-(understand this README.md was mostly written by AI, with my guidence + stamp of approval, except for this paranthetic remark! keep that in mind while reading it)
+(this README.md was mostly written by AI, with my guidence + stamp of approval. keep that in mind while reading it)
 
 
 nito is an end-to-end encrypted terminal chat client.
