@@ -89,9 +89,10 @@ func (m *RoomMembersComponent) Render() string {
 	if len(m.members) == 0 {
 		body += styles.DimText.Render("  no members")
 	} else {
+		currentUser := connection.GetSessionUserID()
 		for _, member := range m.members {
 			dot := styles.MemberOfflineStyle.Render("●")
-			if member.Online {
+			if member.Online || member.Username == currentUser {
 				dot = styles.MemberOnlineStyle.Render("●")
 			}
 			body += styles.ItemStyle.Render(dot+" "+member.Username) + "\n"

@@ -18,6 +18,11 @@ type RoomSelectedMsg struct {
 	RoomID string
 }
 
+// RoomDeselectedMsg is emitted when the user navigates away from a room to a non-room view.
+type RoomDeselectedMsg struct {
+	RoomID string
+}
+
 // RoomMembersUpdatedMsg is broadcast when the member list for the selected room is refreshed.
 type RoomMembersUpdatedMsg struct {
 	Members []apitypes.RoomMemberEntry

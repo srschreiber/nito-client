@@ -31,6 +31,10 @@ const (
 	RPCMembersUpdated = "members_updated"
 	RPCDirectMessage  = "direct_message"
 
+	// Room presence RPCs.
+	RPCRoomEnter = "room_enter" // client → broker: user is now viewing this room
+	RPCRoomLeave = "room_leave" // client → broker: user navigated away from the room
+
 	// Voice signaling RPCs.
 	RPCVoiceJoin             = "voice_join"               // client → broker: join voice call, carries SDP offer
 	RPCVoiceAnswer           = "voice_answer"             // broker → client: SDP answer for initial join
@@ -42,6 +46,14 @@ const (
 )
 
 var VoiceChatWithSelf = "self"
+
+type RoomEnterPayload struct {
+	RoomID string `json:"roomId"`
+}
+
+type RoomLeavePayload struct {
+	RoomID string `json:"roomId"`
+}
 
 type VoiceJoinPayload struct {
 	RoomID   string `json:"roomId"` // special value of "self" to relay voice to self

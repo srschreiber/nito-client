@@ -9,6 +9,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 	"github.com/srschreiber/nito-client/shellapp/clientlog"
+	"github.com/srschreiber/nito-client/shellapp/connection"
+	"github.com/srschreiber/nito-client/shellapp/types"
 )
 
 // Component is the common interface satisfied by all focusable tab content components.
@@ -144,10 +146,15 @@ func (t *ConversationTabs) switchTabWithMessages(newTab HistoryTab) tea.Cmd {
 	t.switchTabInternal(newTab)
 	switch newTab {
 	case TabCmd, TabNotifications, TabInvites, TabLogs:
-		return tea.Batch(
+		cmds := []tea.Cmd{
 			func() tea.Msg { return ModeChangedMsg{ChatMode: false} },
 			func() tea.Msg { return DMTargetChangedMsg{User: ""} },
-		)
+		}
+		if roomID := connection.GetSessionRoomID(); roomID != nil {
+			id := *roomID
+			cmds = append(cmds, func() tea.Msg { return types.RoomDeselectedMsg{RoomID: id} })
+		}
+		return tea.Batch(cmds...)
 	case TabChat:
 		return tea.Batch(
 			func() tea.Msg { return ModeChangedMsg{ChatMode: true} },

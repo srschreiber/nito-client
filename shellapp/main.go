@@ -14,6 +14,7 @@ import (
 	lipgloss "charm.land/lipgloss/v2"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
 	"github.com/srschreiber/nito-client/shellapp/clientlog"
+	"github.com/srschreiber/nito-client/shellapp/commands"
 	"github.com/srschreiber/nito-client/shellapp/components"
 	"github.com/srschreiber/nito-client/shellapp/connection"
 	"github.com/srschreiber/nito-client/shellapp/keys"
@@ -419,7 +420,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	case types.RoomSelectedMsg:
 		roomID := msg.RoomID
-		// Broadcast to all components (history/rooms/members inside ConversationTabs).
+		go commands.SendRoomEnter(roomID)
 		var cmds []tea.Cmd
 		for _, c := range m.comps {
 			if cmd := c.Update(msg); cmd != nil {
@@ -428,6 +429,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		cmds = append(cmds, loadRoomHistory(roomID))
 		return m, tea.Batch(cmds...)
+	case types.RoomDeselectedMsg:
+		go commands.SendRoomLeave(msg.RoomID)
+		return m, nil
 	case components.ShowVoiceSettingsMsg:
 		m.showVoiceSettings = true
 		m.voiceSettings.Reset()
