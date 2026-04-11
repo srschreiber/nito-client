@@ -750,6 +750,8 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 	}
 
 	defer enc.close()
+	// note: brokers are rate-limited, so messing with this value can result in
+	// dropped packets
 	enc.setBitrate(24000)
 	enc.setPacketLossPerc(1)
 	enc.setDTX(true)
