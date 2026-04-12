@@ -107,9 +107,10 @@ func normalizeURL(url string) string {
 func Register(ctx context.Context, brokerURL, username, password, publicKey string) (*apitypes.RegisterResponse, error) {
 	brokerURL = normalizeURL(brokerURL)
 	body, _ := json.Marshal(apitypes.RegisterRequest{
-		Username:  username,
-		Password:  password,
-		PublicKey: publicKey,
+		Username:   username,
+		Password:   password,
+		PublicKey:  publicKey,
+		DeviceName: "primary",
 	})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+brokerURL+"/api/v0/register", bytes.NewReader(body))
 	if err != nil {
