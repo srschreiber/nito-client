@@ -95,6 +95,7 @@ func (h *HintsComponent) Render() string {
 				k.Render(".image") + d.Render(" <file> [-h <height>]"),
 				k.Render(".dm") + d.Render(" <user>"),
 				k.Render(".jump") + d.Render(" <line>"),
+				k.Render(".play") + d.Render(" <mp3 url>  (try archive.org)"),
 			}
 		} else {
 			lines = []string{
