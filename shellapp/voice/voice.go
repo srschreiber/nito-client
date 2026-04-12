@@ -144,12 +144,30 @@ var (
 
 	sendPacketCount atomic.Uint64
 	sendByteCount   atomic.Uint64
+
+	// Loopback RTT tracking (used only during JoinSelf test sessions).
+	loopbackSendTimes sync.Map     // key: uint16 seq → value: time.Time
+	loopbackPending   atomic.Int64 // number of unmatched entries in loopbackSendTimes
+	loopbackRTTNs     atomic.Int64 // EMA of round-trip time in nanoseconds; 0 = no data
 )
+
+const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
 
 // DrainSendStats returns the number of packets and bytes sent since the last call, resetting both counters.
 // Intended to be called once per second to compute rates.
 func DrainSendStats() (packets uint64, bytes uint64) {
 	return sendPacketCount.Swap(0), sendByteCount.Swap(0)
+}
+
+// GetLoopbackRTTMs returns the exponential moving average round-trip time in
+// milliseconds measured during the loopback (JoinSelf) test. Returns 0 if no
+// data has been collected yet.
+func GetLoopbackRTTMs() float64 {
+	ns := loopbackRTTNs.Load()
+	if ns == 0 {
+		return 0
+	}
+	return float64(ns) / float64(time.Millisecond)
 }
 
 // IsConnecting reports whether a voice join is currently in progress.
@@ -184,7 +202,15 @@ func getOtoCtx() (*oto.Context, error) {
 	var initErr error
 	otoOnce.Do(func() {
 		var ready chan struct{}
-		otoCtx, ready, initErr = oto.NewContext(sampleRate, 2, oto.FormatSignedInt16LE)
+		// Use a 20ms output buffer instead of the ~43ms default (4×2048 bytes at 48kHz stereo).
+		// Lower values reduce latency but risk glitches under CPU load; 20ms gives 2 frame-lengths
+		// of headroom with 10ms Opus frames.
+		otoCtx, ready, initErr = oto.NewContextWithOptions(&oto.NewContextOptions{
+			SampleRate:   sampleRate,
+			ChannelCount: 2,
+			Format:       oto.FormatSignedInt16LE,
+			BufferSize:   20 * time.Millisecond,
+		})
 		if initErr == nil {
 			<-ready
 		}
@@ -383,10 +409,29 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		}
 		defer dec.close()
 		pcmBuf := make([]int16, opusFrameSamples*numChannels)
+		isLoopback := roomID == SelfRoomID
 		for {
 			pkt, _, err := remote.ReadRTP()
 			if err != nil {
 				return
+			}
+			if isLoopback {
+				if v, ok := loopbackSendTimes.LoadAndDelete(pkt.Header.SequenceNumber); ok {
+					loopbackPending.Add(-1)
+					rttNs := time.Since(v.(time.Time)).Nanoseconds()
+					for {
+						old := loopbackRTTNs.Load()
+						var next int64
+						if old == 0 {
+							next = rttNs
+						} else {
+							next = int64(float64(old)*0.8 + float64(rttNs)*0.2)
+						}
+						if loopbackRTTNs.CompareAndSwap(old, next) {
+							break
+						}
+					}
+				}
 			}
 			plain, err := decryptFrame(aead, pkt.Payload)
 			if err != nil {
@@ -511,7 +556,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		return fmt.Errorf("voice join: timeout waiting for broker answer")
 	}
 
-	go captureAndSend(ctx, aead, sendTrack)
+	go captureAndSend(ctx, aead, sendTrack, roomID == SelfRoomID)
 	return nil
 }
 
@@ -544,6 +589,12 @@ func Leave(roomID string) error {
 	sess.cancel()
 	_ = sess.pw.Close()
 	_ = sess.pc.Close()
+
+	if roomID == SelfRoomID {
+		loopbackSendTimes.Clear()
+		loopbackPending.Store(0)
+		loopbackRTTNs.Store(0)
+	}
 
 	s := connection.CurrentSession()
 	if s == nil {
@@ -713,7 +764,7 @@ func iceRestart(sess *voiceSession) {
 
 // captureAndSend captures microphone audio, encodes each 20ms frame to Opus,
 // and writes it to the WebRTC send track.
-func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLocalStaticRTP) {
+func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLocalStaticRTP, isLoopback bool) {
 	muSelected.Lock()
 	inputID := selectedInputDevice
 	muSelected.Unlock()
@@ -834,6 +885,10 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 					Marker:         true,
 				},
 				Payload: ciphertext,
+			}
+			if isLoopback && loopbackPending.Load() < maxLoopbackPending {
+				loopbackSendTimes.Store(pkt.Header.SequenceNumber, time.Now())
+				loopbackPending.Add(1)
 			}
 			if err := track.WriteRTP(pkt); err != nil {
 				return

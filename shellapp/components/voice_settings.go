@@ -56,6 +56,7 @@ type VoiceSettingsScreen struct {
 	voiceActive         bool // disables test audio while voice chat is running
 	sendPacketsPerSec   float64
 	sendKBPerSec        float64
+	loopbackRTTMs       float64
 }
 
 func NewVoiceSettingsScreen(termW, termH int) *VoiceSettingsScreen {
@@ -118,6 +119,7 @@ func (s *VoiceSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 			pkts, bytes := voice.DrainSendStats()
 			s.sendPacketsPerSec = float64(pkts)
 			s.sendKBPerSec = float64(bytes) / 1024.0
+			s.loopbackRTTMs = voice.GetLoopbackRTTMs()
 			return s.statsTick()
 		}
 	case tea.KeyPressMsg:
@@ -303,7 +305,12 @@ func (s *VoiceSettingsScreen) Render() string {
 	}
 	lines = append(lines, testItem)
 	if s.testAudioActive {
-		stats := fmt.Sprintf("  %.0f pkt/s  %.1f KB/s", s.sendPacketsPerSec, s.sendKBPerSec)
+		var stats string
+		if s.loopbackRTTMs > 0 {
+			stats = fmt.Sprintf("  %.0f pkt/s  %.1f KB/s  %.0f ms RTT", s.sendPacketsPerSec, s.sendKBPerSec, s.loopbackRTTMs)
+		} else {
+			stats = fmt.Sprintf("  %.0f pkt/s  %.1f KB/s", s.sendPacketsPerSec, s.sendKBPerSec)
+		}
 		lines = append(lines, styles.DimText.Render(stats))
 	}
 
