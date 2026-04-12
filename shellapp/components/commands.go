@@ -36,6 +36,7 @@ type chatOpDef struct {
 var chatOps = []chatOpDef{
 	{name: ".image", argHint: "<filename> [-h <height>]"},
 	{name: ".jump", argHint: "<line>"},
+	{name: ".play", argHint: "<url>"},
 }
 
 // completeChatOp returns the first op whose name starts with prefix, or nil.
@@ -378,6 +379,28 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 			}
 		}
 		return func() tea.Msg { return JumpScrollMsg{Line: n} }
+	case ".play":
+		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".play: usage: .play <url>", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		url := strings.TrimSpace(parts[1])
+		if err := commands.PlayAudioDirect(url); err != nil {
+			errMsg := err.Error()
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".play: " + errMsg, isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		return func() tea.Msg {
+			return AppendHistoryMsg{Entries: []historyEntry{
+				{text: "> .play " + url},
+			}, Tab: TabChat}
+		}
 	case ".image":
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
@@ -571,16 +594,19 @@ func (l *CommandComponent) handleEnter() tea.Cmd {
 		l.dmMode = false
 		l.dmTarget = ""
 		l.Placeholder = placeholderCmd
-		return tea.Batch(
+		cmds := []tea.Cmd{
 			func() tea.Msg {
 				return AppendHistoryMsg{Entries: []historyEntry{
 					{text: "> " + input},
 					{text: "Switched to command mode.", isResponse: true},
 				}}
 			},
-			func() tea.Msg { return SwitchTabMsg{Tab: TabCmd} },
 			func() tea.Msg { return ModeChangedMsg{ChatMode: false} },
-		)
+		}
+		if ShowCmdTab {
+			cmds = append(cmds, func() tea.Msg { return SwitchTabMsg{Tab: TabCmd} })
+		}
+		return tea.Batch(cmds...)
 	}
 
 	// Tab-switching slash commands.

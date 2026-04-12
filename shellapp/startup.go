@@ -21,8 +21,9 @@ import (
 // ── login prefs persistence (~/.nito/defaults.yml) ────────────────────────────
 
 type loginPrefs struct {
-	Broker   string `yaml:"broker"`
-	Username string `yaml:"username"`
+	Broker     string `yaml:"broker"`
+	Username   string `yaml:"username"`
+	ShowCmdTab bool   `yaml:"show_cmd_tab"`
 }
 
 func loginPrefsPath() (string, error) {

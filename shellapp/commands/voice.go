@@ -4,9 +4,12 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
+	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
 	"github.com/srschreiber/nito-client/shellapp/connection"
 	"github.com/srschreiber/nito-client/shellapp/voice"
 )
@@ -53,4 +56,45 @@ func VoiceTestAudioDirect() error {
 // VoiceLeaveTestAudioDirect stops the loopback test audio session.
 func VoiceLeaveTestAudioDirect() error {
 	return voice.Leave(voice.SelfRoomID)
+}
+
+// PlayAudioDirect sends a play_audio RPC to the broker for all users in the active voice room.
+func PlayAudioDirect(audioURL string) error {
+	_, err := playCmd(audioURL)
+	return err
+}
+
+func playCmd(audioURL string) (string, error) {
+	roomID := voice.ActiveRoomID()
+	if roomID == "" {
+		return "", errors.New("play: not in a voice call (use voice-join first)")
+	}
+	s := connection.CurrentSession()
+	if s == nil {
+		return "", errors.New("play: not connected")
+	}
+	payload, err := json.Marshal(wstypes.PlayAudioPayload{
+		FromUsername: s.UserID,
+		RoomID:       roomID,
+		AudioURL:     audioURL,
+	})
+	if err != nil {
+		return "", fmt.Errorf("play: marshal: %w", err)
+	}
+	msg := wstypes.ToBrokerWsMessage{
+		RPCName:   wstypes.PlayAudio,
+		RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
+		UserID:    s.UserID,
+		Nonce:     fmt.Sprintf("%d", time.Now().UnixNano()),
+		Timestamp: time.Now().Unix(),
+		Payload:   payload,
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return "", fmt.Errorf("play: marshal message: %w", err)
+	}
+	if err := connection.Send(data); err != nil {
+		return "", fmt.Errorf("play: send: %w", err)
+	}
+	return "playing " + audioURL, nil
 }

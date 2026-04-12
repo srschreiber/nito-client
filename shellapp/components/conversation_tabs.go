@@ -36,8 +36,20 @@ var (
 	}
 )
 
+// ShowCmdTab controls whether the CMD tab is visible in the tab bar and reachable
+// via left/right navigation. Set from main before initialModel() based on user prefs.
+var ShowCmdTab = false
+
 // tabDefs lists tab names in order (index matches HistoryTab constants).
 var tabDefs = []string{"CMD", "Room Chat", "DMs", "Notifications", "Invites", "Logs"}
+
+// visibleTabs returns the ordered list of tabs that should be shown in the tab bar.
+func visibleTabs() []HistoryTab {
+	if ShowCmdTab {
+		return []HistoryTab{TabCmd, TabChat, TabDM, TabNotifications, TabInvites, TabLogs}
+	}
+	return []HistoryTab{TabChat, TabDM, TabNotifications, TabInvites, TabLogs}
+}
 
 // ConversationTabs wraps separate conversation panes for all tabs.
 // It implements the Component interface as a drop-in replacement for ConversationHistory.
@@ -65,6 +77,10 @@ func NewConversationTabs(width, height int) *ConversationTabs {
 	notifs.chatMode = false
 	logs := NewConversationHistory(width, innerH)
 	logs.chatMode = false
+	initialTab := HistoryTab(TabCmd)
+	if !ShowCmdTab {
+		initialTab = TabChat
+	}
 	return &ConversationTabs{
 		cmd:           cmd,
 		roomChat:      NewRoomChatPane(width, innerH),
@@ -74,7 +90,7 @@ func NewConversationTabs(width, height int) *ConversationTabs {
 		logs:          logs,
 		width:         width,
 		height:        height,
-		active:        TabCmd,
+		active:        initialTab,
 	}
 }
 
@@ -222,6 +238,9 @@ func (t *ConversationTabs) Update(msg tea.Msg) tea.Cmd {
 	case ClearHistoryMsg:
 		return t.cmd.Update(msg)
 	case SwitchTabMsg:
+		if msg.Tab == TabCmd && !ShowCmdTab {
+			return nil
+		}
 		return t.switchTabWithMessages(msg.Tab)
 	case StartDMMsg:
 		t.dmPane.EnsureUser(msg.User)
@@ -233,11 +252,27 @@ func (t *ConversationTabs) Update(msg tea.Msg) tea.Cmd {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "left":
-			n := (int(t.active) - 1 + len(tabDefs)) % len(tabDefs)
-			return t.switchTabWithMessages(HistoryTab(n))
+			tabs := visibleTabs()
+			cur := 0
+			for i, tab := range tabs {
+				if tab == t.active {
+					cur = i
+					break
+				}
+			}
+			prev := (cur - 1 + len(tabs)) % len(tabs)
+			return t.switchTabWithMessages(tabs[prev])
 		case "right":
-			n := (int(t.active) + 1) % len(tabDefs)
-			return t.switchTabWithMessages(HistoryTab(n))
+			tabs := visibleTabs()
+			cur := 0
+			for i, tab := range tabs {
+				if tab == t.active {
+					cur = i
+					break
+				}
+			}
+			next := (cur + 1) % len(tabs)
+			return t.switchTabWithMessages(tabs[next])
 		case "tab":
 			// Route tab to the active pane for internal sub-focus toggling.
 			if t.active == TabDM {
@@ -286,12 +321,15 @@ func (t *ConversationTabs) renderTabBar() string {
 		BorderRight(false).
 		BorderForeground(dim)
 
-	renderedTabs := make([]string, len(tabDefs))
+	var renderedTabs []string
 	for i, name := range tabDefs {
+		if HistoryTab(i) == TabCmd && !ShowCmdTab {
+			continue
+		}
 		if HistoryTab(i) == t.active {
-			renderedTabs[i] = activeStyle.Render(name)
+			renderedTabs = append(renderedTabs, activeStyle.Render(name))
 		} else {
-			renderedTabs[i] = inactiveStyle.Render(name)
+			renderedTabs = append(renderedTabs, inactiveStyle.Render(name))
 		}
 	}
 

@@ -675,6 +675,9 @@ func main() {
 		}
 		startupSuccessMsg = form.successMsg
 
+		prefs := loadLoginPrefs()
+		components.ShowCmdTab = prefs.ShowCmdTab
+
 		p := tea.NewProgram(initialModel())
 		clientlog.Init(func(msg any) { go p.Send(msg) })
 		result, err := p.Run()

@@ -29,36 +29,33 @@ func PlayAudioFromURL(ctx context.Context, roomID, audioURL string) tea.Cmd {
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, audioURL, nil)
 		if err != nil {
-			clientlog.Error("audio_player: build request: %v", err)
-			return nil
+			return audioErr("build request", err)
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			if ctx.Err() == nil {
-				clientlog.Error("audio_player: fetch %s: %v", audioURL, err)
+			if ctx.Err() != nil {
+				return nil // cancelled, not an error
 			}
-			return nil
+			return audioErr("fetch", err)
 		}
 		defer resp.Body.Close()
 
 		data, err := io.ReadAll(io.LimitReader(resp.Body, audioMaxBytes))
 		if err != nil {
-			if ctx.Err() == nil {
-				clientlog.Error("audio_player: read body: %v", err)
+			if ctx.Err() != nil {
+				return nil
 			}
-			return nil
+			return audioErr("read body", err)
 		}
 
 		otoCtx, err := voice.GetOtoCtx()
 		if err != nil {
-			clientlog.Error("audio_player: oto init: %v", err)
-			return nil
+			return audioErr("oto init", err)
 		}
 
 		dec, err := mp3.NewDecoder(bytes.NewReader(data))
 		if err != nil {
-			clientlog.Error("audio_player: mp3 decode: %v", err)
-			return nil
+			return audioErr("mp3 decode", err)
 		}
 
 		player := otoCtx.NewPlayer(dec)
@@ -77,4 +74,9 @@ func PlayAudioFromURL(ctx context.Context, roomID, audioURL string) tea.Cmd {
 			}
 		}
 	}
+}
+
+func audioErr(op string, err error) tea.Msg {
+	clientlog.Error("audio_player: %s: %v", op, err)
+	return ShowToastMsg{Text: "audio: " + op + ": " + err.Error()}
 }
