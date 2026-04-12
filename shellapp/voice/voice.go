@@ -412,7 +412,7 @@ const SelfRoomID = "self"
 // JoinSelf retries automatically (up to 3 attempts) if no remote track arrives within 3s.
 func JoinSelf() error {
 	const maxAttempts = 3
-	const trackTimeout = 10 * time.Second
+	const trackTimeout = 15 * time.Second
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		key := make([]byte, 32)
