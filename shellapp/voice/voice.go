@@ -32,6 +32,7 @@ import (
 
 	"github.com/hajimehoshi/oto/v2"
 	"github.com/pion/ice/v4"
+	"github.com/pion/interceptor"
 	media "github.com/pion/mediadevices"
 	_ "github.com/pion/mediadevices/pkg/driver/microphone"
 	"github.com/pion/mediadevices/pkg/prop"
@@ -137,6 +138,9 @@ var (
 	activeSession *voiceSession
 	connecting    atomic.Bool
 
+	jitterBufferEnabled atomic.Bool // if true, use pion's default interceptors (jitter buffer + NACK)
+	denoiseEnabled      atomic.Bool // if false, skip RNNoise processing
+
 	otoOnce sync.Once
 	otoCtx  *oto.Context
 
@@ -158,6 +162,10 @@ var (
 )
 
 const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
+
+func init() {
+	denoiseEnabled.Store(true) // RNNoise on by default
+}
 
 // DrainSendStats returns the number of packets and bytes sent since the last call, resetting both counters.
 // Intended to be called once per second to compute rates.
@@ -207,6 +215,19 @@ func GetNetworkRTTMs() float64 {
 	return float64(ns) / float64(time.Millisecond)
 }
 
+// JitterBufferEnabled reports whether the jitter buffer is enabled.
+func JitterBufferEnabled() bool { return jitterBufferEnabled.Load() }
+
+// SetJitterBufferEnabled enables or disables the WebRTC jitter buffer.
+// Takes effect on the next call to Join; does not affect an active session.
+func SetJitterBufferEnabled(enabled bool) { jitterBufferEnabled.Store(enabled) }
+
+// DenoiseEnabled reports whether RNNoise processing is enabled.
+func DenoiseEnabled() bool { return denoiseEnabled.Load() }
+
+// SetDenoiseEnabled enables or disables RNNoise noise removal. Takes effect immediately.
+func SetDenoiseEnabled(enabled bool) { denoiseEnabled.Store(enabled) }
+
 // IsConnecting reports whether a voice join is currently in progress.
 func IsConnecting() bool { return connecting.Load() }
 
@@ -217,13 +238,78 @@ func IsActive() bool {
 	return activeSession != nil
 }
 
+// audioBuf is a fixed-size ring buffer for decoded PCM audio.
+// Write never blocks — oldest bytes are overwritten when full, keeping latency bounded.
+// Read blocks until data is available or the buffer is closed, implementing io.Reader for oto.
+// it solves the problem where sample rates don't quite line up between the media source and what
+// opus expects (48k). if those get out of sync due to clock drift, it shouldn't cause blocking. instead, a ring buffer will
+// silently drop old frames by overwriting them with new frames
+type audioBuf struct {
+	mu   sync.Mutex
+	cond *sync.Cond
+	data []byte
+	r, w int
+	n    int
+	done bool
+}
+
+func newAudioBuf(size int) *audioBuf {
+	ab := &audioBuf{data: make([]byte, size)}
+	ab.cond = sync.NewCond(&ab.mu)
+	return ab
+}
+
+func (ab *audioBuf) Write(p []byte) {
+	ab.mu.Lock()
+	defer ab.mu.Unlock()
+	if ab.done {
+		return
+	}
+	for _, b := range p {
+		if ab.n == len(ab.data) {
+			ab.r = (ab.r + 1) % len(ab.data) // overwrite oldest
+			ab.n--
+		}
+		ab.data[ab.w] = b
+		ab.w = (ab.w + 1) % len(ab.data)
+		ab.n++
+	}
+	ab.cond.Signal()
+}
+
+func (ab *audioBuf) Read(p []byte) (int, error) {
+	ab.mu.Lock()
+	defer ab.mu.Unlock()
+	for ab.n == 0 && !ab.done {
+		ab.cond.Wait()
+	}
+	if ab.n == 0 {
+		return 0, io.EOF
+	}
+	i := 0
+	for i < len(p) && ab.n > 0 {
+		p[i] = ab.data[ab.r]
+		ab.r = (ab.r + 1) % len(ab.data)
+		ab.n--
+		i++
+	}
+	return i, nil
+}
+
+func (ab *audioBuf) close() {
+	ab.mu.Lock()
+	ab.done = true
+	ab.cond.Broadcast()
+	ab.mu.Unlock()
+}
+
 type voiceSession struct {
 	roomID       string
 	pc           *webrtc.PeerConnection
 	sendTrack    *webrtc.TrackLocalStaticRTP
 	aead         cipher.AEAD
 	player       oto.Player
-	pw           *io.PipeWriter
+	ab           *audioBuf
 	cancel       context.CancelFunc
 	ctx          context.Context
 	answerCh     chan string // receives the initial SDP answer; closed after use
@@ -270,7 +356,11 @@ func newPC() (*webrtc.PeerConnection, error) {
 	}
 	se := webrtc.SettingEngine{}
 	se.SetICEMulticastDNSMode(ice.MulticastDNSModeDisabled)
-	api := webrtc.NewAPI(webrtc.WithMediaEngine(m), webrtc.WithSettingEngine(se))
+	opts := []func(*webrtc.API){webrtc.WithMediaEngine(m), webrtc.WithSettingEngine(se)}
+	if !jitterBufferEnabled.Load() {
+		opts = append(opts, webrtc.WithInterceptorRegistry(&interceptor.Registry{}))
+	}
+	api := webrtc.NewAPI(opts...)
 	return api.NewPeerConnection(webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
 			{URLs: []string{"stun:stun.l.google.com:19302"}},
@@ -426,9 +516,9 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		return fmt.Errorf("voice join: oto: %w", err)
 	}
 	debugf("voice: audio output ready")
-	pr, pw := io.Pipe()
+	ab := newAudioBuf(opusFrameSamples * numChannels * 2 * 4) // 4 frames = 80 ms overflow threshold
 	debugf("voice: creating player")
-	player := oc.NewPlayer(pr)
+	player := oc.NewPlayer(ab)
 	bufferSizeSetter, ok := player.(oto.BufferSizeSetter)
 	if ok {
 		debugf("voice: setting player buffer size to 20ms")
@@ -454,6 +544,8 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		defer dec.close()
 		pcmBuf := make([]int16, opusFrameSamples*numChannels)
 		isLoopback := roomID == SelfRoomID
+		var lastSeq uint16
+		seenFirst := false
 		for {
 			pkt, _, err := remote.ReadRTP()
 			if err != nil {
@@ -465,6 +557,21 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 					networkRTTNs.Store(time.Since(v.(time.Time)).Nanoseconds())
 				}
 			}
+			// PLC: synthesize audio for any skipped sequence numbers.
+			seq := pkt.Header.SequenceNumber
+			if seenFirst {
+				if int16(seq-lastSeq) <= 0 {
+					continue // late or duplicate; already PLC'd past it
+				}
+				gap := int(seq-lastSeq) - 1 // wraps correctly for uint16
+				for i := 0; i < gap && i < 4; i++ {
+					if n, err := dec.decodePLC(pcmBuf); err == nil {
+						ab.Write(int16ToBytes(pcmBuf[:n*numChannels]))
+					}
+				}
+			}
+			lastSeq = seq
+			seenFirst = true
 			plain, err := decryptFrame(aead, pkt.Payload)
 			if err != nil {
 				continue
@@ -476,10 +583,8 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			if err != nil {
 				continue
 			}
-			if _, err := pw.Write(int16ToBytes(pcmBuf[:n*numChannels])); err != nil {
-				return
-			}
-			// Pipeline latency: measured from before encode to after pw.Write.
+			ab.Write(int16ToBytes(pcmBuf[:n*numChannels]))
+			// Pipeline latency: measured from before encode to after ab.Write.
 			if isLoopback {
 				if v, ok := pipelineSendTimes.LoadAndDelete(pkt.Header.SequenceNumber); ok {
 					loopbackPending.Add(-1)
@@ -517,7 +622,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	case err := <-setLocalErrCh:
 		if err != nil {
 			go func() {
-				_ = pw.Close()
+				ab.close()
 				_ = player.Close()
 				_ = pc.Close()
 			}()
@@ -526,7 +631,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	case <-time.After(10 * time.Second):
 		debugf("voice: ICE gathering timed out")
 		go func() {
-			_ = pw.Close()
+			ab.close()
 			_ = player.Close()
 			_ = pc.Close()
 		}()
@@ -546,7 +651,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	sess := &voiceSession{
 		roomID: roomID, pc: pc, sendTrack: sendTrack,
-		aead: aead, player: player, pw: pw, ctx: ctx, cancel: cancel,
+		aead: aead, player: player, ab: ab, ctx: ctx, cancel: cancel,
 		answerCh: answerCh, iceRestartCh: make(chan string, 1),
 		onTrackCh: onTrackCh,
 	}
@@ -624,7 +729,7 @@ func Leave(roomID string) error {
 		return nil
 	}
 	sess.cancel()
-	_ = sess.pw.Close()
+	sess.ab.close()
 	_ = sess.player.Close() // release oto resources so the next session starts clean
 	_ = sess.pc.Close()
 
@@ -895,7 +1000,7 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 
 			encodeStart := time.Now()
 
-			if denoise != nil {
+			if denoise != nil && denoiseEnabled.Load() {
 				f32 := pcm16ToFloat32(frame)
 				_ = denoise.ProcessFrame(f32)
 				frame = float32ToPCM16(f32)

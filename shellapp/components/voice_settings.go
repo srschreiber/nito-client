@@ -28,6 +28,7 @@ const (
 	vsSectionInput  vsSection = iota
 	vsSectionOutput           // informational only; output device selection not supported
 	vsSectionTest
+	vsSectionAdvanced
 	vsSectionCount
 )
 
@@ -52,6 +53,7 @@ type VoiceSettingsScreen struct {
 	inputCursor         int
 	testAudioActive     bool
 	testAudioConnecting bool // true while JoinSelf is in progress
+	advancedCursor      int  // index within the ADVANCED section
 	spinnerFrame        int
 	voiceActive         bool // disables test audio while voice chat is running
 	sendPacketsPerSec   float64
@@ -155,10 +157,14 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "up", "ctrl+p":
 		if s.section == vsSectionInput && s.inputCursor > 0 {
 			s.inputCursor--
+		} else if s.section == vsSectionAdvanced && s.advancedCursor > 0 {
+			s.advancedCursor--
 		}
 	case "down", "ctrl+n":
 		if s.section == vsSectionInput && s.inputCursor < len(s.inputDevices)-1 {
 			s.inputCursor++
+		} else if s.section == vsSectionAdvanced && s.advancedCursor < 1 {
+			s.advancedCursor++
 		}
 	case "enter", " ":
 		return s.activate()
@@ -179,6 +185,14 @@ func (s *VoiceSettingsScreen) activate() tea.Cmd {
 			clientlog.Info("audio input set to: %s", label)
 			return nil
 		}
+	case vsSectionAdvanced:
+		switch s.advancedCursor {
+		case 0:
+			voice.SetJitterBufferEnabled(!voice.JitterBufferEnabled())
+		case 1:
+			voice.SetDenoiseEnabled(!voice.DenoiseEnabled())
+		}
+		return nil
 	case vsSectionTest:
 		if s.voiceActive || s.testAudioConnecting {
 			return nil // mutually exclusive with voice chat, or already connecting
@@ -314,6 +328,37 @@ func (s *VoiceSettingsScreen) Render() string {
 		stats := fmt.Sprintf("  %.0f pkt/s  %.1f KB/s  net %.0f ms  lat %.0f ms  enc %.2f ms  dec %.2f ms",
 			s.sendPacketsPerSec, s.sendKBPerSec, s.networkRTTMs, s.pipelineLatMs, s.avgEncodeMs, s.avgDecodeMs)
 		lines = append(lines, styles.DimText.Render(stats))
+	}
+
+	// ── Advanced ────────────────────────────────────────────────────────────
+	lines = append(lines, "")
+	lines = append(lines, s.sectionHeader("ADVANCED", s.section == vsSectionAdvanced, innerW))
+	advItems := []struct {
+		label string
+		on    bool
+		hint  string
+	}{
+		{"Jitter Buffer", voice.JitterBufferEnabled(), "Smooths packet reordering at the cost of added delay. Takes effect on next connect."},
+		{"Noise Removal", voice.DenoiseEnabled(), "RNNoise background noise suppression. Disable if it distorts your audio."},
+	}
+	for i, item := range advItems {
+		cur := "  "
+		if s.section == vsSectionAdvanced && s.advancedCursor == i {
+			cur = styles.CursorStyle.Render("▶ ")
+		}
+		state := styles.DimText.Render("off")
+		if item.on {
+			state = styles.DimText.Render("✓ on")
+		}
+		label := item.label + " " + state
+		if s.section == vsSectionAdvanced && s.advancedCursor == i {
+			lines = append(lines, cur+styles.RoomBtnActiveStyle.Render(label))
+		} else {
+			lines = append(lines, cur+styles.ItemStyle.Render(label))
+		}
+		if s.section == vsSectionAdvanced && s.advancedCursor == i {
+			lines = append(lines, "  "+styles.DimText.Render(item.hint))
+		}
 	}
 
 	content := strings.Join(lines, "\n")

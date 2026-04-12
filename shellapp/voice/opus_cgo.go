@@ -118,6 +118,26 @@ func (d *opusDecoder) decode(data []byte, pcm []int16) (int, error) {
 	return int(n), nil
 }
 
+// decodePLC runs packet loss concealment for one missing frame.
+// Returns the number of samples written per channel.
+func (d *opusDecoder) decodePLC(pcm []int16) (int, error) {
+	if len(pcm) == 0 {
+		return 0, fmt.Errorf("decodePLC: empty output buffer")
+	}
+	n := C.opus_decode(
+		d.dec,
+		nil,
+		0,
+		(*C.opus_int16)(unsafe.Pointer(&pcm[0])),
+		C.int(len(pcm)),
+		0,
+	)
+	if n < 0 {
+		return 0, fmt.Errorf("opus_decode PLC error: %d", int(n))
+	}
+	return int(n), nil
+}
+
 func (d *opusDecoder) close() {
 	if d.dec != nil {
 		C.opus_decoder_destroy(d.dec)
