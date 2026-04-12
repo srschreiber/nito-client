@@ -32,17 +32,12 @@ func echoCmd(args []Argument) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("echo: %w", err)
 	}
-	sig, err := keys.Sign(s.UserID+":"+wstypes.RPCEcho, s.UserID)
-	if err != nil {
-		return "", fmt.Errorf("echo: sign: %w", err)
-	}
 	msg := wstypes.ToBrokerWsMessage{
 		RPCName:   wstypes.RPCEcho,
 		RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
 		UserID:    s.UserID,
 		Nonce:     fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(),
-		Signature: sig,
 		Payload:   payload,
 	}
 	data, err := json.Marshal(msg)
@@ -108,17 +103,12 @@ func sendRoomMessageWithType(text, msgType string) error {
 	if err != nil {
 		return fmt.Errorf("say: %w", err)
 	}
-	sig, err := keys.Sign(s.UserID+":"+wstypes.RPCRoomMessage, s.UserID)
-	if err != nil {
-		return fmt.Errorf("say: sign: %w", err)
-	}
 	msg := wstypes.ToBrokerWsMessage{
 		RPCName:   wstypes.RPCRoomMessage,
 		RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
 		UserID:    s.UserID,
 		Nonce:     fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(),
-		Signature: sig,
 		Payload:   payload,
 	}
 	data, err := json.Marshal(msg)
@@ -160,19 +150,12 @@ func SendDirectMessage(toUsername, text string) error {
 		return fmt.Errorf("dm: marshal payload: %w", err)
 	}
 
-	// Sign with the SENDER's key (was previously incorrectly signing with recipient's username).
-	sig, err := keys.Sign(s.UserID+":"+wstypes.RPCDirectMessage, s.UserID)
-	if err != nil {
-		return fmt.Errorf("dm: sign: %w", err)
-	}
-
 	msg := wstypes.ToBrokerWsMessage{
 		RPCName:   wstypes.RPCDirectMessage,
 		RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
 		UserID:    s.UserID,
 		Nonce:     fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(),
-		Signature: sig,
 		Payload:   marshaled,
 	}
 

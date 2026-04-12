@@ -41,7 +41,6 @@ import (
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
 	"github.com/srschreiber/nito-client/shellapp/clientlog"
 	"github.com/srschreiber/nito-client/shellapp/connection"
-	"github.com/srschreiber/nito-client/shellapp/keys"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -565,15 +564,10 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	payload, _ := json.Marshal(wstypes.VoiceJoinPayload{
 		RoomID: roomID, SDPOffer: pc.LocalDescription().SDP,
 	})
-	sig, err := keys.Sign(s.UserID+":"+wstypes.RPCVoiceJoin, s.UserID)
-	if err != nil {
-		Leave(roomID)
-		return fmt.Errorf("voice join: sign: %w", err)
-	}
 	wsMsg := wstypes.ToBrokerWsMessage{
 		RPCName: wstypes.RPCVoiceJoin, RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
 		UserID: s.UserID, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
-		Timestamp: time.Now().Unix(), Signature: sig, Payload: payload,
+		Timestamp: time.Now().Unix(), Payload: payload,
 	}
 	data, _ := json.Marshal(wsMsg)
 	if err := connection.Send(data); err != nil {
@@ -645,11 +639,10 @@ func Leave(roomID string) error {
 		return nil
 	}
 	payload, _ := json.Marshal(wstypes.VoiceLeavePayload{RoomID: roomID})
-	sig, _ := keys.Sign(s.UserID+":"+wstypes.RPCVoiceLeave, s.UserID)
 	wsMsg := wstypes.ToBrokerWsMessage{
 		RPCName: wstypes.RPCVoiceLeave, RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
 		UserID: s.UserID, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
-		Timestamp: time.Now().Unix(), Signature: sig, Payload: payload,
+		Timestamp: time.Now().Unix(), Payload: payload,
 	}
 	data, _ := json.Marshal(wsMsg)
 	return connection.Send(data)
@@ -735,11 +728,10 @@ func handleIncoming(rpcName string, payload []byte) {
 			respPayload, _ := json.Marshal(wstypes.VoiceRenegAnswerPayload{
 				RoomID: offer.RoomID, SDPAnswer: sess.pc.LocalDescription().SDP,
 			})
-			sig, _ := keys.Sign(s.UserID+":"+wstypes.RPCVoiceRenegAnswer, s.UserID)
 			wsMsg := wstypes.ToBrokerWsMessage{
 				RPCName: wstypes.RPCVoiceRenegAnswer, RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
 				UserID: s.UserID, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
-				Timestamp: time.Now().Unix(), Signature: sig, Payload: respPayload,
+				Timestamp: time.Now().Unix(), Payload: respPayload,
 			}
 			data, _ := json.Marshal(wsMsg)
 			_ = connection.Send(data)
@@ -780,14 +772,10 @@ func iceRestart(sess *voiceSession) {
 	payload, _ := json.Marshal(wstypes.VoiceICERestartPayload{
 		RoomID: sess.roomID, SDPOffer: sess.pc.LocalDescription().SDP,
 	})
-	sig, err := keys.Sign(s.UserID+":"+wstypes.RPCVoiceICERestart, s.UserID)
-	if err != nil {
-		return
-	}
 	wsMsg := wstypes.ToBrokerWsMessage{
 		RPCName: wstypes.RPCVoiceICERestart, RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
 		UserID: s.UserID, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
-		Timestamp: time.Now().Unix(), Signature: sig, Payload: payload,
+		Timestamp: time.Now().Unix(), Payload: payload,
 	}
 	data, _ := json.Marshal(wsMsg)
 	if err := connection.Send(data); err != nil {
