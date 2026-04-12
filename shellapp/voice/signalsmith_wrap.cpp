@@ -4,6 +4,7 @@
 // C wrapper around signalsmith-stretch (MIT) for real-time pitch shifting.
 // Header-only C++ library vendored in signalsmith/.
 
+#include <cstring>
 #include "signalsmith/signalsmith-stretch.h"
 #include <cstdlib>
 #include <cstring>
