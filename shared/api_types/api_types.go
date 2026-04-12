@@ -6,15 +6,17 @@ package api_types
 // User
 
 type RegisterRequest struct {
-	Username  string `json:"username" validate:"required"`
-	PublicKey string `json:"publicKey" validate:"required"`
-	Password  string `json:"password" validate:"required"`
+	Username   string `json:"username" validate:"required"`
+	PublicKey  string `json:"publicKey" validate:"required"`
+	Password   string `json:"password" validate:"required"`
+	DeviceName string `json:"deviceName" validate:"required"`
 }
 
 type RegisterResponse struct {
 	ID                string `json:"id"`
 	Username          string `json:"username"`
 	AlreadyRegistered bool   `json:"alreadyRegistered,omitempty"`
+	DeviceID          string `json:"deviceId"`
 }
 
 // Ping
@@ -119,8 +121,10 @@ type LoginRequest struct {
 	Password  string `json:"password" validate:"required"`
 	Challenge string `json:"challenge" validate:"required"`
 	Signature string `json:"signature" validate:"required"` // login:<username>:<challenge>
+	DeviceID  string `json:"deviceId,omitempty"`
 }
 
 type LoginResponse struct {
-	Token string `json:"token"` // JWT token for authenticating future requests
+	Token    string `json:"token"` // JWT token for authenticating future requests
+	DeviceID string `json:"deviceId"`
 }
