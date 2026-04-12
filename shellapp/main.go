@@ -407,21 +407,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		switch msg.Type {
 		case wstypes.NotificationTypeSoundClip:
-			// route to the sound player and also show a toast since some clips may be subtle.
-			if p, ok := msg.Data.(wstypes.PlayAudioPayload); ok {
+			var p wstypes.PlayAudioPayload
+			raw, _ := json.Marshal(msg.Data)
+			if err := json.Unmarshal(raw, &p); err != nil || p.AudioURL == "" {
+				clientlog.Error("sound clip notification: bad payload: %v", err)
+				cmds = append(cmds, func() tea.Msg {
+					return components.ShowToastMsg{Text: "play: received malformed sound clip notification"}
+				})
+			} else {
 				if m.cancelAudio != nil {
-					m.cancelAudio() // stop any currently playing clip
+					m.cancelAudio()
 				}
 				m.audioCtx, m.cancelAudio = context.WithCancel(context.Background())
 				audioCtx := m.audioCtx
-				return m, tea.Batch(
-					func() tea.Msg { return components.ShowToastMsg{Text: text + " from " + msg.Username} },
+				cmds = append(cmds,
+					func() tea.Msg { return components.ShowToastMsg{Text: text} },
 					components.PlayAudioFromURL(audioCtx, p.RoomID, p.AudioURL),
-					waitNotification(),
 				)
 			}
-			// just rearm
-			cmds = append(cmds, waitNotification())
 
 		case wstypes.NotificationTypeUserAddedToRoom:
 			cmds = append(cmds, func() tea.Msg {
