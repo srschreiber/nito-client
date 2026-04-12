@@ -25,7 +25,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -139,11 +138,10 @@ var (
 	activeSession *voiceSession
 	connecting    atomic.Bool
 
-	jitterBufferEnabled atomic.Bool   // if true, use pion's default interceptors (jitter buffer + NACK)
-	denoiseEnabled      atomic.Bool   // if false, skip RNNoise processing
-	pitchEnabled        atomic.Bool   // if true, apply pitch shift to captured audio
-	pitchPos            atomic.Int32  // 0–24; 12 = no shift, <12 = lower, >12 = higher
-	pitchPhaseU64       atomic.Uint64 // float64 bits; persistent phase accumulator across frames
+	jitterBufferEnabled atomic.Bool  // if true, use pion's default interceptors (jitter buffer + NACK)
+	denoiseEnabled      atomic.Bool  // if false, skip RNNoise processing
+	pitchEnabled        atomic.Bool  // if true, apply pitch shift to captured audio
+	pitchPos            atomic.Int32 // 0–24; 12 = no shift, <12 = lower, >12 = higher
 
 	otoOnce sync.Once
 	otoCtx  *oto.Context
@@ -238,7 +236,6 @@ func PitchEnabled() bool { return pitchEnabled.Load() }
 
 // SetPitchEnabled enables or disables pitch shifting. Takes effect immediately.
 func SetPitchEnabled(enabled bool) {
-	pitchPhaseU64.Store(0) // reset phase to avoid discontinuity on toggle
 	pitchEnabled.Store(enabled)
 }
 
@@ -253,28 +250,6 @@ func SetPitchPos(pos int) {
 		pos = 24
 	}
 	pitchPos.Store(int32(pos))
-}
-
-// applyPitchShift resamples frame by factor using a persistent phase accumulator.
-// Wraps modulo n so the output is never silent; phase carries across frames for continuity.
-func applyPitchShift(frame []int16, factor float64) []int16 {
-	n := len(frame)
-	fn := float64(n)
-	out := make([]int16, n)
-	phase := math.Float64frombits(pitchPhaseU64.Load())
-	for i := 0; i < n; i++ {
-		phase = math.Mod(phase, fn)
-		if phase < 0 {
-			phase += fn
-		}
-		j := int(phase)
-		frac := phase - float64(j)
-		j1 := (j + 1) % n
-		out[i] = int16(float64(frame[j])*(1-frac) + float64(frame[j1])*frac)
-		phase += factor
-	}
-	pitchPhaseU64.Store(math.Float64bits(math.Mod(phase, fn)))
-	return out
 }
 
 // IsConnecting reports whether a voice join is currently in progress.
@@ -1003,7 +978,20 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 		debugf("voice: new rnnoise state, will not denoise: %v", err)
 	}
 
+	// signalsmith-stretch pitch shifter: 2048-sample block (~43 ms), 512-sample interval (~11 ms).
+	// Creates ~43 ms of additional send-side latency when pitch shift is active.
+	const ssBlock = 2048
+	const ssInterval = 512
+	pitch, pitchErr := newSSStretch(sampleRate, numChannels, ssBlock, ssInterval)
+	if pitchErr != nil {
+		debugf("voice: signalsmith-stretch init failed: %v", pitchErr)
+	}
+	pitchOut := make([]float32, opusFrameSamples*numChannels)
+
 	defer enc.close()
+	if pitch != nil {
+		defer pitch.close()
+	}
 	// note: brokers are rate-limited, so messing with this value can result in
 	// dropped packets
 	enc.setBitrate(24000)
@@ -1055,9 +1043,12 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 				frame = float32ToPCM16(f32)
 			}
 
-			if pitchEnabled.Load() {
-				factor := math.Pow(2, float64(pitchPos.Load()-12)/12.0)
-				frame = applyPitchShift(frame, factor)
+			if pitchEnabled.Load() && pitch != nil {
+				semitones := float32(pitchPos.Load() - 12)
+				pitch.setSemitones(semitones)
+				f32 := pcm16ToFloat32(frame)
+				pitch.process(f32, pitchOut)
+				frame = float32ToPCM16(pitchOut)
 			}
 
 			n, err := enc.encode(frame, opusBuf)
