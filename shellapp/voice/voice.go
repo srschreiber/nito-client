@@ -515,6 +515,18 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	return nil
 }
 
+// LeaveIfActive tears down the active voice session regardless of room ID.
+// Safe to call when no session is active.
+func LeaveIfActive() {
+	mu.Lock()
+	sess := activeSession
+	mu.Unlock()
+	if sess == nil {
+		return
+	}
+	Leave(sess.roomID)
+}
+
 // Leave ends the active voice session for roomID.
 func Leave(roomID string) error {
 	mu.Lock()

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"github.com/srschreiber/nito-client/shellapp/keys"
 	"github.com/srschreiber/nito-client/shellapp/styles"
 	"github.com/srschreiber/nito-client/shellapp/types"
+	"github.com/srschreiber/nito-client/shellapp/voice"
 	"github.com/srschreiber/nito-client/sounds"
 )
 
@@ -170,11 +172,17 @@ type dmReceivedMsg struct {
 
 const pingInterval = 10 * time.Second
 
+// maxOfflineStreak is the number of consecutive ping failures before kicking to login.
+// Each failure triggers an immediate reconnect attempt, so this is effectively
+// (maxOfflineStreak - 1) reconnect attempts before giving up.
+const maxOfflineStreak = 4
+
 type pingTickMsg struct{}
 type pingResultMsg struct {
 	connected bool
 	latencyMs int64
 }
+type reconnectResultMsg struct{ err error }
 
 func waitPingTick() tea.Cmd {
 	return tea.Tick(pingInterval, func(time.Time) tea.Msg { return pingTickMsg{} })
@@ -185,6 +193,20 @@ func doPing() tea.Cmd {
 		start := time.Now()
 		err := connection.PingBroker()
 		return pingResultMsg{connected: err == nil, latencyMs: time.Since(start).Milliseconds()}
+	}
+}
+
+func doReconnect() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancel()
+		err := connection.Reconnect(ctx)
+		if err == nil {
+			clientlog.Info("reconnected to broker")
+		} else {
+			clientlog.Warn("reconnect failed: %v", err)
+		}
+		return reconnectResultMsg{err: err}
 	}
 }
 
@@ -319,15 +341,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case pingTickMsg:
 		return m, tea.Batch(doPing(), waitPingTick())
+	case reconnectResultMsg:
+		if msg.err == nil {
+			m.offlineStreak = 0
+			// New channels were created by Reconnect; re-arm all channel waiters.
+			return m, tea.Batch(waitNotification(), waitEcho(), waitRoomMessages(), waitDM())
+		}
+		// Reconnect failed; streak was already incremented on the ping failure that
+		// triggered this. The next ping tick will try again or kick if over the limit.
+		return m, nil
+
 	case pingResultMsg:
 		if msg.connected {
 			m.offlineStreak = 0
 		} else {
 			m.offlineStreak++
-			if m.offlineStreak >= 2 {
+			if m.offlineStreak >= maxOfflineStreak {
+				// Too many failures — leave voice chat and return to login.
+				go voice.LeaveIfActive()
 				m.kickedToLogin = true
 				return m, tea.Quit
 			}
+			// Attempt to silently reconnect before the next ping tick.
+			return m, doReconnect()
 		}
 		userID := ""
 		if s := connection.CurrentSession(); s != nil {
@@ -629,6 +665,7 @@ func main() {
 		}
 		// If the main TUI was kicked back to login, loop back to the auth form.
 		if m, ok := result.(model); ok && m.kickedToLogin {
+			voice.LeaveIfActive() // ensure voice session is torn down before re-auth
 			connection.Disconnect()
 			continue
 		}

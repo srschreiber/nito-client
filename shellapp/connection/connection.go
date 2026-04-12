@@ -65,6 +65,12 @@ var (
 
 	vmhMu               sync.Mutex
 	voiceMessageHandler func(rpcName string, payload []byte)
+
+	// Last successful connection credentials; used by Reconnect.
+	credMu       sync.Mutex
+	storedBroker string
+	storedUserID string
+	storedJWT    string
 )
 
 // SetVoiceMessageHandler registers a callback invoked for every incoming voice RPC
@@ -197,6 +203,9 @@ func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	}
 
 	brokerURL = normalizeURL(brokerURL)
+	credMu.Lock()
+	storedBroker, storedUserID, storedJWT = brokerURL, userID, jwtToken
+	credMu.Unlock()
 	sig, err := keys.Sign(userID+":/ws", userID)
 	if err != nil {
 		return fmt.Errorf("sign handshake: %w", err)
@@ -326,6 +335,19 @@ func NotifChan() <-chan []byte {
 	mu.Lock()
 	defer mu.Unlock()
 	return notifChan
+}
+
+// Reconnect re-establishes the WebSocket connection using the credentials from the last
+// successful Connect call. Returns an error if no prior connection was made or if the
+// dial fails (e.g. JWT expired, broker unreachable).
+func Reconnect(ctx context.Context) error {
+	credMu.Lock()
+	url, uid, jwt := storedBroker, storedUserID, storedJWT
+	credMu.Unlock()
+	if url == "" || uid == "" || jwt == "" {
+		return errors.New("no prior connection credentials")
+	}
+	return Connect(ctx, url, uid, jwt)
 }
 
 func Disconnect() {
