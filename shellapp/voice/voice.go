@@ -300,6 +300,16 @@ func IsActive() bool {
 	return activeSession != nil
 }
 
+// ActiveRoomID returns the room ID of the current voice session, or "" if none.
+func ActiveRoomID() string {
+	mu.Lock()
+	defer mu.Unlock()
+	if activeSession == nil {
+		return ""
+	}
+	return activeSession.roomID
+}
+
 // audioBuf is a fixed-size ring buffer for decoded PCM audio.
 // Write never blocks — oldest bytes are overwritten when full, keeping latency bounded.
 // Read blocks until data is available or the buffer is closed, implementing io.Reader for oto.

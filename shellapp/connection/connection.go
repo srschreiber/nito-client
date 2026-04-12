@@ -326,6 +326,24 @@ func readLoop(c *websocket.Conn, echoChan, roomMessageChan, dmChan, nc chan []by
 			})
 			dmChan <- dmData
 			continue
+		case wstypes.PlayAudio:
+			var payload wstypes.PlayAudioPayload
+			if json.Unmarshal(message.Payload, &payload) != nil {
+				log.Println("unmarshal PlayAudio payload:", err)
+			}
+
+			// just wrap as a notification to use same plumbing. sorta a hack, but avoids additional wiring
+			notif := wstypes.NotificationPayload{
+				Type:     wstypes.NotificationTypeSoundClip,
+				Text:     "incoming sound clip",
+				Username: payload.FromUsername,
+				Data:     payload,
+			}
+
+			// conv to bytes
+			notifBytes, _ := json.Marshal(notif)
+			nc <- notifBytes
+			continue
 		}
 	}
 }

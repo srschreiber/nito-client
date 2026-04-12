@@ -29,6 +29,7 @@ const (
 	RPCNotification   = "notification"
 	RPCMembersUpdated = "members_updated"
 	RPCDirectMessage  = "direct_message"
+	PlayAudio         = "play_audio"
 
 	// Room presence RPCs.
 	RPCRoomEnter = "room_enter" // client → broker: user is now viewing this room
@@ -123,7 +124,7 @@ type RoomMessagePayload struct {
 type NotificationType string
 
 const (
-	NotificationTypeGeneric             NotificationType = "generic"
+	NotificationTypeSoundClip           NotificationType = "notification_type_sound_clip"
 	NotificationTypeUserJoinedRoom      NotificationType = "user_joined_room"
 	NotificationTypeUserLeftRoom        NotificationType = "user_left_room"
 	NotificationTypeRoomKeyRotated      NotificationType = "room_key_rotated"
@@ -136,6 +137,7 @@ type NotificationPayload struct {
 	Type     NotificationType `json:"type"`
 	Text     string           `json:"text"`
 	Username string           `json:"username,omitempty"` // populated for voice chat notifications
+	Data     any              `json:"data,omitempty"`     // additional data depending on notification type, e.g. audio URL for sound clip notifications
 }
 
 type DirectMessagePayload struct {
@@ -143,4 +145,10 @@ type DirectMessagePayload struct {
 	FromUsername string `json:"fromUsername"`
 	CipherText   string `json:"cipherText" validate:"required"`
 	MessageType  string `json:"messageType,omitempty"`
+}
+
+type PlayAudioPayload struct {
+	FromUsername string `json:"fromUsername" validate:"required"`
+	RoomID       string `json:"roomId" validate:"required"`
+	AudioURL     string `json:"audioURL" validate:"required"`
 }
