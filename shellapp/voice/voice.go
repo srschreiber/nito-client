@@ -148,10 +148,14 @@ var (
 	decodeTimeNs    atomic.Int64
 	decodeFrames    atomic.Uint64
 
-	// Loopback RTT tracking (used only during JoinSelf test sessions).
-	loopbackSendTimes sync.Map     // key: uint16 seq → value: time.Time
-	loopbackPending   atomic.Int64 // number of unmatched entries in loopbackSendTimes
-	loopbackRTTNs     atomic.Int64 // EMA of round-trip time in nanoseconds; 0 = no data
+	// Loopback latency tracking (used only during JoinSelf test sessions).
+	// pipelineSendTimes records the time before encode; measures full encode→network→decode→write latency.
+	// networkSendTimes records the time just before WriteRTP; measures pure network round-trip.
+	pipelineSendTimes sync.Map     // key: uint16 seq → value: time.Time (before encode)
+	networkSendTimes  sync.Map     // key: uint16 seq → value: time.Time (just before WriteRTP)
+	loopbackPending   atomic.Int64 // number of unmatched entries (shared cap across both maps)
+	pipelineLatNs     atomic.Int64 // latest pipeline latency in nanoseconds
+	networkRTTNs      atomic.Int64 // latest network RTT in nanoseconds
 )
 
 const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
@@ -184,11 +188,20 @@ func DrainDecodeStats() float64 {
 	return float64(ns) / float64(frames) / float64(time.Millisecond)
 }
 
-// GetLoopbackRTTMs returns the exponential moving average round-trip time in
-// milliseconds measured during the loopback (JoinSelf) test. Returns 0 if no
-// data has been collected yet.
-func GetLoopbackRTTMs() float64 {
-	ns := loopbackRTTNs.Load()
+// GetPipelineLatMs returns the latest end-to-end pipeline latency in milliseconds:
+// time from before encode to after pw.Write on the receive side. Returns 0 if no data.
+func GetPipelineLatMs() float64 {
+	ns := pipelineLatNs.Load()
+	if ns == 0 {
+		return 0
+	}
+	return float64(ns) / float64(time.Millisecond)
+}
+
+// GetNetworkRTTMs returns the latest pure network round-trip time in milliseconds:
+// time from just before WriteRTP to just after ReadRTP. Returns 0 if no data.
+func GetNetworkRTTMs() float64 {
+	ns := networkRTTNs.Load()
 	if ns == 0 {
 		return 0
 	}
@@ -445,6 +458,12 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			if err != nil {
 				return
 			}
+			// Network RTT: measured from just before WriteRTP to just after ReadRTP.
+			if isLoopback {
+				if v, ok := networkSendTimes.LoadAndDelete(pkt.Header.SequenceNumber); ok {
+					networkRTTNs.Store(time.Since(v.(time.Time)).Nanoseconds())
+				}
+			}
 			plain, err := decryptFrame(aead, pkt.Payload)
 			if err != nil {
 				continue
@@ -459,12 +478,11 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			if _, err := pw.Write(int16ToBytes(pcmBuf[:n*numChannels])); err != nil {
 				return
 			}
-
+			// Pipeline latency: measured from before encode to after pw.Write.
 			if isLoopback {
-				if v, ok := loopbackSendTimes.LoadAndDelete(pkt.Header.SequenceNumber); ok {
+				if v, ok := pipelineSendTimes.LoadAndDelete(pkt.Header.SequenceNumber); ok {
 					loopbackPending.Add(-1)
-					rttNs := time.Since(v.(time.Time)).Nanoseconds()
-					loopbackRTTNs.Store(rttNs)
+					pipelineLatNs.Store(time.Since(v.(time.Time)).Nanoseconds())
 				}
 			}
 		}
@@ -615,9 +633,11 @@ func Leave(roomID string) error {
 	_ = sess.pc.Close()
 
 	if roomID == SelfRoomID {
-		loopbackSendTimes.Clear()
+		pipelineSendTimes.Clear()
+		networkSendTimes.Clear()
 		loopbackPending.Store(0)
-		loopbackRTTNs.Store(0)
+		pipelineLatNs.Store(0)
+		networkRTTNs.Store(0)
 	}
 
 	s := connection.CurrentSession()
@@ -876,7 +896,7 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 			seqNumber := uint16(atomic.AddUint32(&seq, 1))
 
 			if isLoopback && loopbackPending.Load() < maxLoopbackPending {
-				loopbackSendTimes.Store(seqNumber, time.Now())
+				pipelineSendTimes.Store(seqNumber, time.Now()) // before encode
 				loopbackPending.Add(1)
 			}
 
@@ -915,6 +935,9 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 					Marker:         true,
 				},
 				Payload: ciphertext,
+			}
+			if isLoopback {
+				networkSendTimes.Store(seqNumber, time.Now()) // just before WriteRTP
 			}
 			if err := track.WriteRTP(pkt); err != nil {
 				return
