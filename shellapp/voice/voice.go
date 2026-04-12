@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -138,8 +139,11 @@ var (
 	activeSession *voiceSession
 	connecting    atomic.Bool
 
-	jitterBufferEnabled atomic.Bool // if true, use pion's default interceptors (jitter buffer + NACK)
-	denoiseEnabled      atomic.Bool // if false, skip RNNoise processing
+	jitterBufferEnabled atomic.Bool   // if true, use pion's default interceptors (jitter buffer + NACK)
+	denoiseEnabled      atomic.Bool   // if false, skip RNNoise processing
+	pitchEnabled        atomic.Bool   // if true, apply pitch shift to captured audio
+	pitchPos            atomic.Int32  // 0–24; 12 = no shift, <12 = lower, >12 = higher
+	pitchPhaseU64       atomic.Uint64 // float64 bits; persistent phase accumulator across frames
 
 	otoOnce sync.Once
 	otoCtx  *oto.Context
@@ -165,6 +169,7 @@ const maxLoopbackPending = 200 // stop recording send times if this many are unm
 
 func init() {
 	denoiseEnabled.Store(true) // RNNoise on by default
+	pitchPos.Store(12)         // center = no shift
 }
 
 // DrainSendStats returns the number of packets and bytes sent since the last call, resetting both counters.
@@ -228,6 +233,50 @@ func DenoiseEnabled() bool { return denoiseEnabled.Load() }
 // SetDenoiseEnabled enables or disables RNNoise noise removal. Takes effect immediately.
 func SetDenoiseEnabled(enabled bool) { denoiseEnabled.Store(enabled) }
 
+// PitchEnabled reports whether pitch shift is enabled.
+func PitchEnabled() bool { return pitchEnabled.Load() }
+
+// SetPitchEnabled enables or disables pitch shifting. Takes effect immediately.
+func SetPitchEnabled(enabled bool) {
+	pitchPhaseU64.Store(0) // reset phase to avoid discontinuity on toggle
+	pitchEnabled.Store(enabled)
+}
+
+// PitchPos returns the pitch slider position (0–24; 12 = no shift).
+func PitchPos() int { return int(pitchPos.Load()) }
+
+// SetPitchPos sets the pitch slider position, clamped to 0–24.
+func SetPitchPos(pos int) {
+	if pos < 0 {
+		pos = 0
+	} else if pos > 24 {
+		pos = 24
+	}
+	pitchPos.Store(int32(pos))
+}
+
+// applyPitchShift resamples frame by factor using a persistent phase accumulator.
+// Wraps modulo n so the output is never silent; phase carries across frames for continuity.
+func applyPitchShift(frame []int16, factor float64) []int16 {
+	n := len(frame)
+	fn := float64(n)
+	out := make([]int16, n)
+	phase := math.Float64frombits(pitchPhaseU64.Load())
+	for i := 0; i < n; i++ {
+		phase = math.Mod(phase, fn)
+		if phase < 0 {
+			phase += fn
+		}
+		j := int(phase)
+		frac := phase - float64(j)
+		j1 := (j + 1) % n
+		out[i] = int16(float64(frame[j])*(1-frac) + float64(frame[j1])*frac)
+		phase += factor
+	}
+	pitchPhaseU64.Store(math.Float64bits(math.Mod(phase, fn)))
+	return out
+}
+
 // IsConnecting reports whether a voice join is currently in progress.
 func IsConnecting() bool { return connecting.Load() }
 
@@ -245,12 +294,13 @@ func IsActive() bool {
 // opus expects (48k). if those get out of sync due to clock drift, it shouldn't cause blocking. instead, a ring buffer will
 // silently drop old frames by overwriting them with new frames
 type audioBuf struct {
-	mu   sync.Mutex
-	cond *sync.Cond
-	data []byte
-	r, w int
-	n    int
-	done bool
+	mu       sync.Mutex
+	cond     *sync.Cond
+	data     []byte
+	readPos  int // index of next byte oto will read
+	writePos int // index of next byte to write
+	buffered int // number of bytes currently in the buffer
+	done     bool
 }
 
 func newAudioBuf(size int) *audioBuf {
@@ -265,14 +315,13 @@ func (ab *audioBuf) Write(p []byte) {
 	if ab.done {
 		return
 	}
+	if len(ab.data)-ab.buffered < len(p) {
+		return // drop frame — buffer full; avoids moving read pointer and causing a pop
+	}
 	for _, b := range p {
-		if ab.n == len(ab.data) {
-			ab.r = (ab.r + 1) % len(ab.data) // overwrite oldest
-			ab.n--
-		}
-		ab.data[ab.w] = b
-		ab.w = (ab.w + 1) % len(ab.data)
-		ab.n++
+		ab.data[ab.writePos] = b
+		ab.writePos = (ab.writePos + 1) % len(ab.data)
+		ab.buffered++
 	}
 	ab.cond.Signal()
 }
@@ -280,17 +329,17 @@ func (ab *audioBuf) Write(p []byte) {
 func (ab *audioBuf) Read(p []byte) (int, error) {
 	ab.mu.Lock()
 	defer ab.mu.Unlock()
-	for ab.n == 0 && !ab.done {
+	for ab.buffered == 0 && !ab.done {
 		ab.cond.Wait()
 	}
-	if ab.n == 0 {
+	if ab.buffered == 0 {
 		return 0, io.EOF
 	}
 	i := 0
-	for i < len(p) && ab.n > 0 {
-		p[i] = ab.data[ab.r]
-		ab.r = (ab.r + 1) % len(ab.data)
-		ab.n--
+	for i < len(p) && ab.buffered > 0 {
+		p[i] = ab.data[ab.readPos]
+		ab.readPos = (ab.readPos + 1) % len(ab.data)
+		ab.buffered--
 		i++
 	}
 	return i, nil
@@ -516,7 +565,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		return fmt.Errorf("voice join: oto: %w", err)
 	}
 	debugf("voice: audio output ready")
-	ab := newAudioBuf(opusFrameSamples * numChannels * 2 * 4) // 4 frames = 80 ms overflow threshold
+	ab := newAudioBuf(sampleRate * 4 * 10) // 10 seconds of stereo int16 — reduces drift-pop frequency
 	debugf("voice: creating player")
 	player := oc.NewPlayer(ab)
 	bufferSizeSetter, ok := player.(oto.BufferSizeSetter)
@@ -1004,6 +1053,11 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 				f32 := pcm16ToFloat32(frame)
 				_ = denoise.ProcessFrame(f32)
 				frame = float32ToPCM16(f32)
+			}
+
+			if pitchEnabled.Load() {
+				factor := math.Pow(2, float64(pitchPos.Load()-12)/12.0)
+				frame = applyPitchShift(frame, factor)
 			}
 
 			n, err := enc.encode(frame, opusBuf)

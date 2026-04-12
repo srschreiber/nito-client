@@ -28,6 +28,7 @@ const (
 	vsSectionInput  vsSection = iota
 	vsSectionOutput           // informational only; output device selection not supported
 	vsSectionTest
+	vsSectionTransformations
 	vsSectionAdvanced
 	vsSectionCount
 )
@@ -166,6 +167,14 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		} else if s.section == vsSectionAdvanced && s.advancedCursor < 1 {
 			s.advancedCursor++
 		}
+	case "left":
+		if s.section == vsSectionTransformations {
+			voice.SetPitchPos(voice.PitchPos() - 1)
+		}
+	case "right":
+		if s.section == vsSectionTransformations {
+			voice.SetPitchPos(voice.PitchPos() + 1)
+		}
 	case "enter", " ":
 		return s.activate()
 	}
@@ -185,6 +194,9 @@ func (s *VoiceSettingsScreen) activate() tea.Cmd {
 			clientlog.Info("audio input set to: %s", label)
 			return nil
 		}
+	case vsSectionTransformations:
+		voice.SetPitchEnabled(!voice.PitchEnabled())
+		return nil
 	case vsSectionAdvanced:
 		switch s.advancedCursor {
 		case 0:
@@ -328,6 +340,48 @@ func (s *VoiceSettingsScreen) Render() string {
 		stats := fmt.Sprintf("  %.0f pkt/s  %.1f KB/s  net %.0f ms  lat %.0f ms  enc %.2f ms  dec %.2f ms",
 			s.sendPacketsPerSec, s.sendKBPerSec, s.networkRTTMs, s.pipelineLatMs, s.avgEncodeMs, s.avgDecodeMs)
 		lines = append(lines, styles.DimText.Render(stats))
+	}
+
+	// ── Transformations ─────────────────────────────────────────────────────
+	lines = append(lines, "")
+	lines = append(lines, s.sectionHeader("TRANSFORMATIONS", s.section == vsSectionTransformations, innerW))
+	{
+		const sliderLen = 25
+		pos := voice.PitchPos() // 0–24, center=12
+		active := s.section == vsSectionTransformations
+		// Build slider: [────●────────────────────]
+		track := make([]rune, sliderLen)
+		for i := range track {
+			if i == pos {
+				track[i] = '●'
+			} else {
+				track[i] = '─'
+			}
+		}
+		sliderStr := "[" + string(track) + "]"
+		var semitones int
+		if pos <= 12 {
+			semitones = -(12 - pos)
+		} else {
+			semitones = pos - 12
+		}
+		sign := ""
+		if semitones > 0 {
+			sign = "+"
+		}
+		label := fmt.Sprintf("Pitch  %s  %s%d st", sliderStr, sign, semitones)
+		pitchCursor := "  "
+		if active {
+			pitchCursor = styles.CursorStyle.Render("▶ ")
+		}
+		if !voice.PitchEnabled() {
+			lines = append(lines, pitchCursor+styles.DimText.Render("Pitch  [off]  press enter to enable"))
+		} else if active {
+			lines = append(lines, pitchCursor+styles.RoomBtnActiveStyle.Render(label))
+			lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust pitch  •  enter to disable"))
+		} else {
+			lines = append(lines, pitchCursor+styles.ItemStyle.Render(label))
+		}
 	}
 
 	// ── Advanced ────────────────────────────────────────────────────────────
