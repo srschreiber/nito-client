@@ -431,8 +431,8 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	player := oc.NewPlayer(pr)
 	bufferSizeSetter, ok := player.(oto.BufferSizeSetter)
 	if ok {
-		debugf("voice: setting player buffer size to 40ms")
-		bufferSizeSetter.SetBufferSize(opusFrameSamples * 4 * 2)
+		debugf("voice: setting player buffer size to 20ms")
+		bufferSizeSetter.SetBufferSize(opusFrameSamples * numChannels * 2) // 2 frames = 40 ms
 	} else {
 		debugf("voice: player does not support buffer size setter")
 	}
