@@ -417,6 +417,11 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	pr, pw := io.Pipe()
 	debugf("voice: creating player")
 	player := oc.NewPlayer(pr)
+	bufferSizeSetter, ok := player.(oto.BufferSizeSetter)
+	if ok {
+		debugf("voice: setting player buffer size to 40ms")
+		bufferSizeSetter.SetBufferSize(opusFrameSamples * 4 * 2)
+	}
 	debugf("voice: starting player")
 	go player.Play() // Play() can block on Windows waiting for the audio device; don't hold up Join.
 	debugf("voice: player started")
@@ -440,24 +445,6 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			if err != nil {
 				return
 			}
-			if isLoopback {
-				if v, ok := loopbackSendTimes.LoadAndDelete(pkt.Header.SequenceNumber); ok {
-					loopbackPending.Add(-1)
-					rttNs := time.Since(v.(time.Time)).Nanoseconds()
-					for {
-						old := loopbackRTTNs.Load()
-						var next int64
-						if old == 0 {
-							next = rttNs
-						} else {
-							next = int64(float64(old)*0.8 + float64(rttNs)*0.2)
-						}
-						if loopbackRTTNs.CompareAndSwap(old, next) {
-							break
-						}
-					}
-				}
-			}
 			plain, err := decryptFrame(aead, pkt.Payload)
 			if err != nil {
 				continue
@@ -471,6 +458,14 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			}
 			if _, err := pw.Write(int16ToBytes(pcmBuf[:n*numChannels])); err != nil {
 				return
+			}
+
+			if isLoopback {
+				if v, ok := loopbackSendTimes.LoadAndDelete(pkt.Header.SequenceNumber); ok {
+					loopbackPending.Add(-1)
+					rttNs := time.Since(v.(time.Time)).Nanoseconds()
+					loopbackRTTNs.Store(rttNs)
+				}
 			}
 		}
 	})
@@ -878,6 +873,13 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 		pcmAccum = append(pcmAccum, pcm...)
 
 		for len(pcmAccum) >= opusFrameSamples*numChannels {
+			seqNumber := uint16(atomic.AddUint32(&seq, 1))
+
+			if isLoopback && loopbackPending.Load() < maxLoopbackPending {
+				loopbackSendTimes.Store(seqNumber, time.Now())
+				loopbackPending.Add(1)
+			}
+
 			frame := pcmAccum[:opusFrameSamples*numChannels]
 			pcmAccum = pcmAccum[opusFrameSamples*numChannels:]
 
@@ -907,16 +909,12 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 				Header: rtppkg.Header{
 					Version:        2,
 					PayloadType:    payloadType,
-					SequenceNumber: uint16(atomic.AddUint32(&seq, 1)),
+					SequenceNumber: seqNumber,
 					Timestamp:      ts,
 					SSRC:           0xDEADBEEF,
 					Marker:         true,
 				},
 				Payload: ciphertext,
-			}
-			if isLoopback && loopbackPending.Load() < maxLoopbackPending {
-				loopbackSendTimes.Store(pkt.Header.SequenceNumber, time.Now())
-				loopbackPending.Add(1)
 			}
 			if err := track.WriteRTP(pkt); err != nil {
 				return
