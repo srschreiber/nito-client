@@ -272,11 +272,7 @@ func newPC() (*webrtc.PeerConnection, error) {
 	se := webrtc.SettingEngine{}
 	se.SetICEMulticastDNSMode(ice.MulticastDNSModeDisabled)
 	api := webrtc.NewAPI(webrtc.WithMediaEngine(m), webrtc.WithSettingEngine(se))
-	return api.NewPeerConnection(webrtc.Configuration{
-		ICEServers: []webrtc.ICEServer{
-			{URLs: []string{"stun:stun.l.google.com:19302"}},
-		},
-	})
+	return api.NewPeerConnection(webrtc.Configuration{})
 }
 
 func deriveVoiceKey(roomKeyBytes []byte) ([]byte, error) {
