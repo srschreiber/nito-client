@@ -433,6 +433,8 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	if ok {
 		debugf("voice: setting player buffer size to 40ms")
 		bufferSizeSetter.SetBufferSize(opusFrameSamples * 4 * 2)
+	} else {
+		debugf("voice: player does not support buffer size setter")
 	}
 	debugf("voice: starting player")
 	go player.Play() // Play() can block on Windows waiting for the audio device; don't hold up Join.
