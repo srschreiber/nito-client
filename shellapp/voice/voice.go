@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -142,6 +143,9 @@ var (
 	denoiseEnabled      atomic.Bool  // if false, skip RNNoise processing
 	pitchEnabled        atomic.Bool  // if true, apply pitch shift to captured audio
 	pitchPos            atomic.Int32 // 0–24; 12 = no shift, <12 = lower, >12 = higher
+	vibratoEnabled      atomic.Bool  // if true, modulate pitch with a sine oscillator
+	vibratoFreq         atomic.Int32 // vibrato rate in Hz, 1–10
+	vibratoRange        atomic.Int32 // vibrato depth in half-steps of 0.5 st, 1–6 (= 0.5–3.0 st)
 
 	otoOnce sync.Once
 	otoCtx  *oto.Context
@@ -168,6 +172,8 @@ const maxLoopbackPending = 200 // stop recording send times if this many are unm
 func init() {
 	denoiseEnabled.Store(true) // RNNoise on by default
 	pitchPos.Store(12)         // center = no shift
+	vibratoFreq.Store(4)       // 4 Hz default
+	vibratoRange.Store(1)      // 1 × 0.5 st = 0.5 st default
 }
 
 // DrainSendStats returns the number of packets and bytes sent since the last call, resetting both counters.
@@ -250,6 +256,38 @@ func SetPitchPos(pos int) {
 		pos = 24
 	}
 	pitchPos.Store(int32(pos))
+}
+
+// VibratoEnabled reports whether vibrato is enabled.
+func VibratoEnabled() bool { return vibratoEnabled.Load() }
+
+// SetVibratoEnabled enables or disables vibrato.
+func SetVibratoEnabled(enabled bool) { vibratoEnabled.Store(enabled) }
+
+// VibratoFreq returns the vibrato rate in Hz (1–10).
+func VibratoFreq() int { return int(vibratoFreq.Load()) }
+
+// SetVibratoFreq sets the vibrato rate in Hz, clamped to 1–8.
+func SetVibratoFreq(hz int) {
+	if hz < 1 {
+		hz = 1
+	} else if hz > 8 {
+		hz = 8
+	}
+	vibratoFreq.Store(int32(hz))
+}
+
+// VibratoRange returns the vibrato depth (1–8; each unit = 0.5 semitones).
+func VibratoRange() int { return int(vibratoRange.Load()) }
+
+// SetVibratoRange sets the vibrato depth, clamped to 1–6 (= 0.5–3.0 st).
+func SetVibratoRange(r int) {
+	if r < 1 {
+		r = 1
+	} else if r > 6 {
+		r = 6
+	}
+	vibratoRange.Store(int32(r))
 }
 
 // IsConnecting reports whether a voice join is currently in progress.
@@ -987,6 +1025,7 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 		debugf("voice: signalsmith-stretch init failed: %v", pitchErr)
 	}
 	pitchOut := make([]float32, opusFrameSamples*numChannels)
+	var vibratoPhase float64 // radians; advances each frame
 
 	defer enc.close()
 	if pitch != nil {
@@ -1043,9 +1082,22 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 				frame = float32ToPCM16(f32)
 			}
 
-			if pitchEnabled.Load() && pitch != nil {
-				semitones := float32(pitchPos.Load() - 12)
-				pitch.setSemitones(semitones)
+			usePitch := pitch != nil && (pitchEnabled.Load() || vibratoEnabled.Load())
+			if usePitch {
+				semitones := float64(0)
+				if pitchEnabled.Load() {
+					semitones += float64(pitchPos.Load() - 12)
+				}
+				if vibratoEnabled.Load() {
+					depth := float64(vibratoRange.Load()) * 0.5 // in semitones
+					semitones += depth * math.Sin(vibratoPhase)
+					frameDur := float64(opusFrameSamples) / float64(sampleRate)
+					vibratoPhase += 2 * math.Pi * float64(vibratoFreq.Load()) * frameDur
+					if vibratoPhase >= 2*math.Pi {
+						vibratoPhase -= 2 * math.Pi
+					}
+				}
+				pitch.setSemitones(float32(semitones))
 				f32 := pcm16ToFloat32(frame)
 				pitch.process(f32, pitchOut)
 				frame = float32ToPCM16(pitchOut)

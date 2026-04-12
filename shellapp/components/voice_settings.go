@@ -54,7 +54,8 @@ type VoiceSettingsScreen struct {
 	inputCursor         int
 	testAudioActive     bool
 	testAudioConnecting bool // true while JoinSelf is in progress
-	advancedCursor      int  // index within the ADVANCED section
+	advancedCursor      int  // index within the ADVANCED section (0=jitter, 1=denoise)
+	transformCursor     int  // index within the TRANSFORMATIONS section (0=pitch, 1=vibrato, 2=vib freq, 3=vib range)
 	spinnerFrame        int
 	voiceActive         bool // disables test audio while voice chat is running
 	sendPacketsPerSec   float64
@@ -160,20 +161,44 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 			s.inputCursor--
 		} else if s.section == vsSectionAdvanced && s.advancedCursor > 0 {
 			s.advancedCursor--
+		} else if s.section == vsSectionTransformations && s.transformCursor > 0 {
+			s.transformCursor--
 		}
 	case "down", "ctrl+n":
 		if s.section == vsSectionInput && s.inputCursor < len(s.inputDevices)-1 {
 			s.inputCursor++
 		} else if s.section == vsSectionAdvanced && s.advancedCursor < 1 {
 			s.advancedCursor++
+		} else if s.section == vsSectionTransformations {
+			maxCursor := 1 // pitch + vibrato toggle
+			if voice.VibratoEnabled() {
+				maxCursor = 3 // + freq + range
+			}
+			if s.transformCursor < maxCursor {
+				s.transformCursor++
+			}
 		}
 	case "left":
 		if s.section == vsSectionTransformations {
-			voice.SetPitchPos(voice.PitchPos() - 1)
+			switch s.transformCursor {
+			case 0:
+				voice.SetPitchPos(voice.PitchPos() - 1)
+			case 2:
+				voice.SetVibratoFreq(voice.VibratoFreq() - 1)
+			case 3:
+				voice.SetVibratoRange(voice.VibratoRange() - 1)
+			}
 		}
 	case "right":
 		if s.section == vsSectionTransformations {
-			voice.SetPitchPos(voice.PitchPos() + 1)
+			switch s.transformCursor {
+			case 0:
+				voice.SetPitchPos(voice.PitchPos() + 1)
+			case 2:
+				voice.SetVibratoFreq(voice.VibratoFreq() + 1)
+			case 3:
+				voice.SetVibratoRange(voice.VibratoRange() + 1)
+			}
 		}
 	case "enter", " ":
 		return s.activate()
@@ -195,7 +220,17 @@ func (s *VoiceSettingsScreen) activate() tea.Cmd {
 			return nil
 		}
 	case vsSectionTransformations:
-		voice.SetPitchEnabled(!voice.PitchEnabled())
+		switch s.transformCursor {
+		case 0:
+			voice.SetPitchEnabled(!voice.PitchEnabled())
+		case 1:
+			if !voice.VibratoEnabled() {
+				s.transformCursor = 1 // keep cursor on vibrato when enabling
+			} else if s.transformCursor > 1 {
+				s.transformCursor = 1 // clamp cursor when disabling
+			}
+			voice.SetVibratoEnabled(!voice.VibratoEnabled())
+		}
 		return nil
 	case vsSectionAdvanced:
 		switch s.advancedCursor {
@@ -346,41 +381,83 @@ func (s *VoiceSettingsScreen) Render() string {
 	lines = append(lines, "")
 	lines = append(lines, s.sectionHeader("TRANSFORMATIONS", s.section == vsSectionTransformations, innerW))
 	{
-		const sliderLen = 25
-		pos := voice.PitchPos() // 0–24, center=12
-		active := s.section == vsSectionTransformations
-		// Build slider: [────●────────────────────]
-		track := make([]rune, sliderLen)
-		for i := range track {
-			if i == pos {
-				track[i] = '●'
+		inSection := s.section == vsSectionTransformations
+
+		cur := func(idx int) string {
+			if inSection && s.transformCursor == idx {
+				return styles.CursorStyle.Render("▶ ")
+			}
+			return "  "
+		}
+		focused := func(idx int) bool { return inSection && s.transformCursor == idx }
+
+		buildSlider := func(pos, maxPos int) string {
+			const sliderLen = 13
+			scaled := pos * (sliderLen - 1) / maxPos
+			track := make([]rune, sliderLen)
+			for i := range track {
+				if i == scaled {
+					track[i] = '●'
+				} else {
+					track[i] = '─'
+				}
+			}
+			return "[" + string(track) + "]"
+		}
+
+		// ── Pitch ──
+		if !voice.PitchEnabled() {
+			lines = append(lines, cur(0)+styles.ItemStyle.Render("Pitch "+styles.DimText.Render("off")))
+			if focused(0) {
+				lines = append(lines, "  "+styles.DimText.Render("enter to enable"))
+			}
+		} else {
+			pos := voice.PitchPos()
+			semitones := pos - 12
+			sign := ""
+			if semitones > 0 {
+				sign = "+"
+			}
+			label := fmt.Sprintf("Pitch  %s  %s%d st", buildSlider(pos, 24), sign, semitones)
+			if focused(0) {
+				lines = append(lines, cur(0)+styles.RoomBtnActiveStyle.Render(label))
+				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  enter to disable"))
 			} else {
-				track[i] = '─'
+				lines = append(lines, cur(0)+styles.ItemStyle.Render(label))
 			}
 		}
-		sliderStr := "[" + string(track) + "]"
-		var semitones int
-		if pos <= 12 {
-			semitones = -(12 - pos)
+
+		// ── Vibrato ──
+		vibratoState := styles.DimText.Render("off")
+		if voice.VibratoEnabled() {
+			vibratoState = styles.DimText.Render("✓ on")
+		}
+		vibratoLabel := "Vibrato " + vibratoState
+		if focused(1) {
+			lines = append(lines, cur(1)+styles.RoomBtnActiveStyle.Render(vibratoLabel))
+			lines = append(lines, "  "+styles.DimText.Render("enter to toggle  •  ↑/↓ to edit settings"))
 		} else {
-			semitones = pos - 12
+			lines = append(lines, cur(1)+styles.ItemStyle.Render(vibratoLabel))
 		}
-		sign := ""
-		if semitones > 0 {
-			sign = "+"
-		}
-		label := fmt.Sprintf("Pitch  %s  %s%d st", sliderStr, sign, semitones)
-		pitchCursor := "  "
-		if active {
-			pitchCursor = styles.CursorStyle.Render("▶ ")
-		}
-		if !voice.PitchEnabled() {
-			lines = append(lines, pitchCursor+styles.DimText.Render("Pitch  [off]  press enter to enable"))
-		} else if active {
-			lines = append(lines, pitchCursor+styles.RoomBtnActiveStyle.Render(label))
-			lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust pitch  •  enter to disable"))
-		} else {
-			lines = append(lines, pitchCursor+styles.ItemStyle.Render(label))
+
+		if voice.VibratoEnabled() {
+			// Freq
+			freqLabel := fmt.Sprintf("Freq  %s  %d Hz", buildSlider(voice.VibratoFreq()-1, 7), voice.VibratoFreq())
+			if focused(2) {
+				lines = append(lines, cur(2)+styles.RoomBtnActiveStyle.Render(freqLabel))
+				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  (1–8 Hz)"))
+			} else {
+				lines = append(lines, cur(2)+styles.ItemStyle.Render(freqLabel))
+			}
+			// Range
+			rangeSt := float64(voice.VibratoRange()) * 0.5
+			rangeLabel := fmt.Sprintf("Range %s  ±%.1f st", buildSlider(voice.VibratoRange()-1, 5), rangeSt)
+			if focused(3) {
+				lines = append(lines, cur(3)+styles.RoomBtnActiveStyle.Render(rangeLabel))
+				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  (±0.5–3.0 st)"))
+			} else {
+				lines = append(lines, cur(3)+styles.ItemStyle.Render(rangeLabel))
+			}
 		}
 	}
 
