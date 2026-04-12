@@ -33,6 +33,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
+	github.com/maxhawkins/go-webrtcvad v0.0.0-20210121163624-be60036f3083 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/pion/datachannel v1.6.0 // indirect

@@ -57,6 +57,8 @@ type VoiceSettingsScreen struct {
 	sendPacketsPerSec   float64
 	sendKBPerSec        float64
 	loopbackRTTMs       float64
+	avgEncodeMs         float64
+	avgDecodeMs         float64
 }
 
 func NewVoiceSettingsScreen(termW, termH int) *VoiceSettingsScreen {
@@ -120,6 +122,8 @@ func (s *VoiceSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 			s.sendPacketsPerSec = float64(pkts)
 			s.sendKBPerSec = float64(bytes) / 1024.0
 			s.loopbackRTTMs = voice.GetLoopbackRTTMs()
+			s.avgEncodeMs = voice.DrainEncodeStats()
+			s.avgDecodeMs = voice.DrainDecodeStats()
 			return s.statsTick()
 		}
 	case tea.KeyPressMsg:
@@ -307,9 +311,9 @@ func (s *VoiceSettingsScreen) Render() string {
 	if s.testAudioActive {
 		var stats string
 		if s.loopbackRTTMs > 0 {
-			stats = fmt.Sprintf("  %.0f pkt/s  %.1f KB/s  %.0f ms RTT", s.sendPacketsPerSec, s.sendKBPerSec, s.loopbackRTTMs)
+			stats = fmt.Sprintf("  %.0f pkt/s  %.1f KB/s  %.0f ms RTT  enc %.2f ms  dec %.2f ms", s.sendPacketsPerSec, s.sendKBPerSec, s.loopbackRTTMs, s.avgEncodeMs, s.avgDecodeMs)
 		} else {
-			stats = fmt.Sprintf("  %.0f pkt/s  %.1f KB/s", s.sendPacketsPerSec, s.sendKBPerSec)
+			stats = fmt.Sprintf("  %.0f pkt/s  %.1f KB/s  enc %.2f ms  dec %.2f ms", s.sendPacketsPerSec, s.sendKBPerSec, s.avgEncodeMs, s.avgDecodeMs)
 		}
 		lines = append(lines, styles.DimText.Render(stats))
 	}

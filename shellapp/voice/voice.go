@@ -38,12 +38,11 @@ import (
 	"github.com/pion/mediadevices/pkg/wave"
 	rtppkg "github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
-	"golang.org/x/crypto/hkdf"
-
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
 	"github.com/srschreiber/nito-client/shellapp/clientlog"
 	"github.com/srschreiber/nito-client/shellapp/connection"
 	"github.com/srschreiber/nito-client/shellapp/keys"
+	"golang.org/x/crypto/hkdf"
 )
 
 const (
@@ -144,6 +143,10 @@ var (
 
 	sendPacketCount atomic.Uint64
 	sendByteCount   atomic.Uint64
+	encodeTimeNs    atomic.Int64
+	encodeFrames    atomic.Uint64
+	decodeTimeNs    atomic.Int64
+	decodeFrames    atomic.Uint64
 
 	// Loopback RTT tracking (used only during JoinSelf test sessions).
 	loopbackSendTimes sync.Map     // key: uint16 seq → value: time.Time
@@ -157,6 +160,28 @@ const maxLoopbackPending = 200 // stop recording send times if this many are unm
 // Intended to be called once per second to compute rates.
 func DrainSendStats() (packets uint64, bytes uint64) {
 	return sendPacketCount.Swap(0), sendByteCount.Swap(0)
+}
+
+// DrainEncodeStats returns the average encode time per frame in milliseconds since the last call.
+// Returns 0 if no frames were encoded in the interval.
+func DrainEncodeStats() float64 {
+	ns := encodeTimeNs.Swap(0)
+	frames := encodeFrames.Swap(0)
+	if frames == 0 {
+		return 0
+	}
+	return float64(ns) / float64(frames) / float64(time.Millisecond)
+}
+
+// DrainDecodeStats returns the average decode time per frame in milliseconds since the last call.
+// Returns 0 if no frames were decoded in the interval.
+func DrainDecodeStats() float64 {
+	ns := decodeTimeNs.Swap(0)
+	frames := decodeFrames.Swap(0)
+	if frames == 0 {
+		return 0
+	}
+	return float64(ns) / float64(frames) / float64(time.Millisecond)
 }
 
 // GetLoopbackRTTMs returns the exponential moving average round-trip time in
@@ -437,7 +462,10 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			if err != nil {
 				continue
 			}
+			decodeStart := time.Now()
 			n, err := dec.decode(plain, pcmBuf)
+			decodeTimeNs.Add(time.Since(decodeStart).Nanoseconds())
+			decodeFrames.Add(1)
 			if err != nil {
 				continue
 			}
@@ -588,6 +616,7 @@ func Leave(roomID string) error {
 	}
 	sess.cancel()
 	_ = sess.pw.Close()
+	_ = sess.player.Close() // release oto resources so the next session starts clean
 	_ = sess.pc.Close()
 
 	if roomID == SelfRoomID {
@@ -852,18 +881,17 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 			frame := pcmAccum[:opusFrameSamples*numChannels]
 			pcmAccum = pcmAccum[opusFrameSamples*numChannels:]
 
-			if denoise != nil {
-				// convert to float 32 so we can use RNNoise
-				f32 := pcm16ToFloat32(frame)
-				err = denoise.ProcessFrame(f32)
-				if err != nil {
-					//debugf("voice: rnnoise process frame: %v", err)
-				}
+			encodeStart := time.Now()
 
+			if denoise != nil {
+				f32 := pcm16ToFloat32(frame)
+				_ = denoise.ProcessFrame(f32)
 				frame = float32ToPCM16(f32)
 			}
 
 			n, err := enc.encode(frame, opusBuf)
+			encodeTimeNs.Add(time.Since(encodeStart).Nanoseconds())
+			encodeFrames.Add(1)
 			if err != nil {
 				debugf("voice: opus encode: %v", err)
 				continue
