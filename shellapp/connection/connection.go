@@ -136,6 +136,7 @@ func Register(ctx context.Context, brokerURL, username, password, publicKey stri
 // requests a challenge, signs it, and exchanges credentials for a JWT token.
 func Login(ctx context.Context, brokerURL, username, password string) (string, error) {
 	brokerURL = normalizeURL(brokerURL)
+	keys.SetActiveBroker(brokerURL)
 
 	// Request challenge.
 	challengeBody, _ := json.Marshal(apitypes.LoginChallengeRequest{Username: username})
