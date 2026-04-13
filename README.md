@@ -40,16 +40,12 @@ I only open sourced the client to be transparent. The broker, on the other hand,
 
 ## Building on macOS
 
-Install the native rnnoise library:
+Requires [Homebrew](https://brew.sh). Run the setup script once, then build normally:
 
 ```sh
-git clone https://github.com/xiph/rnnoise.git
-cd rnnoise
-./autogen.sh && ./configure && make
-sudo make install
+bash scripts/mac-setup.sh
+make run-shell
 ```
-
-Then run with `make run-shell`.
 
 ## Building on Windows
 
