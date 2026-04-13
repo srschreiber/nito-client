@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -18,22 +17,6 @@ import (
 	"github.com/srschreiber/nito-client/shellapp/clientlog"
 	"github.com/srschreiber/nito-client/shellapp/voice"
 )
-
-// eofTracker wraps an io.ReadCloser and records when the underlying reader
-// returns io.EOF. Used to distinguish a natural end-of-stream from a CoreAudio
-// context suspension (which also causes oto's IsPlaying to return false).
-type eofTracker struct {
-	io.ReadCloser
-	reached atomic.Bool
-}
-
-func (e *eofTracker) Read(p []byte) (int, error) {
-	n, err := e.ReadCloser.Read(p)
-	if err == io.EOF {
-		e.reached.Store(true)
-	}
-	return n, err
-}
 
 // PlayAudioFromURL returns a tea.Cmd that streams and plays the MP3 (or M3U
 // playlist) at audioURL on the given track slot, but only if the user is
@@ -154,15 +137,14 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 		}
 		return audioPlaybackErr(track, "fetch", err)
 	}
-	body := &eofTracker{ReadCloser: resp.Body}
-	defer body.Close()
+	defer resp.Body.Close()
 
 	otoCtx, err := voice.GetOtoCtx()
 	if err != nil {
 		return audioPlaybackErr(track, "oto init", err)
 	}
 
-	dec, err := mp3.NewDecoder(body)
+	dec, err := mp3.NewDecoder(resp.Body)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil
@@ -181,13 +163,7 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 			return nil
 		default:
 			if !player.IsPlaying() {
-				// Only treat as end-of-stream if the HTTP body is exhausted.
-				// If EOF hasn't been reached, CoreAudio suspended the player
-				// (e.g. voice session started/stopped) — re-call Play() to resume.
-				if body.reached.Load() {
-					return nil
-				}
-				player.Play()
+				return nil
 			}
 			player.SetVolume(voice.EffectivePlaybackVolume())
 			time.Sleep(20 * time.Millisecond)
