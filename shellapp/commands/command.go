@@ -21,6 +21,7 @@ const (
 	SignalNeedPassword         Signal = 7
 	SignalNeedRegisterPassword Signal = 8
 	SignalStartDM              Signal = 9
+	SignalVoiceLeave           Signal = 10
 )
 
 // DMUser holds the target username for the most recent StartDM signal.

@@ -152,6 +152,7 @@ func playOne(ctx context.Context, roomID, audioURL string) tea.Msg {
 	}
 
 	player := otoCtx.NewPlayer(dec)
+	player.SetVolume(voice.EffectivePlaybackVolume())
 	defer player.Close()
 	player.Play()
 
@@ -163,6 +164,7 @@ func playOne(ctx context.Context, roomID, audioURL string) tea.Msg {
 			if !player.IsPlaying() {
 				return nil
 			}
+			player.SetVolume(voice.EffectivePlaybackVolume())
 			time.Sleep(20 * time.Millisecond)
 		}
 	}

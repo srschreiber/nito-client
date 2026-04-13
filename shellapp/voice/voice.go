@@ -140,12 +140,18 @@ var (
 	connecting    atomic.Bool
 
 	jitterBufferEnabled atomic.Bool  // if true, use pion's default interceptors (jitter buffer + NACK)
-	denoiseEnabled      atomic.Bool  // if false, skip RNNoise processing
+	denoiseOutEnabled   atomic.Bool  // if false, skip outbound RNNoise (microphone)
+	denoiseInEnabled    atomic.Bool  // if true, apply inbound RNNoise (received audio)
 	pitchEnabled        atomic.Bool  // if true, apply pitch shift to captured audio
 	pitchPos            atomic.Int32 // 0–24; 12 = no shift, <12 = lower, >12 = higher
 	vibratoEnabled      atomic.Bool  // if true, modulate pitch with a sine oscillator
 	vibratoFreq         atomic.Int32 // vibrato rate in Hz, 1–10
 	vibratoRange        atomic.Int32 // vibrato depth in half-steps of 0.5 st, 1–6 (= 0.5–3.0 st)
+
+	masterVolume      atomic.Int32 // 0–100, master output volume for all audio sources
+	chatSFXOverride   atomic.Int32 // -1 = use master; 0–100 = per-source override for chat SFX
+	playbackOverride  atomic.Int32 // -1 = use master; 0–100 = per-source override for .play clips
+	voiceChatOverride atomic.Int32 // -1 = use master; 0–100 = per-source override for voice call audio
 
 	otoOnce sync.Once
 	otoCtx  *oto.Context
@@ -170,10 +176,110 @@ var (
 const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
 
 func init() {
-	denoiseEnabled.Store(true) // RNNoise on by default
-	pitchPos.Store(12)         // center = no shift
-	vibratoFreq.Store(4)       // 4 Hz default
-	vibratoRange.Store(1)      // 1 × 0.5 st = 0.5 st default
+	denoiseOutEnabled.Store(true) // outbound RNNoise on by default
+	denoiseInEnabled.Store(false) // inbound RNNoise off by default
+	pitchPos.Store(12)            // center = no shift
+	vibratoFreq.Store(4)          // 4 Hz default
+	vibratoRange.Store(1)         // 1 × 0.5 st = 0.5 st default
+	masterVolume.Store(100)
+	chatSFXOverride.Store(-1)   // off = use master
+	playbackOverride.Store(-1)  // off = use master
+	voiceChatOverride.Store(-1) // off = use master
+}
+
+// clampVol5 clamps v to [0, 100] rounding to the nearest multiple of 5.
+func clampVol5(v int) int {
+	v = ((v + 2) / 5) * 5
+	if v < 0 {
+		return 0
+	}
+	if v > 100 {
+		return 100
+	}
+	return v
+}
+
+// MasterVolume returns the master output volume (0–100).
+func MasterVolume() int { return int(masterVolume.Load()) }
+
+// SetMasterVolume sets the master output volume, clamped to 0–100 in steps of 5.
+// Also updates the active voice call player volume immediately.
+func SetMasterVolume(v int) {
+	masterVolume.Store(int32(clampVol5(v)))
+	mu.Lock()
+	sess := activeSession
+	mu.Unlock()
+	if sess != nil {
+		sess.player.SetVolume(EffectiveVoiceChatVolume())
+	}
+}
+
+// ChatSFXOverride returns the chat SFX volume override: -1 means use master.
+func ChatSFXOverride() int { return int(chatSFXOverride.Load()) }
+
+// SetChatSFXOverride sets the chat SFX override. Pass -1 to revert to master.
+// Any other value is clamped to 0–100 in steps of 5.
+func SetChatSFXOverride(v int) {
+	if v < 0 {
+		chatSFXOverride.Store(-1)
+	} else {
+		chatSFXOverride.Store(int32(clampVol5(v)))
+	}
+}
+
+// PlaybackOverride returns the .play clip volume override: -1 means use master.
+func PlaybackOverride() int { return int(playbackOverride.Load()) }
+
+// SetPlaybackOverride sets the .play clip override. Pass -1 to revert to master.
+func SetPlaybackOverride(v int) {
+	if v < 0 {
+		playbackOverride.Store(-1)
+	} else {
+		playbackOverride.Store(int32(clampVol5(v)))
+	}
+}
+
+// VoiceChatOverride returns the voice call audio override: -1 means use master.
+func VoiceChatOverride() int { return int(voiceChatOverride.Load()) }
+
+// SetVoiceChatOverride sets the voice call audio override. Pass -1 to revert to master.
+// Also updates the active voice call player volume immediately.
+func SetVoiceChatOverride(v int) {
+	if v < 0 {
+		voiceChatOverride.Store(-1)
+	} else {
+		voiceChatOverride.Store(int32(clampVol5(v)))
+	}
+	mu.Lock()
+	sess := activeSession
+	mu.Unlock()
+	if sess != nil {
+		sess.player.SetVolume(EffectiveVoiceChatVolume())
+	}
+}
+
+// EffectiveChatSFXVolume returns the volume [0,1] to use for chat sound effects.
+func EffectiveChatSFXVolume() float64 {
+	if o := ChatSFXOverride(); o >= 0 {
+		return float64(o) / 100.0
+	}
+	return float64(MasterVolume()) / 100.0
+}
+
+// EffectivePlaybackVolume returns the volume [0,1] to use for .play clips.
+func EffectivePlaybackVolume() float64 {
+	if o := PlaybackOverride(); o >= 0 {
+		return float64(o) / 100.0
+	}
+	return float64(MasterVolume()) / 100.0
+}
+
+// EffectiveVoiceChatVolume returns the volume [0,1] to use for live voice call audio.
+func EffectiveVoiceChatVolume() float64 {
+	if o := VoiceChatOverride(); o >= 0 {
+		return float64(o) / 100.0
+	}
+	return float64(MasterVolume()) / 100.0
 }
 
 // DrainSendStats returns the number of packets and bytes sent since the last call, resetting both counters.
@@ -231,11 +337,17 @@ func JitterBufferEnabled() bool { return jitterBufferEnabled.Load() }
 // Takes effect on the next call to Join; does not affect an active session.
 func SetJitterBufferEnabled(enabled bool) { jitterBufferEnabled.Store(enabled) }
 
-// DenoiseEnabled reports whether RNNoise processing is enabled.
-func DenoiseEnabled() bool { return denoiseEnabled.Load() }
+// DenoiseOutboundEnabled reports whether outbound RNNoise (microphone) is enabled.
+func DenoiseOutboundEnabled() bool { return denoiseOutEnabled.Load() }
 
-// SetDenoiseEnabled enables or disables RNNoise noise removal. Takes effect immediately.
-func SetDenoiseEnabled(enabled bool) { denoiseEnabled.Store(enabled) }
+// SetDenoiseOutboundEnabled enables or disables outbound RNNoise. Takes effect immediately.
+func SetDenoiseOutboundEnabled(enabled bool) { denoiseOutEnabled.Store(enabled) }
+
+// DenoiseInboundEnabled reports whether inbound RNNoise (received audio) is enabled.
+func DenoiseInboundEnabled() bool { return denoiseInEnabled.Load() }
+
+// SetDenoiseInboundEnabled enables or disables inbound RNNoise. Takes effect immediately.
+func SetDenoiseInboundEnabled(enabled bool) { denoiseInEnabled.Store(enabled) }
 
 // PitchEnabled reports whether pitch shift is enabled.
 func PitchEnabled() bool { return pitchEnabled.Load() }
@@ -599,6 +711,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		debugf("voice: player does not support buffer size setter")
 	}
 	debugf("voice: starting player")
+	player.SetVolume(EffectiveVoiceChatVolume())
 	go player.Play() // Play() can block on Windows waiting for the audio device; don't hold up Join.
 	debugf("voice: player started")
 
@@ -614,6 +727,12 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			return
 		}
 		defer dec.close()
+		denoiseIn, denoiseInErr := newRNNoiseState()
+		if denoiseInErr != nil {
+			debugf("voice: new inbound rnnoise state, will not denoise: %v", denoiseInErr)
+		} else {
+			defer denoiseIn.Destroy()
+		}
 		pcmBuf := make([]int16, opusFrameSamples*numChannels)
 		isLoopback := roomID == SelfRoomID
 		var lastSeq uint16
@@ -654,6 +773,11 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			decodeFrames.Add(1)
 			if err != nil {
 				continue
+			}
+			if denoiseIn != nil && denoiseInEnabled.Load() {
+				f32 := pcm16ToFloat32(pcmBuf[:n*numChannels])
+				_ = denoiseIn.ProcessFrame(f32)
+				copy(pcmBuf[:n*numChannels], float32ToPCM16(f32))
 			}
 			ab.Write(int16ToBytes(pcmBuf[:n*numChannels]))
 			// Pipeline latency: measured from before encode to after ab.Write.
@@ -1086,7 +1210,7 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 
 			encodeStart := time.Now()
 
-			if denoise != nil && denoiseEnabled.Load() {
+			if denoise != nil && denoiseOutEnabled.Load() {
 				f32 := pcm16ToFloat32(frame)
 				_ = denoise.ProcessFrame(f32)
 				frame = float32ToPCM16(f32)

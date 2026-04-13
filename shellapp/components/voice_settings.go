@@ -14,6 +14,7 @@ import (
 	"github.com/srschreiber/nito-client/shellapp/commands"
 	"github.com/srschreiber/nito-client/shellapp/styles"
 	"github.com/srschreiber/nito-client/shellapp/voice"
+	"github.com/srschreiber/nito-client/sounds"
 )
 
 // ShowVoiceSettingsMsg is emitted by RoomActionsComponent to open the voice settings screen.
@@ -52,9 +53,10 @@ type VoiceSettingsScreen struct {
 	section             vsSection
 	inputDevices        []voice.AudioDevice
 	inputCursor         int
+	outputCursor        int // index within the AUDIO OUTPUT section (0=master, 1=chatSFX toggle, 2=chatSFX slider)
 	testAudioActive     bool
 	testAudioConnecting bool // true while JoinSelf is in progress
-	advancedCursor      int  // index within the ADVANCED section (0=jitter, 1=denoise)
+	advancedCursor      int  // index within the ADVANCED section (0=jitter, 1=denoise, 2=playback toggle, 3=playback slider)
 	transformCursor     int  // index within the TRANSFORMATIONS section (0=pitch, 1=vibrato, 2=vib freq, 3=vib range)
 	spinnerFrame        int
 	voiceActive         bool // disables test audio while voice chat is running
@@ -139,6 +141,7 @@ func (s *VoiceSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
+	defer voice.SaveAudioSettings()
 	switch msg.String() {
 	case "esc":
 		if s.testAudioConnecting {
@@ -159,6 +162,8 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "up", "ctrl+p":
 		if s.section == vsSectionInput && s.inputCursor > 0 {
 			s.inputCursor--
+		} else if s.section == vsSectionOutput && s.outputCursor > 0 {
+			s.outputCursor--
 		} else if s.section == vsSectionAdvanced && s.advancedCursor > 0 {
 			s.advancedCursor--
 		} else if s.section == vsSectionTransformations && s.transformCursor > 0 {
@@ -167,8 +172,14 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "down", "ctrl+n":
 		if s.section == vsSectionInput && s.inputCursor < len(s.inputDevices)-1 {
 			s.inputCursor++
-		} else if s.section == vsSectionAdvanced && s.advancedCursor < 1 {
-			s.advancedCursor++
+		} else if s.section == vsSectionOutput {
+			if s.outputCursor < 3 { // master(0) + chatSFX(1) + playback(2) + voiceChat(3)
+				s.outputCursor++
+			}
+		} else if s.section == vsSectionAdvanced {
+			if s.advancedCursor < 2 { // jitter(0) + noise-out(1) + noise-in(2)
+				s.advancedCursor++
+			}
 		} else if s.section == vsSectionTransformations {
 			maxCursor := 1 // pitch + vibrato toggle
 			if voice.VibratoEnabled() {
@@ -179,7 +190,29 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 			}
 		}
 	case "left":
-		if s.section == vsSectionTransformations {
+		switch s.section {
+		case vsSectionOutput:
+			switch s.outputCursor {
+			case 0:
+				voice.SetMasterVolume(voice.MasterVolume() - 5)
+				sounds.PlayPreview(float64(voice.MasterVolume()) / 100.0)
+			case 1:
+				if voice.ChatSFXOverride() >= 0 {
+					voice.SetChatSFXOverride(voice.ChatSFXOverride() - 5)
+					sounds.PlayPreview(float64(voice.ChatSFXOverride()) / 100.0)
+				}
+			case 2:
+				if voice.PlaybackOverride() >= 0 {
+					voice.SetPlaybackOverride(voice.PlaybackOverride() - 5)
+					sounds.PlayPreview(float64(voice.PlaybackOverride()) / 100.0)
+				}
+			case 3:
+				if voice.VoiceChatOverride() >= 0 {
+					voice.SetVoiceChatOverride(voice.VoiceChatOverride() - 5)
+					sounds.PlayPreview(float64(voice.VoiceChatOverride()) / 100.0)
+				}
+			}
+		case vsSectionTransformations:
 			switch s.transformCursor {
 			case 0:
 				voice.SetPitchPos(voice.PitchPos() - 1)
@@ -190,7 +223,29 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 			}
 		}
 	case "right":
-		if s.section == vsSectionTransformations {
+		switch s.section {
+		case vsSectionOutput:
+			switch s.outputCursor {
+			case 0:
+				voice.SetMasterVolume(voice.MasterVolume() + 5)
+				sounds.PlayPreview(float64(voice.MasterVolume()) / 100.0)
+			case 1:
+				if voice.ChatSFXOverride() >= 0 {
+					voice.SetChatSFXOverride(voice.ChatSFXOverride() + 5)
+					sounds.PlayPreview(float64(voice.ChatSFXOverride()) / 100.0)
+				}
+			case 2:
+				if voice.PlaybackOverride() >= 0 {
+					voice.SetPlaybackOverride(voice.PlaybackOverride() + 5)
+					sounds.PlayPreview(float64(voice.PlaybackOverride()) / 100.0)
+				}
+			case 3:
+				if voice.VoiceChatOverride() >= 0 {
+					voice.SetVoiceChatOverride(voice.VoiceChatOverride() + 5)
+					sounds.PlayPreview(float64(voice.VoiceChatOverride()) / 100.0)
+				}
+			}
+		case vsSectionTransformations:
 			switch s.transformCursor {
 			case 0:
 				voice.SetPitchPos(voice.PitchPos() + 1)
@@ -232,12 +287,36 @@ func (s *VoiceSettingsScreen) activate() tea.Cmd {
 			voice.SetVibratoEnabled(!voice.VibratoEnabled())
 		}
 		return nil
+	case vsSectionOutput:
+		switch s.outputCursor {
+		case 1: // Chat SFX toggle
+			if voice.ChatSFXOverride() >= 0 {
+				voice.SetChatSFXOverride(-1) // revert to master
+			} else {
+				voice.SetChatSFXOverride(voice.MasterVolume()) // start at master value
+			}
+		case 2: // AudioClip Playback toggle
+			if voice.PlaybackOverride() >= 0 {
+				voice.SetPlaybackOverride(-1) // revert to master
+			} else {
+				voice.SetPlaybackOverride(voice.MasterVolume()) // start at master value
+			}
+		case 3: // Voice Chat toggle
+			if voice.VoiceChatOverride() >= 0 {
+				voice.SetVoiceChatOverride(-1) // revert to master
+			} else {
+				voice.SetVoiceChatOverride(voice.MasterVolume()) // start at master value
+			}
+		}
+		return nil
 	case vsSectionAdvanced:
 		switch s.advancedCursor {
 		case 0:
 			voice.SetJitterBufferEnabled(!voice.JitterBufferEnabled())
 		case 1:
-			voice.SetDenoiseEnabled(!voice.DenoiseEnabled())
+			voice.SetDenoiseOutboundEnabled(!voice.DenoiseOutboundEnabled())
+		case 2:
+			voice.SetDenoiseInboundEnabled(!voice.DenoiseInboundEnabled())
 		}
 		return nil
 	case vsSectionTest:
@@ -269,6 +348,31 @@ func (s *VoiceSettingsScreen) activate() tea.Cmd {
 		}
 	}
 	return nil
+}
+
+// buildSlider renders a 13-char slider track with a filled dot at position pos
+// out of maxPos steps. Used for all slider widgets in Audio Settings.
+func buildSlider(pos, maxPos int) string {
+	const sliderLen = 13
+	if maxPos <= 0 {
+		maxPos = 1
+	}
+	scaled := pos * (sliderLen - 1) / maxPos
+	if scaled < 0 {
+		scaled = 0
+	}
+	if scaled >= sliderLen {
+		scaled = sliderLen - 1
+	}
+	track := make([]rune, sliderLen)
+	for i := range track {
+		if i == scaled {
+			track[i] = '●'
+		} else {
+			track[i] = '─'
+		}
+	}
+	return "[" + string(track) + "]"
 }
 
 func (s *VoiceSettingsScreen) sectionHeader(label string, active bool, innerW int) string {
@@ -304,7 +408,7 @@ func (s *VoiceSettingsScreen) Render() string {
 	var lines []string
 
 	// ── Title row ──────────────────────────────────────────────────────────
-	title := styles.VoiceSettingsBadge.Render("VOICE SETTINGS")
+	title := styles.VoiceSettingsBadge.Render("AUDIO SETTINGS")
 	escHint := styles.DimText.Render("ESC to exit")
 	gap := innerW - lipgloss.Width(title) - lipgloss.Width(escHint)
 	if gap < 1 {
@@ -341,12 +445,97 @@ func (s *VoiceSettingsScreen) Render() string {
 
 	// ── Audio Output ────────────────────────────────────────────────────────
 	lines = append(lines, s.sectionHeader("AUDIO OUTPUT", s.section == vsSectionOutput, innerW))
-	lines = append(lines, "  "+styles.ItemStyle.Render("System Default"))
-	lines = append(lines, "  "+styles.DimText.Render("Output device selection uses OS audio settings"))
+	{
+		inSection := s.section == vsSectionOutput
+		cur := func(idx int) string {
+			if inSection && s.outputCursor == idx {
+				return styles.CursorStyle.Render("▶ ")
+			}
+			return "  "
+		}
+		focused := func(idx int) bool { return inSection && s.outputCursor == idx }
+
+		// Labels are padded to 19 chars so sliders align across all rows.
+		const (
+			lblMaster    = "Master Output      " // 19 chars
+			lblChatSFX   = "Chat SFX           " // 19 chars
+			lblPlayback  = "AudioClip Playback " // 19 chars
+			lblVoiceChat = "Voice Chat         " // 19 chars
+		)
+
+		// Master Output Volume (always a slider)
+		masterLabel := fmt.Sprintf("%s%s  %d%%", lblMaster, buildSlider(voice.MasterVolume()/5, 20), voice.MasterVolume())
+		if focused(0) {
+			lines = append(lines, cur(0)+styles.RoomBtnActiveStyle.Render(masterLabel))
+			lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  applies to all audio"))
+		} else {
+			lines = append(lines, cur(0)+styles.ItemStyle.Render(masterLabel))
+		}
+
+		// Chat SFX (toggle + inline slider when override active)
+		chatSFX := voice.ChatSFXOverride()
+		if chatSFX < 0 {
+			chatSFXLabel := lblChatSFX + styles.DimText.Render("(master)")
+			if focused(1) {
+				lines = append(lines, cur(1)+styles.RoomBtnActiveStyle.Render(chatSFXLabel))
+				lines = append(lines, "  "+styles.DimText.Render("enter to set own volume"))
+			} else {
+				lines = append(lines, cur(1)+styles.ItemStyle.Render(chatSFXLabel))
+			}
+		} else {
+			chatSFXLabel := fmt.Sprintf("%s%s  %d%%", lblChatSFX, buildSlider(chatSFX/5, 20), chatSFX)
+			if focused(1) {
+				lines = append(lines, cur(1)+styles.RoomBtnActiveStyle.Render(chatSFXLabel))
+				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  enter to use master"))
+			} else {
+				lines = append(lines, cur(1)+styles.ItemStyle.Render(chatSFXLabel))
+			}
+		}
+
+		// AudioClip Playback (toggle + inline slider when override active)
+		pbOverride := voice.PlaybackOverride()
+		if pbOverride < 0 {
+			pbLabel := lblPlayback + styles.DimText.Render("(master)")
+			if focused(2) {
+				lines = append(lines, cur(2)+styles.RoomBtnActiveStyle.Render(pbLabel))
+				lines = append(lines, "  "+styles.DimText.Render("enter to set own volume"))
+			} else {
+				lines = append(lines, cur(2)+styles.ItemStyle.Render(pbLabel))
+			}
+		} else {
+			pbLabel := fmt.Sprintf("%s%s  %d%%", lblPlayback, buildSlider(pbOverride/5, 20), pbOverride)
+			if focused(2) {
+				lines = append(lines, cur(2)+styles.RoomBtnActiveStyle.Render(pbLabel))
+				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  enter to use master"))
+			} else {
+				lines = append(lines, cur(2)+styles.ItemStyle.Render(pbLabel))
+			}
+		}
+
+		// Voice Chat (toggle + inline slider when override active)
+		vcOverride := voice.VoiceChatOverride()
+		if vcOverride < 0 {
+			vcLabel := lblVoiceChat + styles.DimText.Render("(master)")
+			if focused(3) {
+				lines = append(lines, cur(3)+styles.RoomBtnActiveStyle.Render(vcLabel))
+				lines = append(lines, "  "+styles.DimText.Render("enter to set own volume"))
+			} else {
+				lines = append(lines, cur(3)+styles.ItemStyle.Render(vcLabel))
+			}
+		} else {
+			vcLabel := fmt.Sprintf("%s%s  %d%%", lblVoiceChat, buildSlider(vcOverride/5, 20), vcOverride)
+			if focused(3) {
+				lines = append(lines, cur(3)+styles.RoomBtnActiveStyle.Render(vcLabel))
+				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  enter to use master"))
+			} else {
+				lines = append(lines, cur(3)+styles.ItemStyle.Render(vcLabel))
+			}
+		}
+	}
 	lines = append(lines, "")
 
 	// ── Test Audio ──────────────────────────────────────────────────────────
-	lines = append(lines, s.sectionHeader("TEST AUDIO", s.section == vsSectionTest, innerW))
+	lines = append(lines, s.sectionHeader("TEST VOICE", s.section == vsSectionTest, innerW))
 	cursor := "  "
 	if s.section == vsSectionTest {
 		cursor = styles.CursorStyle.Render("▶ ")
@@ -390,20 +579,6 @@ func (s *VoiceSettingsScreen) Render() string {
 			return "  "
 		}
 		focused := func(idx int) bool { return inSection && s.transformCursor == idx }
-
-		buildSlider := func(pos, maxPos int) string {
-			const sliderLen = 13
-			scaled := pos * (sliderLen - 1) / maxPos
-			track := make([]rune, sliderLen)
-			for i := range track {
-				if i == scaled {
-					track[i] = '●'
-				} else {
-					track[i] = '─'
-				}
-			}
-			return "[" + string(track) + "]"
-		}
 
 		// ── Pitch ──
 		if !voice.PitchEnabled() {
@@ -470,7 +645,8 @@ func (s *VoiceSettingsScreen) Render() string {
 		hint  string
 	}{
 		{"Jitter Buffer", voice.JitterBufferEnabled(), "Smooths packet reordering at the cost of added delay. Takes effect on next connect."},
-		{"Noise Removal", voice.DenoiseEnabled(), "RNNoise background noise suppression. Disable if it distorts your audio."},
+		{"Noise Removal (outbound)", voice.DenoiseOutboundEnabled(), "RNNoise on your microphone. Disable if it distorts your voice."},
+		{"Noise Removal (inbound)", voice.DenoiseInboundEnabled(), "RNNoise on received audio. Reduces noise from other participants."},
 	}
 	for i, item := range advItems {
 		cur := "  "
@@ -484,11 +660,9 @@ func (s *VoiceSettingsScreen) Render() string {
 		label := item.label + " " + state
 		if s.section == vsSectionAdvanced && s.advancedCursor == i {
 			lines = append(lines, cur+styles.RoomBtnActiveStyle.Render(label))
+			lines = append(lines, "  "+styles.DimText.Render(item.hint))
 		} else {
 			lines = append(lines, cur+styles.ItemStyle.Render(label))
-		}
-		if s.section == vsSectionAdvanced && s.advancedCursor == i {
-			lines = append(lines, "  "+styles.DimText.Render(item.hint))
 		}
 	}
 

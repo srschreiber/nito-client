@@ -174,7 +174,10 @@ func ExecCommand(cmd string) (string, Signal, error) {
 		return out, SignalNone, err
 	case CmdVoiceLeave:
 		out, err := voiceLeaveCmd()
-		return out, SignalNone, err
+		if err != nil {
+			return out, SignalNone, err
+		}
+		return out, SignalVoiceLeave, nil
 	case CmdDM:
 		user := extractArg(parsedCommand.Args, "u", "user")
 		if user == "" {

@@ -36,7 +36,8 @@ type chatOpDef struct {
 var chatOps = []chatOpDef{
 	{name: ".image", argHint: "<filename> [-h <height>]"},
 	{name: ".jump", argHint: "<line>"},
-	{name: ".play", argHint: "<url>"},
+	{name: ".play", argHint: "<mp3/m3u url>"},
+	{name: ".stopaudio", argHint: ""},
 }
 
 // completeChatOp returns the first op whose name starts with prefix, or nil.
@@ -209,6 +210,8 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 			id := *roomID
 			entries = append(entries, historyEntry{text: "use /chat to switch to chat mode", isResponse: true})
 			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn, func() tea.Msg { return types.RoomSelectedMsg{RoomID: id} })
+		case commands.SignalVoiceLeave:
+			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn, func() tea.Msg { return StopAudioMsg{} })
 		case commands.SignalStartDM:
 			user := commands.DMUser
 			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn, func() tea.Msg { return StartDMMsg{User: user} })
@@ -379,6 +382,8 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 			}
 		}
 		return func() tea.Msg { return JumpScrollMsg{Line: n} }
+	case ".stopaudio":
+		return func() tea.Msg { return StopAudioMsg{} }
 	case ".play":
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {

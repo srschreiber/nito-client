@@ -396,6 +396,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			func() tea.Msg { return components.ShowToastMsg{Text: toastText} },
 			waitDM(),
 		)
+	case components.StopAudioMsg:
+		if m.cancelAudio != nil {
+			m.cancelAudio()
+		}
+		return m, nil
 	case types.ConnectedMsg:
 		return m, tea.Batch(waitNotification(), waitEcho(), waitRoomMessages(), waitDM())
 	case notificationMsg:
@@ -680,6 +685,7 @@ func main() {
 
 		prefs := loadLoginPrefs()
 		components.ShowCmdTab = prefs.ShowCmdTab
+		voice.LoadAudioSettings()
 
 		p := tea.NewProgram(initialModel())
 		clientlog.Init(func(msg any) { go p.Send(msg) })

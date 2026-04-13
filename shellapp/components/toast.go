@@ -15,6 +15,9 @@ const toastDuration = 5 * time.Second
 // ShowToastMsg triggers a toast notification with the given message.
 type ShowToastMsg struct{ Text string }
 
+// StopAudioMsg cancels any in-flight audio playback.
+type StopAudioMsg struct{}
+
 // toastExpireMsg is sent internally when the current toast should be hidden.
 type toastExpireMsg struct{ gen int }
 
