@@ -27,15 +27,11 @@ var NonceMap = map[string]map[string]struct{}{}
 const keyDir = ".nito"
 
 func keyPaths(username string) (privPath, pubPath string, err error) {
-	cwd, err := os.Getwd()
+	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", "", fmt.Errorf("get working dir: %w", err)
+		return "", "", fmt.Errorf("get home dir: %w", err)
 	}
-	// if shellapp not at end of path, append it (e.g. if user runs from project root instead of shellapp/)
-	if filepath.Base(cwd) != "shellapp" {
-		cwd = filepath.Join(cwd, "shellapp")
-	}
-	dir := filepath.Join(cwd, keyDir, "users", username, "keys")
+	dir := filepath.Join(home, keyDir, "users", username, "keys")
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return "", "", fmt.Errorf("create Key dir: %w", err)
 	}
@@ -71,7 +67,6 @@ func LoadOrGenerate(username string) (pub string, err error) {
 	}
 
 	// Generate new Key pair.
-	dir := filepath.Join(keyDir, "users", username, "keys")
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return "", fmt.Errorf("generate Key: %w", err)
@@ -95,8 +90,7 @@ func LoadOrGenerate(username string) (pub string, err error) {
 		return "", fmt.Errorf("save public Key: %w", err)
 	}
 
-	cwd, _ := os.Getwd()
-	fmt.Printf("keys saved to %s\n", filepath.Join(cwd, dir))
+	fmt.Printf("keys saved to %s\n", filepath.Join(privPath, "..", ".."))
 	return string(pubPEM), nil
 }
 

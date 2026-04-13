@@ -14,10 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        run: brew install go opus rnnoise pkg-config
+        run: |
+          brew install go opus rnnoise pkg-config
+          echo "PKG_CONFIG_PATH=$(brew --prefix rnnoise)/lib/pkgconfig:$(brew --prefix opus)/lib/pkgconfig:$(brew --prefix)/lib/pkgconfig" >> $GITHUB_ENV
       - name: Build
         run: |
-          export PKG_CONFIG_PATH="$(brew --prefix)/lib/pkgconfig:$PKG_CONFIG_PATH"
           cd shellapp
           CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o ../dist/shellapp-darwin-arm64 .
       - uses: actions/upload-artifact@v4
@@ -73,6 +74,7 @@ jobs:
           source /ucrt64/etc/profile.d/go.sh
           export GOROOT=/ucrt64/lib/go
           export PATH=/ucrt64/bin:$GOROOT/bin:$PATH
+          mkdir -p ../dist
           cd shellapp
           CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build \
             -ldflags="-linkmode external -extldflags '-static -lpthread'" \
