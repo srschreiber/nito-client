@@ -17,6 +17,10 @@ jobs:
         run: |
           brew install go opus rnnoise pkg-config
           echo "PKG_CONFIG_PATH=$(brew --prefix rnnoise)/lib/pkgconfig:$(brew --prefix opus)/lib/pkgconfig:$(brew --prefix)/lib/pkgconfig" >> $GITHUB_ENV
+          # Remove dynamic libs so the linker is forced to use the static .a files.
+          # Without this the binary depends on Homebrew dylibs that won't exist on end-user machines.
+          rm -f "$(brew --prefix opus)/lib/"libopus*.dylib
+          rm -f "$(brew --prefix rnnoise)/lib/"librnnoise*.dylib
       - name: Build
         run: |
           cd shellapp
@@ -40,10 +44,11 @@ jobs:
           git clone https://github.com/xiph/rnnoise.git /tmp/rnnoise
           cd /tmp/rnnoise
           ./autogen.sh
-          ./configure --prefix=/usr/local
+          ./configure --prefix=/usr/local --disable-shared
           make -j$(nproc)
           sudo make install
-          sudo ldconfig
+          # Remove the opus dynamic lib so the linker uses libopus.a from libopus-dev.
+          sudo rm -f /usr/lib/x86_64-linux-gnu/libopus.so*
       - name: Build
         run: |
           cd shellapp
