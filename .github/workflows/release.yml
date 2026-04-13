@@ -108,6 +108,12 @@ jobs:
           merge-multiple: true
       - name: Make binaries executable
         run: chmod +x dist/shellapp-darwin-arm64 dist/shellapp-linux-amd64
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum shellapp-darwin-arm64 > shellapp-darwin-arm64.sha256
+          sha256sum shellapp-linux-amd64  > shellapp-linux-amd64.sha256
+          sha256sum shellapp-windows-amd64.exe > shellapp-windows-amd64.exe.sha256
       - name: Commit dist to main
         run: |
           git config user.name "github-actions[bot]"
@@ -121,5 +127,8 @@ jobs:
         with:
           files: |
             dist/shellapp-darwin-arm64
+            dist/shellapp-darwin-arm64.sha256
             dist/shellapp-linux-amd64
+            dist/shellapp-linux-amd64.sha256
             dist/shellapp-windows-amd64.exe
+            dist/shellapp-windows-amd64.exe.sha256

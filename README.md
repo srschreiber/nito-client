@@ -22,7 +22,15 @@ On first launch you will be prompted to log in or register. Point the client at 
 
 ## macOS / Linux
 
-Download the pre-built binary from the [releases page](https://github.com/srschreiber/nito-client/releases):
+Install with one command:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/srschreiber/nito-client/main/scripts/install.sh | sh
+```
+
+Then run with `nito`.
+
+Or download manually from the [releases page](https://github.com/srschreiber/nito-client/releases):
 
 | Platform | Binary |
 |---|---|
@@ -49,7 +57,15 @@ make run-shell
 
 ## Windows
 
-Download `shellapp-windows-amd64.exe` from the [releases page](https://github.com/srschreiber/nito-client/releases) and run it directly.
+Install with one command in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/srschreiber/nito-client/main/scripts/install.ps1 | iex
+```
+
+Then run with `nito`.
+
+Or download `shellapp-windows-amd64.exe` manually from the [releases page](https://github.com/srschreiber/nito-client/releases).
 
 ### Building from source (Windows)
 
