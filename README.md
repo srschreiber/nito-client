@@ -27,8 +27,9 @@ Download the pre-built binary from the [releases page](https://github.com/srschr
 | Platform | Binary |
 |---|---|
 | macOS (Apple Silicon) | `shellapp-darwin-arm64` |
-| macOS (Intel) | `shellapp-darwin-amd64` |
 | Linux (x86-64) | `shellapp-linux-amd64` |
+
+> **Intel Mac**: pre-built binaries are not available. Build from source using the instructions below.
 
 Make it executable and run it:
 
