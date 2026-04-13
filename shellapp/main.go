@@ -471,8 +471,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.audioTracks[track] = cancel
 				roomID := p.RoomID
 				audioURL := p.AudioURL
+				fromUser := p.FromUsername
+				playMsg := fromUser + " is playing " + audioURL
 				cmds = append(cmds,
-					func() tea.Msg { return components.ShowToastMsg{Text: text} },
+					func() tea.Msg { return components.NewChatResponseAppendMsg(playMsg) },
 					components.PlayAudioFromURL(ctx, roomID, audioURL, track),
 				)
 			}
