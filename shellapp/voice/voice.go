@@ -464,11 +464,18 @@ func (ab *audioBuf) Write(p []byte) {
 func (ab *audioBuf) Read(p []byte) (int, error) {
 	ab.mu.Lock()
 	defer ab.mu.Unlock()
-	for ab.buffered == 0 && !ab.done {
-		ab.cond.Wait()
-	}
 	if ab.buffered == 0 {
-		return 0, io.EOF
+		if ab.done {
+			return 0, io.EOF
+		}
+		// Return silence immediately instead of blocking. The oto mux loop
+		// processes all registered players sequentially in one goroutine — if
+		// this Read blocks waiting for voice PCM, the mux loop stalls and stops
+		// filling the MP3-playback player's buffer, which pauses audio output.
+		for i := range p {
+			p[i] = 0
+		}
+		return len(p), nil
 	}
 	i := 0
 	for i < len(p) && ab.buffered > 0 {
