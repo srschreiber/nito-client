@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-darwin-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: brew install go opus rnnoise pkg-config
+      - name: Build
+        run: |
+          cd shellapp
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o ../dist/shellapp-darwin-arm64 .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shellapp-darwin-arm64
+          path: dist/shellapp-darwin-arm64
+
+  build-darwin-amd64:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: brew install go opus rnnoise pkg-config
+      - name: Build
+        run: |
+          cd shellapp
+          CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ../dist/shellapp-darwin-amd64 .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shellapp-darwin-amd64
+          path: dist/shellapp-darwin-amd64
+
+  build-linux-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libopus-dev librnnoise-dev pkg-config
+      - name: Build
+        run: |
+          cd shellapp
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o ../dist/shellapp-linux-amd64 .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shellapp-linux-amd64
+          path: dist/shellapp-linux-amd64
+
+  build-windows-amd64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-go
+            mingw-w64-ucrt-x86_64-make
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-opus
+            mingw-w64-ucrt-x86_64-rnnoise
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          source /ucrt64/etc/profile.d/go.sh
+          export GOROOT=/ucrt64/lib/go
+          export PATH=/ucrt64/bin:$GOROOT/bin:$PATH
+          cd shellapp
+          CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o ../dist/shellapp-windows-amd64.exe .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shellapp-windows-amd64
+          path: dist/shellapp-windows-amd64.exe
+
+  release:
+    needs: [build-darwin-arm64, build-darwin-amd64, build-linux-amd64, build-windows-amd64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Make binaries executable
+        run: chmod +x dist/shellapp-darwin-arm64 dist/shellapp-darwin-amd64 dist/shellapp-linux-amd64
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/shellapp-darwin-arm64
+            dist/shellapp-darwin-amd64
+            dist/shellapp-linux-amd64
+            dist/shellapp-windows-amd64.exe
