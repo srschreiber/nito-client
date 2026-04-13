@@ -142,8 +142,8 @@ func initialModel() model {
 		toast:            toast,
 		voiceSettings:    components.NewVoiceSettingsScreen(termW, termH),
 		comps:            []components.Component{history, status, command, hints},
-		focusable:        []int{0, 1, 2},
-		focusedComponent: 2, // index into focusable → comps[2] = command
+		focusable:        []int{0, 2}, // status (1) added only when in a room
+		focusedComponent: 1,           // index into focusable → comps[2] = command
 		termW:            termW,
 		termH:            termH,
 	}
@@ -174,7 +174,7 @@ type dmReceivedMsg struct {
 	Text     string
 }
 
-const pingInterval = 10 * time.Second
+const pingInterval = 2500 * time.Millisecond
 
 // maxOfflineStreak is the number of consecutive ping failures before kicking to login.
 // Each failure triggers an immediate reconnect attempt, so this is effectively
@@ -457,6 +457,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if roomID == "" {
 			// Not in a voice call — play locally only, no broker RPC, no chat message.
 			roomID = voice.SelfRoomID
+			extraCmds = append(extraCmds, m.trackStateCmd(), components.PlayAudioFromURL(ctx, roomID, url, track))
 		} else {
 			if err := commands.PlayAudioDirect(url, track); err != nil {
 				m.audioTracks[track] = nil
@@ -467,13 +468,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					func() tea.Msg { return components.ShowToastMsg{Text: ".play: " + errMsg} },
 				)
 			}
+			// In a voice call: don't start local playback here. The broker echoes
+			// the notification back to all users including the sender, and that
+			// notification handler starts playback for everyone consistently.
 			username := connection.GetSessionUserID()
 			notice := fmt.Sprintf("%s is playing %s (track %d)", username, url, track)
-			extraCmds = append(extraCmds, func() tea.Msg {
-				return components.NewChatResponseAppendMsg(notice)
-			})
+			extraCmds = append(extraCmds,
+				m.trackStateCmd(),
+				func() tea.Msg { return components.NewChatResponseAppendMsg(notice) },
+			)
 		}
-		extraCmds = append(extraCmds, m.trackStateCmd(), components.PlayAudioFromURL(ctx, roomID, url, track))
 		return m, tea.Batch(extraCmds...)
 	case types.ConnectedMsg:
 		return m, tea.Batch(waitNotification(), waitEcho(), waitRoomMessages(), waitDM())
@@ -509,6 +513,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				playMsg := fmt.Sprintf("%s is playing %s (track %d)", fromUser, audioURL, track)
 				cmds = append(cmds,
 					func() tea.Msg { return components.NewChatResponseAppendMsg(playMsg) },
+					m.trackStateCmd(),
 					components.PlayAudioFromURL(ctx, roomID, audioURL, track),
 				)
 			}
@@ -573,6 +578,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case types.RoomSelectedMsg:
 		roomID := msg.RoomID
 		go commands.SendRoomEnter(roomID)
+		// Leave voice chat if active in the previous room.
+		go voice.LeaveIfActive()
 		// Cancel all playing tracks when joining a new room.
 		for i := range m.audioTracks {
 			if m.audioTracks[i] != nil {
@@ -580,6 +587,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.audioTracks[i] = nil
 			}
 		}
+		m.setFocusable([]int{0, 1, 2}) // status becomes navigable in a room
 		var cmds []tea.Cmd
 		cmds = append(cmds, m.trackStateCmd())
 		for _, c := range m.comps {
@@ -591,6 +599,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	case types.RoomDeselectedMsg:
 		go commands.SendRoomLeave(msg.RoomID)
+		m.setFocusable([]int{0, 2}) // status no longer navigable outside a room
 		return m, m.trackStateCmd()
 	case components.ShowVoiceSettingsMsg:
 		m.showVoiceSettings = true
@@ -682,6 +691,33 @@ func (m *model) resolveTrack(hint int) int {
 		}
 	}
 	return 0 // all busy; preempt track 0
+}
+
+// setFocusable replaces the focusable list and keeps the focused component
+// consistent. If the currently focused component is no longer in the new list,
+// focus falls back to the command component.
+func (m *model) setFocusable(newFocusable []int) {
+	currentComp := m.comps[m.focusable[m.focusedComponent]]
+	m.comps[m.focusable[m.focusedComponent]].SetFocused(false)
+	m.focusable = newFocusable
+	// Try to keep focus on the same component.
+	for i, fi := range newFocusable {
+		if m.comps[fi] == currentComp {
+			m.focusedComponent = i
+			m.comps[m.focusable[m.focusedComponent]].SetFocused(true)
+			m.hints.SetFocusedComp(m.focusable[m.focusedComponent])
+			return
+		}
+	}
+	// Fall back to command.
+	for i, fi := range newFocusable {
+		if m.comps[fi] == m.command {
+			m.focusedComponent = i
+			break
+		}
+	}
+	m.comps[m.focusable[m.focusedComponent]].SetFocused(true)
+	m.hints.SetFocusedComp(m.focusable[m.focusedComponent])
 }
 
 // trackStateCmd returns a Cmd that broadcasts the current track playing state

@@ -42,6 +42,9 @@ func PlayAudioFromURL(ctx context.Context, roomID, audioURL string, track int) t
 			if msg := playOne(ctx, roomID, u, track); msg != nil {
 				return msg
 			}
+			if ctx.Err() != nil {
+				return nil
+			}
 		}
 		return AudioTrackDoneMsg{Track: track}
 	}
@@ -143,6 +146,9 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 
 	dec, err := mp3.NewDecoder(resp.Body)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil
+		}
 		return audioPlaybackErr(track, "mp3 decode", err)
 	}
 

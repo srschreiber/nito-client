@@ -67,7 +67,7 @@ func (h *HintsComponent) Render() string {
 
 	var lines []string
 	switch h.focusedComp {
-	case 0: // history / tabs
+	case 0, 1: // history / tabs / status
 		if h.dmMode {
 			lines = []string{
 				k.Render("←/→") + d.Render("  switch tabs"),
