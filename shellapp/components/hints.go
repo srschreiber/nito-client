@@ -98,11 +98,12 @@ func (h *HintsComponent) Render() string {
 				k.Render("shift+enter") + d.Render(" newline") + sep + k.Render("enter") + d.Render(" send"),
 				"",
 				styles.KeysBadge.Render("COMMANDS"),
+				k.Render(".createroom") + d.Render(" --name <name>"),
+				k.Render(".invite") + d.Render(" --user <username>"),
+				k.Render(".play") + d.Render(" --mp3-or-m3u-or-alias <url|alias>"),
+				k.Render(".playalias") + d.Render(" --alias <n> --url <url>"),
 				k.Render(".image") + d.Render(" <file> [-h <height>]"),
-				k.Render(".dm") + d.Render(" <user>"),
-				k.Render(".jump") + d.Render(" <line>"),
-				k.Render(".play") + d.Render(" <alias|url> [track 0-2]"),
-				k.Render(".playalias") + d.Render(" <name> <url>"),
+				k.Render(".jump") + d.Render(" <line>") + sep + k.Render(".dm") + d.Render(" <user>"),
 				k.Render(".stoptrack") + d.Render(" <0-2>") + sep + k.Render(".stopall"),
 			}
 		} else {

@@ -40,7 +40,11 @@ type TrackStateMsg struct {
 
 // PreFillCommandMsg asks the command component to pre-fill its input with Text
 // and switch focus to it so the user can complete the command.
-type PreFillCommandMsg struct{ Text string }
+// CursorPos sets where the cursor lands; -1 means end of text.
+type PreFillCommandMsg struct {
+	Text      string
+	CursorPos int
+}
 
 // toastExpireMsg is sent internally when the current toast should be hidden.
 type toastExpireMsg struct{ gen int }

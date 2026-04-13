@@ -69,9 +69,12 @@ func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
 			if s.trackPlaying[t] {
 				return func() tea.Msg { return StopAudioMsg{Track: t} }
 			}
-			// Not playing — pre-fill command with .play  <n> and focus it.
-			text := fmt.Sprintf(".play  %d", t)
-			return func() tea.Msg { return PreFillCommandMsg{Text: text} }
+			// Not playing — pre-fill command with .play; cursor lands after the url flag.
+			const urlFlag = ".play --mp3-or-m3u-or-alias "
+			text := fmt.Sprintf("%s --track %d", urlFlag, t)
+			return func() tea.Msg {
+				return PreFillCommandMsg{Text: text, CursorPos: len(urlFlag)}
+			}
 		}
 	}
 	return nil

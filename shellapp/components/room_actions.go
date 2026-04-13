@@ -19,26 +19,13 @@ import (
 
 // Room action indices.
 const (
-	roomActionCreate   = 0
-	roomActionInvite   = 1
-	roomActionVoice    = 2
-	roomActionSettings = 3
-	roomActionCount    = 4
+	roomActionCreate     = 0
+	roomActionInvite     = 1
+	roomActionSoundAlias = 2
+	roomActionVoice      = 3
+	roomActionSettings   = 4
+	roomActionCount      = 5
 )
-
-type roomActionsFormMode int
-
-const (
-	actionsFormCreate roomActionsFormMode = iota
-	actionsFormInvite
-)
-
-// roomsOpResultMsg is returned after a create or invite operation completes.
-type roomsOpResultMsg struct {
-	text    string
-	err     error
-	refresh bool // true when rooms list should be re-fetched (successful create)
-}
 
 // roomsVoiceResultMsg is returned after a voice join/leave attempt.
 type roomsVoiceResultMsg struct {
@@ -61,12 +48,6 @@ type RoomActionsComponent struct {
 	testAudioActive bool // mirrors VoiceSettingsScreen state for voice mutual exclusion
 	width           int
 	height          int
-
-	formActive bool
-	formMode   roomActionsFormMode
-	formVal    string
-	formCur    int
-	formErr    string
 }
 
 func NewRoomActionsComponent(width, height int) *RoomActionsComponent {
@@ -80,35 +61,12 @@ func (a *RoomActionsComponent) SetSize(width, height int) {
 
 func (a *RoomActionsComponent) SetFocused(focused bool) {
 	a.focused = focused
-	if !focused {
-		a.formActive = false
-		a.formVal = ""
-		a.formCur = 0
-		a.formErr = ""
-	}
 }
 
 func (a *RoomActionsComponent) Init() tea.Cmd { return nil }
 
 func (a *RoomActionsComponent) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
-	case roomsOpResultMsg:
-		a.formActive = false
-		a.formVal = ""
-		a.formCur = 0
-		a.formErr = ""
-		if msg.err != nil {
-			errText := msg.err.Error()
-			return func() tea.Msg { return ShowToastMsg{Text: errText} }
-		}
-		if msg.refresh {
-			return tea.Batch(
-				func() tea.Msg { return types.RoomsFetchMsg{} },
-				func() tea.Msg { return NewChatResponseAppendMsg(msg.text) },
-			)
-		}
-		return func() tea.Msg { return NewChatResponseAppendMsg(msg.text) }
-
 	case vsSpinnerTickMsg:
 		if voice.IsConnecting() {
 			a.spinnerFrame = (a.spinnerFrame + 1) % len(spinnerFrames)
@@ -150,9 +108,6 @@ func (a *RoomActionsComponent) Update(msg tea.Msg) tea.Cmd {
 		if !a.focused {
 			return nil
 		}
-		if a.formActive {
-			return a.updateForm(msg)
-		}
 		return a.updateNav(msg)
 	}
 	return nil
@@ -177,17 +132,14 @@ func (a *RoomActionsComponent) updateNav(msg tea.KeyPressMsg) tea.Cmd {
 func (a *RoomActionsComponent) activate() tea.Cmd {
 	switch a.cursor {
 	case roomActionCreate:
-		a.formActive = true
-		a.formMode = actionsFormCreate
-		a.formVal = ""
-		a.formCur = 0
-		a.formErr = ""
+		return func() tea.Msg { return PreFillCommandMsg{Text: ".createroom --name ", CursorPos: -1} }
 	case roomActionInvite:
-		a.formActive = true
-		a.formMode = actionsFormInvite
-		a.formVal = ""
-		a.formCur = 0
-		a.formErr = ""
+		return func() tea.Msg { return PreFillCommandMsg{Text: ".invite --user ", CursorPos: -1} }
+	case roomActionSoundAlias:
+		const pfx = ".playalias --alias "
+		return func() tea.Msg {
+			return PreFillCommandMsg{Text: pfx + " --url ", CursorPos: len(pfx)}
+		}
 	case roomActionVoice:
 		if a.testAudioActive || voice.IsConnecting() {
 			return nil
@@ -220,157 +172,62 @@ func (a *RoomActionsComponent) activate() tea.Cmd {
 	return nil
 }
 
-func (a *RoomActionsComponent) submitForm() tea.Cmd {
-	val := strings.TrimSpace(a.formVal)
-	if val == "" {
-		if a.formMode == actionsFormCreate {
-			a.formErr = "room name required"
-		} else {
-			a.formErr = "username required"
-		}
-		return nil
-	}
-	a.formErr = ""
-	mode := a.formMode
-	return func() tea.Msg {
-		var text string
-		var err error
-		var refresh bool
-		if mode == actionsFormCreate {
-			clientlog.Info("creating room: %s", val)
-			text, err = commands.CreateRoomDirect(val)
-			if err != nil {
-				clientlog.Error("create room failed: %v", err)
-			}
-			refresh = err == nil
-		} else {
-			clientlog.Info("inviting user: %s", val)
-			text, err = commands.InviteUserDirect(val)
-			if err != nil {
-				clientlog.Error("invite user failed: %v", err)
-			}
-		}
-		return roomsOpResultMsg{text: text, err: err, refresh: refresh}
-	}
-}
-
-func (a *RoomActionsComponent) updateForm(msg tea.KeyPressMsg) tea.Cmd {
-	switch msg.String() {
-	case "esc":
-		a.formActive = false
-		a.formErr = ""
-	case "enter":
-		return a.submitForm()
-	case "backspace":
-		runes := []rune(a.formVal)
-		if a.formCur > 0 {
-			a.formVal = string(append(runes[:a.formCur-1], runes[a.formCur:]...))
-			a.formCur--
-		}
-	case "left", "ctrl+b":
-		if a.formCur > 0 {
-			a.formCur--
-		}
-	case "right", "ctrl+f":
-		if a.formCur < len([]rune(a.formVal)) {
-			a.formCur++
-		}
-	case "ctrl+a":
-		a.formCur = 0
-	case "ctrl+e":
-		a.formCur = len([]rune(a.formVal))
-	default:
-		text := msg.Key().Text
-		if text != "" {
-			runes := []rune(a.formVal)
-			a.formVal = string(runes[:a.formCur]) + text + string(runes[a.formCur:])
-			a.formCur += len([]rune(text))
-			a.formErr = ""
-		}
-	}
-	return nil
-}
-
 func (a *RoomActionsComponent) Render() string {
 	title := styles.RoomOpsBadge.Render("ROOM OPS")
-	var body string
-	if a.formActive {
-		label := "Room name: "
-		if a.formMode == actionsFormInvite {
-			label = "Username:  "
-		}
-		runes := []rune(a.formVal)
-		var fieldText string
-		if a.formCur >= len(runes) {
-			fieldText = a.formVal + styles.FormCursorStyle.Render(" ")
-		} else {
-			fieldText = string(runes[:a.formCur]) +
-				styles.FormCursorStyle.Render(string(runes[a.formCur])) +
-				string(runes[a.formCur+1:])
-		}
-		line1 := styles.DimText.Render(label) + fieldText
-		var line2 string
-		if a.formErr != "" {
-			line2 = styles.FormErrorStyle.Render(a.formErr)
-		} else {
-			line2 = styles.DimText.Render("enter submit  •  esc cancel")
-		}
-		body = line1 + "\n" + line2
-	} else {
-		voiceConnecting := voice.IsConnecting()
-		voiceActive := voice.IsActive()
-		voiceLabel := "Join Voice"
-		if voiceConnecting {
-			voiceLabel = spinnerFrames[a.spinnerFrame] + " Connecting..."
-		} else if voiceActive {
-			voiceLabel = "Leave Voice"
-		}
-		items := []string{
-			"Create",
-			"Invite",
-			voiceLabel,
-			"Voice Settings",
-		}
-		inRoom := connection.GetSessionRoomID() != nil
-		disabled := [roomActionCount]bool{
-			false,
-			false,
-			!inRoom || voiceConnecting || voiceActive,
-			false,
-		}
-		lines := make([]string, roomActionCount)
-		for i, lbl := range items {
-			sel := a.focused && a.cursor == i
-			cur := "  "
-			if sel {
-				cur = styles.CursorStyle.Render("▶ ")
-			}
-			var itemStr string
-			if disabled[i] {
-				itemStr = styles.ItemStyle.Render(cur + styles.DimText.Render(lbl))
-			} else if sel {
-				var rendered string
-				if i == roomActionVoice && voiceActive {
-					rendered = styles.VoiceLeaveFocusedStyle.Render(lbl)
-				} else {
-					rendered = styles.RoomBtnActiveStyle.Render(lbl)
-				}
-				itemStr = cur + rendered
-			} else {
-				var rendered string
-				if i == roomActionVoice && voiceActive {
-					rendered = styles.VoiceLeaveStyle.Render(lbl)
-				} else {
-					rendered = styles.ItemStyle.Render(lbl)
-				}
-				itemStr = cur + rendered
-			}
-			lines[i] = itemStr
-		}
-		body = strings.Join(lines, "\n")
-	}
 
-	body = title + "\n" + body
+	voiceConnecting := voice.IsConnecting()
+	voiceActive := voice.IsActive()
+	voiceLabel := "Join Voice"
+	if voiceConnecting {
+		voiceLabel = spinnerFrames[a.spinnerFrame] + " Connecting..."
+	} else if voiceActive {
+		voiceLabel = "Leave Voice"
+	}
+	items := []string{
+		"Create",
+		"Invite",
+		"Sound Alias",
+		voiceLabel,
+		"Voice Settings",
+	}
+	inRoom := connection.GetSessionRoomID() != nil
+	disabled := [roomActionCount]bool{
+		false,
+		false,
+		false,
+		!inRoom || voiceConnecting || voiceActive,
+		false,
+	}
+	lines := make([]string, roomActionCount)
+	for i, lbl := range items {
+		sel := a.focused && a.cursor == i
+		cur := "  "
+		if sel {
+			cur = styles.CursorStyle.Render("▶ ")
+		}
+		var itemStr string
+		if disabled[i] {
+			itemStr = styles.ItemStyle.Render(cur + styles.DimText.Render(lbl))
+		} else if sel {
+			var rendered string
+			if i == roomActionVoice && voiceActive {
+				rendered = styles.VoiceLeaveFocusedStyle.Render(lbl)
+			} else {
+				rendered = styles.RoomBtnActiveStyle.Render(lbl)
+			}
+			itemStr = cur + rendered
+		} else {
+			var rendered string
+			if i == roomActionVoice && voiceActive {
+				rendered = styles.VoiceLeaveStyle.Render(lbl)
+			} else {
+				rendered = styles.ItemStyle.Render(lbl)
+			}
+			itemStr = cur + rendered
+		}
+		lines[i] = itemStr
+	}
+	body := title + "\n" + strings.Join(lines, "\n")
 
 	borderColor := styles.PanelBorderColor
 	bg := styles.ComponentBg

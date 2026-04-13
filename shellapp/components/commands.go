@@ -35,10 +35,12 @@ type chatOpDef struct {
 }
 
 var chatOps = []chatOpDef{
-	{name: ".playalias", argHint: "<name> <url>"},
+	{name: ".createroom", argHint: "--name <room name>"},
+	{name: ".invite", argHint: "--user <username>"},
+	{name: ".playalias", argHint: "--alias <name> --url <url>"},
 	{name: ".image", argHint: "<filename> [-h <height>]"},
 	{name: ".jump", argHint: "<line>"},
-	{name: ".play", argHint: "<alias|url> [track 0-2]"},
+	{name: ".play", argHint: "--mp3-or-m3u-or-alias <url|alias> [--track <0-2>]"},
 	{name: ".stoptrack", argHint: "<track 0-2>"},
 	{name: ".stopall", argHint: ""},
 }
@@ -57,6 +59,12 @@ func completeChatOp(prefix string) *chatOpDef {
 }
 
 type cursorBlinkMsg struct{ gen int }
+
+// chatCreateRoomResultMsg carries the result of a .createroom operation.
+type chatCreateRoomResultMsg struct {
+	text string
+	err  error
+}
 
 type execResultMsg struct {
 	entries []historyEntry
@@ -127,6 +135,23 @@ func (l *CommandComponent) SetFocused(focused bool) {
 
 func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
+	case chatCreateRoomResultMsg:
+		if msg.err != nil {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".createroom: " + msg.err.Error(), isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		text := msg.text
+		return tea.Batch(
+			func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: text, isResponse: true},
+				}, Tab: TabChat}
+			},
+			func() tea.Msg { return types.RoomsFetchMsg{} },
+		)
 	case ModeChangedMsg:
 		// Sync chatMode when tabs are switched externally (left/right arrows).
 		l.chatMode = msg.ChatMode
@@ -176,11 +201,10 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 		return nil
 	case PreFillCommandMsg:
 		l.textFieldValue = msg.Text
-		// Position cursor before the track-number suffix (last char group after the last space).
-		// Simple heuristic: place cursor right after the first trailing space past ".play ".
-		l.cursorPos = len(msg.Text)
-		if idx := strings.Index(msg.Text[6:], " "); idx >= 0 {
-			l.cursorPos = 6 + idx
+		if msg.CursorPos < 0 || msg.CursorPos > len(msg.Text) {
+			l.cursorPos = len(msg.Text)
+		} else {
+			l.cursorPos = msg.CursorPos
 		}
 		return nil
 	case types.RoomSelectedMsg:
@@ -376,10 +400,71 @@ func (l *CommandComponent) handlePasswordSubmit(password string) tea.Cmd {
 	return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn)
 }
 
+// filterFlags removes tokens that start with "--" from a slice. They are
+// cosmetic labels shown in pre-filled commands to hint at what each value is.
+func filterFlags(tokens []string) []string {
+	out := tokens[:0:len(tokens)]
+	for _, t := range tokens {
+		if !strings.HasPrefix(t, "--") {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 	parts := strings.SplitN(input, " ", 2)
 	op := parts[0]
 	switch op {
+	case ".createroom":
+		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".createroom: usage: .createroom --name <room name>", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		tokens := filterFlags(strings.Fields(parts[1]))
+		if len(tokens) == 0 {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".createroom: room name required", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		roomName := strings.Join(tokens, " ")
+		return func() tea.Msg {
+			text, err := commands.CreateRoomDirect(roomName)
+			return chatCreateRoomResultMsg{text: text, err: err}
+		}
+	case ".invite":
+		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".invite: usage: .invite --user <username>", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		tokens := filterFlags(strings.Fields(parts[1]))
+		if len(tokens) == 0 {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".invite: username required", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		inviteUser := tokens[0]
+		return func() tea.Msg {
+			text, err := commands.InviteUserDirect(inviteUser)
+			if err != nil {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".invite: " + err.Error(), isResponse: true},
+				}, Tab: TabChat}
+			}
+			return AppendHistoryMsg{Entries: []historyEntry{
+				{text: text, isResponse: true},
+			}, Tab: TabChat}
+		}
 	case ".jump":
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
@@ -420,20 +505,20 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		if len(parts) < 2 {
 			return func() tea.Msg {
 				return AppendHistoryMsg{Entries: []historyEntry{
-					{text: ".playalias: usage: .playalias <name> <url>", isResponse: true},
+					{text: ".playalias: usage: .playalias --alias <name> --url <url>", isResponse: true},
 				}, Tab: TabChat}
 			}
 		}
-		aliasArgs := strings.SplitN(strings.TrimSpace(parts[1]), " ", 2)
-		if len(aliasArgs) < 2 || strings.TrimSpace(aliasArgs[1]) == "" {
+		tokens := filterFlags(strings.Fields(parts[1]))
+		if len(tokens) < 2 {
 			return func() tea.Msg {
 				return AppendHistoryMsg{Entries: []historyEntry{
-					{text: ".playalias: usage: .playalias <name> <url>", isResponse: true},
+					{text: ".playalias: usage: .playalias --alias <name> --url <url>", isResponse: true},
 				}, Tab: TabChat}
 			}
 		}
-		name := strings.TrimSpace(aliasArgs[0])
-		aliasURL := strings.TrimSpace(aliasArgs[1])
+		name := tokens[0]
+		aliasURL := tokens[1]
 		if err := voice.SaveAudioAlias(name, aliasURL); err != nil {
 			errMsg := err.Error()
 			return func() tea.Msg {
@@ -451,19 +536,25 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
 				return AppendHistoryMsg{Entries: []historyEntry{
-					{text: ".play: usage: .play <alias|url> [track 0-2]", isResponse: true},
+					{text: ".play: usage: .play --mp3-or-m3u-or-alias <url|alias> [--track <0-2>]", isResponse: true},
 				}, Tab: TabChat}
 			}
 		}
-		// Parse: .play <alias|url> [track]
-		playArgs := strings.Fields(parts[1])
+		// Strip cosmetic --flag tokens; positional: first token = url/alias, last numeric token = track.
+		playArgs := filterFlags(strings.Fields(parts[1]))
+		if len(playArgs) == 0 {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".play: url or alias required", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
 		arg := playArgs[0]
 		track := -1 // -1 = auto
 		if len(playArgs) >= 2 {
 			n, err := strconv.Atoi(playArgs[len(playArgs)-1])
 			if err == nil && n >= 0 && n <= 2 {
 				track = n
-				arg = strings.Join(playArgs[:len(playArgs)-1], " ")
 			}
 		}
 		url := arg
