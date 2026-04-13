@@ -238,7 +238,14 @@ func (t *ConversationTabs) Update(msg tea.Msg) tea.Cmd {
 	case ClearHistoryMsg:
 		return t.cmd.Update(msg)
 	case types.RoomSelectedMsg:
-		return t.switchTabWithMessages(TabChat)
+		var cmds []tea.Cmd
+		if cmd := t.switchTabWithMessages(TabChat); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+		if cmd := t.roomChat.Update(msg); cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+		return tea.Batch(cmds...)
 	case SwitchTabMsg:
 		if msg.Tab == TabCmd && !ShowCmdTab {
 			return nil
