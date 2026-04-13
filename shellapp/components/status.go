@@ -142,6 +142,7 @@ func (s *StatusComponent) activate() tea.Cmd {
 }
 
 func (s *StatusComponent) Render() string {
+	c := styles.CursorStyle
 	k := styles.HintKeyStyle
 	d := styles.DimText
 
@@ -162,12 +163,12 @@ func (s *StatusComponent) Render() string {
 
 	if s.inRoom {
 		// TRACKS section
-		tracksLabel := styles.KeysBadge.Render("TRACKS")
+		tracksLabel := styles.TracksBadge.Render("TRACKS")
 		var trackLines []string
 		for i := 0; i < 3; i++ {
 			cur := "  "
 			if s.focused && i == s.trackCursor {
-				cur = k.Render("▶ ")
+				cur = c.Render("▶ ")
 			}
 			var icon string
 			if s.trackPlaying[i] {
@@ -184,18 +185,18 @@ func (s *StatusComponent) Render() string {
 		// Stop All button
 		stopAllCur := "  "
 		if s.focused && s.trackCursor == cursorStopAll {
-			stopAllCur = k.Render("▶ ")
+			stopAllCur = c.Render("▶ ")
 		}
 		stopAllBtn := stopAllCur + styles.VoiceLeaveStyle.Render("⏹ Stop All")
-		body += "\n\n" + tracksLabel + "\n" + strings.Join(trackLines, "\n\n") + "\n\n" + stopAllBtn
+		body += "\n\n" + tracksLabel + "\n\n" + strings.Join(trackLines, "\n\n") + "\n\n" + stopAllBtn
 
 		// PLAY ALIASES section
-		aliasesLabel := styles.KeysBadge.Render("PLAY ALIASES")
+		aliasesLabel := styles.PlayAliasesBadge.Render("PLAY ALIASES")
 		var aliasLines []string
 		for i, a := range s.aliases {
 			cur := "  "
 			if s.focused && s.trackCursor == cursorAliasBase+i {
-				cur = k.Render("▶ ")
+				cur = c.Render("▶ ")
 			}
 			var label string
 			if a.Name == "" {
@@ -208,7 +209,7 @@ func (s *StatusComponent) Render() string {
 		// Sound Alias button
 		soundAliasCur := "  "
 		if s.focused && s.trackCursor == cursorSoundAlias {
-			soundAliasCur = k.Render("▶ ")
+			soundAliasCur = c.Render("▶ ")
 		}
 		soundAliasBtn := lipgloss.NewStyle().
 			Background(lipgloss.Color("54")).
@@ -220,7 +221,7 @@ func (s *StatusComponent) Render() string {
 		// Del Sound Alias button
 		delSoundAliasCur := "  "
 		if s.focused && s.trackCursor == cursorDelSoundAlias {
-			delSoundAliasCur = k.Render("▶ ")
+			delSoundAliasCur = c.Render("▶ ")
 		}
 		delSoundAliasBtn := styles.VoiceLeaveStyle.Render("- Sound Alias")
 		aliasLines = append(aliasLines, "\n"+delSoundAliasCur+delSoundAliasBtn)

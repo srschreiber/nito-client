@@ -111,6 +111,24 @@ var (
 			Bold(true).
 			Padding(0, 1)
 
+	CommandsBadge = lipgloss.NewStyle().
+			Background(lipgloss.Color("#78350f")).
+			Foreground(lipgloss.Color("#fed7aa")).
+			Bold(true).
+			Padding(0, 1)
+
+	TracksBadge = lipgloss.NewStyle().
+			Background(lipgloss.Color("#312e81")).
+			Foreground(lipgloss.Color("#c7d2fe")).
+			Bold(true).
+			Padding(0, 1)
+
+	PlayAliasesBadge = lipgloss.NewStyle().
+				Background(lipgloss.Color("#134e4a")).
+				Foreground(lipgloss.Color("#99f6e4")).
+				Bold(true).
+				Padding(0, 1)
+
 	StatusBadge = lipgloss.NewStyle().
 			Background(lipgloss.Color("#064e3b")).
 			Foreground(lipgloss.Color("#6ee7b7")).

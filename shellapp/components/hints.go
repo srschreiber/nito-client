@@ -97,7 +97,7 @@ func (h *HintsComponent) Render() string {
 				delSingle + sep + del,
 				k.Render("shift+enter") + d.Render(" newline") + sep + k.Render("enter") + d.Render(" send"),
 				"",
-				styles.KeysBadge.Render("COMMANDS"),
+				styles.CommandsBadge.Render("COMMANDS"),
 				k.Render(".createroom") + d.Render(" --name <name>"),
 				k.Render(".invite") + d.Render(" --user <username>"),
 				k.Render(".play") + d.Render(" --mp3-or-m3u-or-alias <url|alias>"),
