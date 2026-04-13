@@ -76,18 +76,34 @@ func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
 		}
 		switch m.String() {
 		case "up", "k":
-			if s.trackCursor > 0 {
-				s.trackCursor--
+			for next := s.trackCursor - 1; next >= 0; next-- {
+				if !s.isEmptyAlias(next) {
+					s.trackCursor = next
+					break
+				}
 			}
 		case "down", "j":
-			if s.trackCursor < maxCursor {
-				s.trackCursor++
+			for next := s.trackCursor + 1; next <= maxCursor; next++ {
+				if !s.isEmptyAlias(next) {
+					s.trackCursor = next
+					break
+				}
 			}
 		case "enter":
 			return s.activate()
 		}
 	}
 	return nil
+}
+
+// isEmptyAlias reports whether cursor position pos should be skipped during navigation.
+// Only alias slots (cursorAliasBase..cursorSoundAlias-1) with an empty Name are skipped.
+func (s *StatusComponent) isEmptyAlias(pos int) bool {
+	if pos >= cursorAliasBase && pos < cursorSoundAlias {
+		idx := pos - cursorAliasBase
+		return idx >= len(s.aliases) || s.aliases[idx].Name == ""
+	}
+	return false
 }
 
 func (s *StatusComponent) activate() tea.Cmd {
@@ -200,6 +216,14 @@ func (s *StatusComponent) Render() string {
 			Padding(0, 1).
 			Render("+ Sound Alias")
 		aliasLines = append(aliasLines, "\n"+soundAliasCur+soundAliasBtn)
+
+		// Del Sound Alias button
+		delSoundAliasCur := "  "
+		if s.focused && s.trackCursor == cursorDelSoundAlias {
+			delSoundAliasCur = k.Render("▶ ")
+		}
+		delSoundAliasBtn := styles.VoiceLeaveStyle.Render("- Sound Alias")
+		aliasLines = append(aliasLines, "\n"+delSoundAliasCur+delSoundAliasBtn)
 		body += "\n\n" + aliasesLabel + "\n" + strings.Join(aliasLines, "\n")
 	}
 
