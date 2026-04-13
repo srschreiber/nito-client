@@ -427,8 +427,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		ctx, cancel := context.WithCancel(context.Background())
 		m.audioTracks[track] = cancel
 		roomID := voice.ActiveRoomID()
+		var extraCmds []tea.Cmd
 		if roomID == "" {
-			// Not in a voice call — play locally only, no broker RPC.
+			// Not in a voice call — play locally only, no broker RPC, no chat message.
 			roomID = voice.SelfRoomID
 		} else {
 			if err := commands.PlayAudioDirect(url, track); err != nil {
@@ -439,8 +440,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return components.ShowToastMsg{Text: ".play: " + errMsg}
 				}
 			}
+			username := connection.GetSessionUserID()
+			notice := fmt.Sprintf("%s is playing %s (track %d)", username, url, track)
+			extraCmds = append(extraCmds, func() tea.Msg {
+				return components.NewChatResponseAppendMsg(notice)
+			})
 		}
-		return m, components.PlayAudioFromURL(ctx, roomID, url, track)
+		return m, tea.Batch(append(extraCmds, components.PlayAudioFromURL(ctx, roomID, url, track))...)
 	case types.ConnectedMsg:
 		return m, tea.Batch(waitNotification(), waitEcho(), waitRoomMessages(), waitDM())
 	case notificationMsg:
@@ -472,7 +478,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				roomID := p.RoomID
 				audioURL := p.AudioURL
 				fromUser := p.FromUsername
-				playMsg := fromUser + " is playing " + audioURL
+				playMsg := fmt.Sprintf("%s is playing %s (track %d)", fromUser, audioURL, track)
 				cmds = append(cmds,
 					func() tea.Msg { return components.NewChatResponseAppendMsg(playMsg) },
 					components.PlayAudioFromURL(ctx, roomID, audioURL, track),
