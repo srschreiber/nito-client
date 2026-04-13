@@ -40,6 +40,7 @@ func CompleteRegister(ctx context.Context, password string) (string, Signal, err
 	pendingRegisterBroker = ""
 	pendingRegisterUsername = ""
 
+	keys.SetActiveBroker(broker)
 	publicKey, err := keys.LoadOrGenerate(username)
 	if err != nil {
 		return "", SignalNone, fmt.Errorf("register: key setup failed: %w", err)
@@ -68,6 +69,7 @@ func loginCmd(args []Argument) (Signal, error) {
 	if username == "" {
 		return SignalNone, errors.New("login: -u/--user <username> is required")
 	}
+	keys.SetActiveBroker(brokerURL)
 	if !keys.HaveKeys(username) {
 		return SignalNone, errors.New("login: no keys found — run register first")
 	}

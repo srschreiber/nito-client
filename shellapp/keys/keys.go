@@ -16,6 +16,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 
 	"golang.org/x/crypto/chacha20poly1305"
 
@@ -26,12 +28,53 @@ var NonceMap = map[string]map[string]struct{}{}
 
 const keyDir = ".nito"
 
+var (
+	activeBrokerMu sync.RWMutex
+	activeBroker   string
+)
+
+// SetActiveBroker records the broker URL so key files are stored under
+// ~/.nito/<broker>/users/<username>/keys/. Call this before any key operation.
+func SetActiveBroker(brokerURL string) {
+	activeBrokerMu.Lock()
+	defer activeBrokerMu.Unlock()
+	activeBroker = sanitizeBroker(brokerURL)
+}
+
+// sanitizeBroker strips the scheme and replaces characters that are not safe
+// in directory names (colons from port numbers, slashes, etc.) with underscores.
+func sanitizeBroker(brokerURL string) string {
+	for _, prefix := range []string{"https://", "http://", "wss://", "ws://"} {
+		brokerURL = strings.TrimPrefix(brokerURL, prefix)
+	}
+	brokerURL = strings.TrimRight(brokerURL, "/")
+	var b strings.Builder
+	for _, r := range brokerURL {
+		if r == ':' || r == '/' || r == '\\' {
+			b.WriteRune('_')
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	s := b.String()
+	if s == "" {
+		return "default"
+	}
+	return s
+}
+
 func keyPaths(username string) (privPath, pubPath string, err error) {
+	activeBrokerMu.RLock()
+	broker := activeBroker
+	activeBrokerMu.RUnlock()
+	if broker == "" {
+		broker = "default"
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", "", fmt.Errorf("get home dir: %w", err)
 	}
-	dir := filepath.Join(home, keyDir, "users", username, "keys")
+	dir := filepath.Join(home, keyDir, broker, "users", username, "keys")
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return "", "", fmt.Errorf("create Key dir: %w", err)
 	}

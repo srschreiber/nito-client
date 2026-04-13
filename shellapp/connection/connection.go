@@ -204,6 +204,7 @@ func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	}
 
 	brokerURL = normalizeURL(brokerURL)
+	keys.SetActiveBroker(brokerURL)
 	credMu.Lock()
 	storedBroker, storedUserID, storedJWT = brokerURL, userID, jwtToken
 	credMu.Unlock()
