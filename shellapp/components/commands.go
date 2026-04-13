@@ -23,6 +23,7 @@ import (
 	"github.com/srschreiber/nito-client/shellapp/history"
 	"github.com/srschreiber/nito-client/shellapp/styles"
 	"github.com/srschreiber/nito-client/shellapp/types"
+	"github.com/srschreiber/nito-client/shellapp/voice"
 )
 
 const maxCmdHistory = 20
@@ -34,9 +35,10 @@ type chatOpDef struct {
 }
 
 var chatOps = []chatOpDef{
+	{name: ".playalias", argHint: "<name> <url>"},
 	{name: ".image", argHint: "<filename> [-h <height>]"},
 	{name: ".jump", argHint: "<line>"},
-	{name: ".play", argHint: "<mp3/m3u url>"},
+	{name: ".play", argHint: "<alias or url>"},
 	{name: ".stopaudio", argHint: ""},
 }
 
@@ -384,15 +386,50 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		return func() tea.Msg { return JumpScrollMsg{Line: n} }
 	case ".stopaudio":
 		return func() tea.Msg { return StopAudioMsg{} }
+	case ".playalias":
+		if len(parts) < 2 {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".playalias: usage: .playalias <name> <url>", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		aliasArgs := strings.SplitN(strings.TrimSpace(parts[1]), " ", 2)
+		if len(aliasArgs) < 2 || strings.TrimSpace(aliasArgs[1]) == "" {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".playalias: usage: .playalias <name> <url>", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		name := strings.TrimSpace(aliasArgs[0])
+		aliasURL := strings.TrimSpace(aliasArgs[1])
+		if err := voice.SaveAudioAlias(name, aliasURL); err != nil {
+			errMsg := err.Error()
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".playalias: " + errMsg, isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		return func() tea.Msg {
+			return AppendHistoryMsg{Entries: []historyEntry{
+				{text: fmt.Sprintf("saved alias %q → %s", name, aliasURL), isResponse: true},
+			}, Tab: TabChat}
+		}
 	case ".play":
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
 				return AppendHistoryMsg{Entries: []historyEntry{
-					{text: ".play: usage: .play <url>", isResponse: true},
+					{text: ".play: usage: .play <alias or url>", isResponse: true},
 				}, Tab: TabChat}
 			}
 		}
-		url := strings.TrimSpace(parts[1])
+		arg := strings.TrimSpace(parts[1])
+		url := arg
+		if resolved, ok := voice.LookupAudioAlias(arg); ok {
+			url = resolved
+		}
 		if err := commands.PlayAudioDirect(url); err != nil {
 			errMsg := err.Error()
 			return func() tea.Msg {
@@ -403,7 +440,7 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		}
 		return func() tea.Msg {
 			return AppendHistoryMsg{Entries: []historyEntry{
-				{text: "> .play " + url},
+				{text: "> .play " + arg},
 			}, Tab: TabChat}
 		}
 	case ".image":
