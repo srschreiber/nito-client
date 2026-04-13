@@ -634,8 +634,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, m.comps[m.focusable[m.focusedComponent]].Update(msg)
 		case "left", "right":
-			// Always route left/right to history for tab switching regardless of focus.
-			return m, m.history.Update(msg)
+			// Route left/right to history for tab switching only when the command
+			// component is not focused — in command mode they move the cursor.
+			if m.comps[m.focusable[m.focusedComponent]] != m.command {
+				return m, m.history.Update(msg)
+			}
+			return m, m.command.Update(msg)
 		case "tab":
 			if m.command.HasSuggestion() {
 				return m, m.comps[m.focusable[m.focusedComponent]].Update(msg)

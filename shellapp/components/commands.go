@@ -601,7 +601,12 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 				}, Tab: TabChat}
 			}
 		}
-		arg := playArgs[0]
+		arg := strings.Map(func(r rune) rune {
+			if r < 0x20 || r == 0x7f {
+				return -1 // strip control characters (e.g. \r from Windows clipboard)
+			}
+			return r
+		}, playArgs[0])
 		track := -1 // -1 = auto
 		if len(playArgs) >= 2 {
 			n, err := strconv.Atoi(playArgs[len(playArgs)-1])
