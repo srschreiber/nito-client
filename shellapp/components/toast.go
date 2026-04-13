@@ -30,6 +30,18 @@ type StopAudioMsg struct{ Track int }
 // so the main model knows the track slot is free.
 type AudioTrackDoneMsg struct{ Track int }
 
+// TrackStateMsg updates the status component with the current playback state of
+// all three audio tracks (true = playing, false = idle). InRoom indicates
+// whether the user is currently in a room (controls TRACKS section visibility).
+type TrackStateMsg struct {
+	Playing [3]bool
+	InRoom  bool
+}
+
+// PreFillCommandMsg asks the command component to pre-fill its input with Text
+// and switch focus to it so the user can complete the command.
+type PreFillCommandMsg struct{ Text string }
+
 // toastExpireMsg is sent internally when the current toast should be hidden.
 type toastExpireMsg struct{ gen int }
 

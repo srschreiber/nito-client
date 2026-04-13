@@ -14,13 +14,16 @@ import (
 )
 
 type StatusComponent struct {
-	connected bool
-	brokerURL string
-	userID    string
-	latencyMs int64
-	focused   bool
-	width     int
-	height    int
+	connected    bool
+	brokerURL    string
+	userID       string
+	latencyMs    int64
+	focused      bool
+	width        int
+	height       int
+	trackPlaying [3]bool
+	trackCursor  int
+	inRoom       bool
 }
 
 func NewStatusComponent(width, height int) *StatusComponent {
@@ -39,18 +42,47 @@ func (s *StatusComponent) SetFocused(focused bool) {
 }
 
 func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
-	if m, ok := msg.(types.ConnectionStatusMsg); ok {
+	switch m := msg.(type) {
+	case types.ConnectionStatusMsg:
 		s.connected = m.Connected
 		s.brokerURL = m.BrokerURL
 		s.userID = m.UserID
 		s.latencyMs = m.LatencyMs
+	case TrackStateMsg:
+		s.trackPlaying = m.Playing
+		s.inRoom = m.InRoom
+	case tea.KeyPressMsg:
+		if !s.focused {
+			return nil
+		}
+		switch m.String() {
+		case "up", "k":
+			if s.trackCursor > 0 {
+				s.trackCursor--
+			}
+		case "down", "j":
+			if s.trackCursor < 2 {
+				s.trackCursor++
+			}
+		case "enter":
+			t := s.trackCursor
+			if s.trackPlaying[t] {
+				return func() tea.Msg { return StopAudioMsg{Track: t} }
+			}
+			// Not playing — pre-fill command with .play  <n> and focus it.
+			text := fmt.Sprintf(".play  %d", t)
+			return func() tea.Msg { return PreFillCommandMsg{Text: text} }
+		}
 	}
 	return nil
 }
 
 func (s *StatusComponent) Render() string {
-	label := styles.StatusBadge.Render("STATUS")
+	k := styles.HintKeyStyle
+	d := styles.DimText
 
+	// STATUS section
+	label := styles.StatusBadge.Render("STATUS")
 	var statusLine string
 	if s.connected {
 		latency := fmt.Sprintf("%dms", s.latencyMs)
@@ -62,18 +94,37 @@ func (s *StatusComponent) Render() string {
 		statusLine = styles.StatusDisconnectedStyle.Render("● offline")
 	}
 
-	// Clip to available height (reserve 5 rows for title + border/padding overhead).
+	body := label + "\n" + statusLine
+
+	if s.inRoom {
+		tracksLabel := styles.KeysBadge.Render("TRACKS")
+		var trackLines []string
+		for i := 0; i < 3; i++ {
+			cursor := "  "
+			if s.focused && i == s.trackCursor {
+				cursor = k.Render("▶ ")
+			}
+			var icon string
+			if s.trackPlaying[i] {
+				icon = k.Render("🔊")
+			} else {
+				icon = d.Render("⏹")
+			}
+			trackLines = append(trackLines, fmt.Sprintf("%s%s %s", cursor, icon, d.Render(fmt.Sprintf("%d", i))))
+		}
+		body += "\n\n" + tracksLabel + "\n" + strings.Join(trackLines, "\n")
+	}
+
+	// Clip to available height.
 	maxLines := s.height - 5
 	if maxLines < 1 {
 		maxLines = 1
 	}
-	statusLines := strings.Split(statusLine, "\n")
-	if len(statusLines) > maxLines {
-		statusLines = statusLines[:maxLines]
+	bodyLines := strings.Split(body, "\n")
+	if len(bodyLines) > maxLines {
+		bodyLines = bodyLines[:maxLines]
 	}
-	statusLine = strings.Join(statusLines, "\n")
-
-	body := label + "\n" + statusLine
+	body = strings.Join(bodyLines, "\n")
 
 	borderColor := styles.PanelBorderColor
 	bg := styles.ComponentBg

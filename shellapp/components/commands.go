@@ -65,9 +65,9 @@ type execResultMsg struct {
 
 const (
 	placeholderCmd     = "Type a command... (/chat  /dms  /notifications  /invites  /logs  or wcid for all commands)"
-	placeholderChat    = "Chat (/cmd to return to command mode)"
+	placeholderChat    = "Chat  (/ quickselect)"
 	placeholderDM      = "DMs — use .dm <user> or ↑/↓ to select a conversation"
-	placeholderInvites = "Invites (read-only — use ↑/↓ enter to accept, /cmd to leave)"
+	placeholderInvites = "Invites (read-only — use ↑/↓ enter to accept)"
 )
 
 type CommandComponent struct {
@@ -174,10 +174,19 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 			l.Placeholder = "Message " + msg.User + "..."
 		}
 		return nil
+	case PreFillCommandMsg:
+		l.textFieldValue = msg.Text
+		// Position cursor before the track-number suffix (last char group after the last space).
+		// Simple heuristic: place cursor right after the first trailing space past ".play ".
+		l.cursorPos = len(msg.Text)
+		if idx := strings.Index(msg.Text[6:], " "); idx >= 0 {
+			l.cursorPos = 6 + idx
+		}
+		return nil
 	case types.RoomSelectedMsg:
 		return func() tea.Msg {
 			return AppendHistoryMsg{Entries: []historyEntry{
-				{text: "switched to room " + msg.RoomID + " — use /chat to switch to chat mode", isResponse: true},
+				{text: "switched to room " + msg.RoomID + " — press / to quickselect", isResponse: true},
 			}}
 		}
 	case execResultMsg:
@@ -214,7 +223,7 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 				break
 			}
 			id := *roomID
-			entries = append(entries, historyEntry{text: "use /chat to switch to chat mode", isResponse: true})
+			entries = append(entries, historyEntry{text: "press / to quickselect", isResponse: true})
 			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn, func() tea.Msg { return types.RoomSelectedMsg{RoomID: id} })
 		case commands.SignalVoiceLeave:
 			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn, func() tea.Msg { return StopAudioMsg{} })
@@ -652,25 +661,6 @@ func (l *CommandComponent) handleEnter() tea.Cmd {
 			func() tea.Msg { return ModeChangedMsg{ChatMode: true} },
 		)
 	}
-	if input == "/cmd" {
-		l.chatMode = false
-		l.dmMode = false
-		l.dmTarget = ""
-		l.Placeholder = placeholderCmd
-		cmds := []tea.Cmd{
-			func() tea.Msg {
-				return AppendHistoryMsg{Entries: []historyEntry{
-					{text: "> " + input},
-					{text: "Switched to command mode.", isResponse: true},
-				}}
-			},
-			func() tea.Msg { return ModeChangedMsg{ChatMode: false} },
-		}
-		if ShowCmdTab {
-			cmds = append(cmds, func() tea.Msg { return SwitchTabMsg{Tab: TabCmd} })
-		}
-		return tea.Batch(cmds...)
-	}
 
 	// Tab-switching slash commands.
 	tabSwitchCmds := map[string]HistoryTab{
@@ -773,7 +763,7 @@ func (l *CommandComponent) ghostSuffix() string {
 		return dmHint[len(text):]
 	}
 	// Tab-switching slash commands autocomplete.
-	for _, cmd := range []string{"/chat", "/cmd", "/dms", "/notifications", "/invites", "/logs"} {
+	for _, cmd := range []string{"/chat", "/dms", "/notifications", "/invites", "/logs"} {
 		if strings.HasPrefix(cmd, text) && text != cmd {
 			return cmd[len(text):]
 		}
@@ -820,7 +810,7 @@ func (l *CommandComponent) completionTemplate() string {
 		return dmHint
 	}
 	// Tab-switching slash commands.
-	for _, cmd := range []string{"/chat", "/cmd", "/dms", "/notifications", "/invites", "/logs"} {
+	for _, cmd := range []string{"/chat", "/dms", "/notifications", "/invites", "/logs"} {
 		if strings.HasPrefix(cmd, text) && text != cmd {
 			return cmd
 		}

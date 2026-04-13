@@ -132,7 +132,7 @@ func initialModel() model {
 	hints := components.NewHintsComponent(l.hintsW, l.hintsH)
 	toast := components.NewToastComponent()
 
-	// comps: 0=history, 1=status (display-only), 2=command, 3=hints (display-only)
+	// comps: 0=history, 1=status, 2=command, 3=hints (display-only)
 	m := model{
 		history:          history,
 		status:           status,
@@ -141,8 +141,8 @@ func initialModel() model {
 		toast:            toast,
 		voiceSettings:    components.NewVoiceSettingsScreen(termW, termH),
 		comps:            []components.Component{history, status, command, hints},
-		focusable:        []int{0, 2},
-		focusedComponent: 1, // index into focusable → comps[2] = command
+		focusable:        []int{0, 1, 2},
+		focusedComponent: 2, // index into focusable → comps[2] = command
 		termW:            termW,
 		termH:            termH,
 	}
@@ -402,7 +402,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Track >= 0 && msg.Track <= 2 {
 			m.audioTracks[msg.Track] = nil
 		}
-		return m, nil
+		return m, m.trackStateCmd()
 	case components.StopAudioMsg:
 		if msg.Track < 0 {
 			for i := range m.audioTracks {
@@ -417,7 +417,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.audioTracks[msg.Track] = nil
 			}
 		}
-		return m, nil
+		return m, m.trackStateCmd()
+	case components.PreFillCommandMsg:
+		// Switch focus to command so the user can complete the pre-filled text.
+		m.comps[m.focusable[m.focusedComponent]].SetFocused(false)
+		for i, fi := range m.focusable {
+			if m.comps[fi] == m.command {
+				m.focusedComponent = i
+				break
+			}
+		}
+		m.comps[m.focusable[m.focusedComponent]].SetFocused(true)
+		m.hints.SetFocusedComp(m.focusable[m.focusedComponent])
+		// Also deliver the message to command so it sets the text.
+		return m, m.command.Update(msg)
 	case components.PlayAudioMsg:
 		track := m.resolveTrack(msg.Track)
 		url := msg.URL
@@ -436,9 +449,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.audioTracks[track] = nil
 				cancel()
 				errMsg := err.Error()
-				return m, func() tea.Msg {
-					return components.ShowToastMsg{Text: ".play: " + errMsg}
-				}
+				return m, tea.Batch(
+					m.trackStateCmd(),
+					func() tea.Msg { return components.ShowToastMsg{Text: ".play: " + errMsg} },
+				)
 			}
 			username := connection.GetSessionUserID()
 			notice := fmt.Sprintf("%s is playing %s (track %d)", username, url, track)
@@ -446,7 +460,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return components.NewChatResponseAppendMsg(notice)
 			})
 		}
-		return m, tea.Batch(append(extraCmds, components.PlayAudioFromURL(ctx, roomID, url, track))...)
+		extraCmds = append(extraCmds, m.trackStateCmd(), components.PlayAudioFromURL(ctx, roomID, url, track))
+		return m, tea.Batch(extraCmds...)
 	case types.ConnectedMsg:
 		return m, tea.Batch(waitNotification(), waitEcho(), waitRoomMessages(), waitDM())
 	case notificationMsg:
@@ -545,7 +560,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case types.RoomSelectedMsg:
 		roomID := msg.RoomID
 		go commands.SendRoomEnter(roomID)
+		// Cancel all playing tracks when joining a new room.
+		for i := range m.audioTracks {
+			if m.audioTracks[i] != nil {
+				m.audioTracks[i]()
+				m.audioTracks[i] = nil
+			}
+		}
 		var cmds []tea.Cmd
+		cmds = append(cmds, m.trackStateCmd())
 		for _, c := range m.comps {
 			if cmd := c.Update(msg); cmd != nil {
 				cmds = append(cmds, cmd)
@@ -555,7 +578,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	case types.RoomDeselectedMsg:
 		go commands.SendRoomLeave(msg.RoomID)
-		return m, nil
+		return m, m.trackStateCmd()
 	case components.ShowVoiceSettingsMsg:
 		m.showVoiceSettings = true
 		m.voiceSettings.Reset()
@@ -646,6 +669,18 @@ func (m *model) resolveTrack(hint int) int {
 		}
 	}
 	return 0 // all busy; preempt track 0
+}
+
+// trackStateCmd returns a Cmd that broadcasts the current track playing state
+// to all components (primarily the status panel).
+func (m *model) trackStateCmd() tea.Cmd {
+	var playing [3]bool
+	for i, c := range m.audioTracks {
+		playing[i] = c != nil
+	}
+	inRoom := connection.GetSessionRoomID() != nil
+	state := components.TrackStateMsg{Playing: playing, InRoom: inRoom}
+	return func() tea.Msg { return state }
 }
 
 func (m model) View() tea.View {
