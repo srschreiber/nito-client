@@ -151,4 +151,5 @@ type PlayAudioPayload struct {
 	FromUsername string `json:"fromUsername" validate:"required"`
 	RoomID       string `json:"roomId" validate:"required"`
 	AudioURL     string `json:"audioURL" validate:"required"`
+	Track        int    `json:"track"` // 0–2; which local playback track to use
 }

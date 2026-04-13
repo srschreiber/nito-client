@@ -59,12 +59,13 @@ func VoiceLeaveTestAudioDirect() error {
 }
 
 // PlayAudioDirect sends a play_audio RPC to the broker for all users in the active voice room.
-func PlayAudioDirect(audioURL string) error {
-	_, err := playCmd(audioURL)
+// track must be 0–2; it is broadcast to all receivers so they play on the same track.
+func PlayAudioDirect(audioURL string, track int) error {
+	_, err := playCmd(audioURL, track)
 	return err
 }
 
-func playCmd(audioURL string) (string, error) {
+func playCmd(audioURL string, track int) (string, error) {
 	roomID := voice.ActiveRoomID()
 	if roomID == "" {
 		return "", errors.New("play: not in a voice call (use voice-join first)")
@@ -77,6 +78,7 @@ func playCmd(audioURL string) (string, error) {
 		FromUsername: s.UserID,
 		RoomID:       roomID,
 		AudioURL:     audioURL,
+		Track:        track,
 	})
 	if err != nil {
 		return "", fmt.Errorf("play: marshal: %w", err)

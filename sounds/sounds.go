@@ -17,6 +17,9 @@ import (
 //go:embed enter.mp3
 var enterMP3 []byte
 
+//go:embed boop.mp3
+var boopMP3 []byte
+
 //go:embed exit.mp3
 var exitMP3 []byte
 
@@ -58,7 +61,7 @@ func PlayPreview(vol float64) {
 			clientlog.Error("sounds: oto init: %v", err)
 			return
 		}
-		dec, err := mp3.NewDecoder(bytes.NewReader(enterMP3))
+		dec, err := mp3.NewDecoder(bytes.NewReader(boopMP3))
 		if err != nil {
 			clientlog.Error("sounds: decode preview: %v", err)
 			return

@@ -15,8 +15,20 @@ const toastDuration = 5 * time.Second
 // ShowToastMsg triggers a toast notification with the given message.
 type ShowToastMsg struct{ Text string }
 
-// StopAudioMsg cancels any in-flight audio playback.
-type StopAudioMsg struct{}
+// PlayAudioMsg asks the main model to send a play_audio RPC on a specific track.
+// Track -1 means "auto": pick the first idle track (0 if all are busy).
+type PlayAudioMsg struct {
+	URL   string
+	Track int
+}
+
+// StopAudioMsg cancels in-flight audio playback.
+// Track -1 stops all tracks; 0–2 stops a specific track.
+type StopAudioMsg struct{ Track int }
+
+// AudioTrackDoneMsg is sent by PlayAudioFromURL when a track finishes naturally,
+// so the main model knows the track slot is free.
+type AudioTrackDoneMsg struct{ Track int }
 
 // toastExpireMsg is sent internally when the current toast should be hidden.
 type toastExpireMsg struct{ gen int }

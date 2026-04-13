@@ -113,10 +113,11 @@ type model struct {
 	focusable         []int
 	focusedComponent  int
 	termW, termH      int
-	offlineStreak     int             // consecutive failed pings
-	kickedToLogin     bool            // set true when kicked back to login screen
-	audioCtx          context.Context // cancelled to stop the current audio clip
-	cancelAudio       context.CancelFunc
+	offlineStreak     int  // consecutive failed pings
+	kickedToLogin     bool // set true when kicked back to login screen
+	// audioTracks holds per-track cancellation. Index 0–2 correspond to tracks 0–2.
+	// A nil cancel means that track is idle.
+	audioTracks [3]context.CancelFunc
 }
 
 // startupSuccessMsg holds the auth result message to display on first launch.
@@ -396,11 +397,50 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			func() tea.Msg { return components.ShowToastMsg{Text: toastText} },
 			waitDM(),
 		)
-	case components.StopAudioMsg:
-		if m.cancelAudio != nil {
-			m.cancelAudio()
+	case components.AudioTrackDoneMsg:
+		// Track finished naturally — free the slot.
+		if msg.Track >= 0 && msg.Track <= 2 {
+			m.audioTracks[msg.Track] = nil
 		}
 		return m, nil
+	case components.StopAudioMsg:
+		if msg.Track < 0 {
+			for i := range m.audioTracks {
+				if m.audioTracks[i] != nil {
+					m.audioTracks[i]()
+					m.audioTracks[i] = nil
+				}
+			}
+		} else if msg.Track <= 2 {
+			if m.audioTracks[msg.Track] != nil {
+				m.audioTracks[msg.Track]()
+				m.audioTracks[msg.Track] = nil
+			}
+		}
+		return m, nil
+	case components.PlayAudioMsg:
+		track := m.resolveTrack(msg.Track)
+		url := msg.URL
+		if m.audioTracks[track] != nil {
+			m.audioTracks[track]() // cancel existing on this track
+		}
+		ctx, cancel := context.WithCancel(context.Background())
+		m.audioTracks[track] = cancel
+		roomID := voice.ActiveRoomID()
+		if roomID == "" {
+			// Not in a voice call — play locally only, no broker RPC.
+			roomID = voice.SelfRoomID
+		} else {
+			if err := commands.PlayAudioDirect(url, track); err != nil {
+				m.audioTracks[track] = nil
+				cancel()
+				errMsg := err.Error()
+				return m, func() tea.Msg {
+					return components.ShowToastMsg{Text: ".play: " + errMsg}
+				}
+			}
+		}
+		return m, components.PlayAudioFromURL(ctx, roomID, url, track)
 	case types.ConnectedMsg:
 		return m, tea.Batch(waitNotification(), waitEcho(), waitRoomMessages(), waitDM())
 	case notificationMsg:
@@ -420,14 +460,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return components.ShowToastMsg{Text: "play: received malformed sound clip notification"}
 				})
 			} else {
-				if m.cancelAudio != nil {
-					m.cancelAudio()
+				track := p.Track
+				if track < 0 || track > 2 {
+					track = 0
 				}
-				m.audioCtx, m.cancelAudio = context.WithCancel(context.Background())
-				audioCtx := m.audioCtx
+				if m.audioTracks[track] != nil {
+					m.audioTracks[track]()
+				}
+				ctx, cancel := context.WithCancel(context.Background())
+				m.audioTracks[track] = cancel
+				roomID := p.RoomID
+				audioURL := p.AudioURL
 				cmds = append(cmds,
 					func() tea.Msg { return components.ShowToastMsg{Text: text} },
-					components.PlayAudioFromURL(audioCtx, p.RoomID, p.AudioURL),
+					components.PlayAudioFromURL(ctx, roomID, audioURL, track),
 				)
 			}
 
@@ -578,6 +624,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Batch(cmds...)
 	}
+}
+
+// resolveTrack returns the track to use for playback. hint -1 means auto: pick
+// the first idle track, or 0 if all are busy. hint 0–2 is used directly.
+func (m *model) resolveTrack(hint int) int {
+	if hint >= 0 && hint <= 2 {
+		return hint
+	}
+	for i, cancel := range m.audioTracks {
+		if cancel == nil {
+			return i
+		}
+	}
+	return 0 // all busy; preempt track 0
 }
 
 func (m model) View() tea.View {

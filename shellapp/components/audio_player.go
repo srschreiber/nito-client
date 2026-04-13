@@ -5,7 +5,6 @@ package components
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -19,15 +18,15 @@ import (
 	"github.com/srschreiber/nito-client/shellapp/voice"
 )
 
-const audioMaxBytes = 5 << 20 // 5 MB
-
 // PlayAudioFromURL returns a tea.Cmd that streams and plays the MP3 (or M3U
-// playlist) at audioURL, but only if the user is currently in a voice call in
-// roomID. ctx can be cancelled to abort download or stop playback early.
-func PlayAudioFromURL(ctx context.Context, roomID, audioURL string) tea.Cmd {
+// playlist) at audioURL on the given track slot, but only if the user is
+// currently in a voice call in roomID. ctx can be cancelled to abort early.
+// On natural completion it returns AudioTrackDoneMsg so the caller can free
+// the track slot; on cancellation it returns nil.
+func PlayAudioFromURL(ctx context.Context, roomID, audioURL string, track int) tea.Cmd {
 	return func() tea.Msg {
-		if voice.ActiveRoomID() != roomID {
-			return nil
+		if roomID != voice.SelfRoomID && voice.ActiveRoomID() != roomID {
+			return AudioTrackDoneMsg{Track: track}
 		}
 
 		urls, err := resolveAudioURLs(ctx, audioURL)
@@ -43,7 +42,7 @@ func PlayAudioFromURL(ctx context.Context, roomID, audioURL string) tea.Cmd {
 				return msg
 			}
 		}
-		return nil
+		return AudioTrackDoneMsg{Track: track}
 	}
 }
 
@@ -113,10 +112,13 @@ func fetchAndParseM3U(ctx context.Context, url string) ([]string, error) {
 	return tracks, nil
 }
 
-// playOne downloads and plays a single MP3 URL. Returns a non-nil tea.Msg on
-// error, nil on clean finish or context cancellation.
+// playOne streams and plays a single MP3 URL. The HTTP response body is piped
+// directly to the MP3 decoder — no intermediate buffer, no size limit. Returns
+// a non-nil tea.Msg on error, nil on clean finish or context cancellation.
+// If roomID is voice.SelfRoomID the active-room guard is skipped so the user
+// can play audio locally without being in a voice call.
 func playOne(ctx context.Context, roomID, audioURL string) tea.Msg {
-	if voice.ActiveRoomID() != roomID {
+	if roomID != voice.SelfRoomID && voice.ActiveRoomID() != roomID {
 		return nil
 	}
 
@@ -133,20 +135,12 @@ func playOne(ctx context.Context, roomID, audioURL string) tea.Msg {
 	}
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, audioMaxBytes))
-	if err != nil {
-		if ctx.Err() != nil {
-			return nil
-		}
-		return audioErr("read body", err)
-	}
-
 	otoCtx, err := voice.GetOtoCtx()
 	if err != nil {
 		return audioErr("oto init", err)
 	}
 
-	dec, err := mp3.NewDecoder(bytes.NewReader(data))
+	dec, err := mp3.NewDecoder(resp.Body)
 	if err != nil {
 		return audioErr("mp3 decode", err)
 	}

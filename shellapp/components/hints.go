@@ -38,6 +38,12 @@ func (h *HintsComponent) Init() tea.Cmd { return nil }
 
 func (h *HintsComponent) Update(msg tea.Msg) tea.Cmd {
 	switch m := msg.(type) {
+	case SwitchTabMsg:
+		h.chatMode = m.Tab == TabChat
+		if m.Tab != TabDM {
+			h.dmMode = false
+			h.dmTarget = ""
+		}
 	case ModeChangedMsg:
 		h.chatMode = m.ChatMode
 		h.dmMode = false
@@ -95,9 +101,9 @@ func (h *HintsComponent) Render() string {
 				k.Render(".image") + d.Render(" <file> [-h <height>]"),
 				k.Render(".dm") + d.Render(" <user>"),
 				k.Render(".jump") + d.Render(" <line>"),
-				k.Render(".play") + d.Render(" <alias or mp3/m3u url>"),
+				k.Render(".play") + d.Render(" <alias|url> [track 0-2]"),
 				k.Render(".playalias") + d.Render(" <name> <url>"),
-				k.Render(".stopaudio"),
+				k.Render(".stoptrack") + d.Render(" <0-2>") + sep + k.Render(".stopall"),
 			}
 		} else {
 			lines = []string{

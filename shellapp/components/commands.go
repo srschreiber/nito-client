@@ -38,8 +38,9 @@ var chatOps = []chatOpDef{
 	{name: ".playalias", argHint: "<name> <url>"},
 	{name: ".image", argHint: "<filename> [-h <height>]"},
 	{name: ".jump", argHint: "<line>"},
-	{name: ".play", argHint: "<alias or url>"},
-	{name: ".stopaudio", argHint: ""},
+	{name: ".play", argHint: "<alias|url> [track 0-2]"},
+	{name: ".stoptrack", argHint: "<track 0-2>"},
+	{name: ".stopall", argHint: ""},
 }
 
 // completeChatOp returns the first op whose name starts with prefix, or nil.
@@ -143,18 +144,21 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 		}
 		return nil
 	case SwitchTabMsg:
-		// Always reset mode state on any tab switch. Subsequent ModeChangedMsg /
-		// DMTargetChangedMsg will re-apply the correct values for the new tab.
 		l.activeTab = msg.Tab
-		l.chatMode = false
 		l.dmMode = false
 		l.dmTarget = ""
 		switch msg.Tab {
+		case TabChat:
+			l.chatMode = true
+			l.Placeholder = placeholderChat
 		case TabInvites:
+			l.chatMode = false
 			l.Placeholder = placeholderInvites
 		case TabDM:
+			l.chatMode = false
 			l.Placeholder = placeholderDM
 		default:
+			l.chatMode = false
 			l.Placeholder = placeholderCmd
 		}
 		return nil
@@ -384,8 +388,25 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 			}
 		}
 		return func() tea.Msg { return JumpScrollMsg{Line: n} }
-	case ".stopaudio":
-		return func() tea.Msg { return StopAudioMsg{} }
+	case ".stopall":
+		return func() tea.Msg { return StopAudioMsg{Track: -1} }
+	case ".stoptrack":
+		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".stoptrack: usage: .stoptrack <track 0-2>", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		n, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+		if err != nil || n < 0 || n > 2 {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".stoptrack: track must be 0, 1, or 2", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		return func() tea.Msg { return StopAudioMsg{Track: n} }
 	case ".playalias":
 		if len(parts) < 2 {
 			return func() tea.Msg {
@@ -421,28 +442,34 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
 				return AppendHistoryMsg{Entries: []historyEntry{
-					{text: ".play: usage: .play <alias or url>", isResponse: true},
+					{text: ".play: usage: .play <alias|url> [track 0-2]", isResponse: true},
 				}, Tab: TabChat}
 			}
 		}
-		arg := strings.TrimSpace(parts[1])
+		// Parse: .play <alias|url> [track]
+		playArgs := strings.Fields(parts[1])
+		arg := playArgs[0]
+		track := -1 // -1 = auto
+		if len(playArgs) >= 2 {
+			n, err := strconv.Atoi(playArgs[len(playArgs)-1])
+			if err == nil && n >= 0 && n <= 2 {
+				track = n
+				arg = strings.Join(playArgs[:len(playArgs)-1], " ")
+			}
+		}
 		url := arg
 		if resolved, ok := voice.LookupAudioAlias(arg); ok {
 			url = resolved
 		}
-		if err := commands.PlayAudioDirect(url); err != nil {
-			errMsg := err.Error()
-			return func() tea.Msg {
-				return AppendHistoryMsg{Entries: []historyEntry{
-					{text: ".play: " + errMsg, isResponse: true},
-				}, Tab: TabChat}
-			}
-		}
-		return func() tea.Msg {
-			return AppendHistoryMsg{Entries: []historyEntry{
-				{text: "> .play " + arg},
-			}, Tab: TabChat}
-		}
+		displayArg := arg
+		playURL := url
+		playTrack := track
+		return tea.Batch(
+			func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{{text: "> .play " + displayArg}}, Tab: TabChat}
+			},
+			func() tea.Msg { return PlayAudioMsg{URL: playURL, Track: playTrack} },
+		)
 	case ".image":
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {

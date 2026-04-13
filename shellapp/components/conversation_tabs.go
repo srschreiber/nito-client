@@ -237,6 +237,8 @@ func (t *ConversationTabs) Update(msg tea.Msg) tea.Cmd {
 		return t.dmPane.Update(msg)
 	case ClearHistoryMsg:
 		return t.cmd.Update(msg)
+	case types.RoomSelectedMsg:
+		return t.switchTabWithMessages(TabChat)
 	case SwitchTabMsg:
 		if msg.Tab == TabCmd && !ShowCmdTab {
 			return nil
