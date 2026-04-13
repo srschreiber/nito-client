@@ -182,11 +182,12 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 		default:
 			if !player.IsPlaying() {
 				// Only treat as end-of-stream if the HTTP body is exhausted.
-				// If EOF hasn't been reached, CoreAudio suspended the context
-				// (e.g. voice session started/stopped) — keep polling until it resumes.
+				// If EOF hasn't been reached, CoreAudio suspended the player
+				// (e.g. voice session started/stopped) — re-call Play() to resume.
 				if body.reached.Load() {
 					return nil
 				}
+				player.Play()
 			}
 			player.SetVolume(voice.EffectivePlaybackVolume())
 			time.Sleep(20 * time.Millisecond)
