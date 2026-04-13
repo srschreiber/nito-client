@@ -17,6 +17,7 @@ jobs:
         run: brew install go opus rnnoise pkg-config
       - name: Build
         run: |
+          export PKG_CONFIG_PATH="$(brew --prefix)/lib/pkgconfig:$PKG_CONFIG_PATH"
           cd shellapp
           CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o ../dist/shellapp-darwin-arm64 .
       - uses: actions/upload-artifact@v4
@@ -34,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libopus-dev pkg-config autoconf automake libtool
+          sudo apt-get install -y libopus-dev libasound2-dev pkg-config autoconf automake libtool
           git clone https://github.com/xiph/rnnoise.git /tmp/rnnoise
           cd /tmp/rnnoise
           ./autogen.sh
