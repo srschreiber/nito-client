@@ -714,7 +714,7 @@ func (m model) View() tea.View {
 		return v
 	}
 
-	rightCol := lipgloss.JoinHorizontal(lipgloss.Top, m.hints.Render(), m.status.Render())
+	rightCol := lipgloss.JoinHorizontal(lipgloss.Top, m.status.Render(), m.hints.Render())
 	topRow := lipgloss.JoinHorizontal(lipgloss.Top, m.history.Render(), rightCol)
 	s := topRow + "\n" + m.command.Render()
 
