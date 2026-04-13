@@ -10,6 +10,7 @@ import (
 	"time"
 
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
+	"github.com/srschreiber/nito-client/shellapp/clientlog"
 	"github.com/srschreiber/nito-client/shellapp/connection"
 	"github.com/srschreiber/nito-client/shellapp/voice"
 )
@@ -66,6 +67,7 @@ func PlayAudioDirect(audioURL string, track int) error {
 }
 
 func playCmd(audioURL string, track int) (string, error) {
+	clientlog.Info("play_audio RPC SEND: url=%s track=%d", audioURL, track)
 	roomID := voice.ActiveRoomID()
 	if roomID == "" {
 		return "", errors.New("play: not in a voice call (use voice-join first)")

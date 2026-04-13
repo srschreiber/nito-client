@@ -157,13 +157,22 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 	defer player.Close()
 	player.Play()
 
+	notPlayingStreak := 0
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
 			if !player.IsPlaying() {
-				return nil
+				// CoreAudio can briefly suspend all players when the voice session
+				// starts or stops. Give it up to 500ms of grace before treating it
+				// as a natural end-of-stream.
+				notPlayingStreak++
+				if notPlayingStreak >= 25 { // 25 × 20ms = 500ms
+					return nil
+				}
+			} else {
+				notPlayingStreak = 0
 			}
 			player.SetVolume(voice.EffectivePlaybackVolume())
 			time.Sleep(20 * time.Millisecond)
