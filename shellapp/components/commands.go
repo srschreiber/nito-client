@@ -38,6 +38,7 @@ var chatOps = []chatOpDef{
 	{name: ".createroom", argHint: "--name <room name>"},
 	{name: ".invite", argHint: "--user <username>"},
 	{name: ".playalias", argHint: "--alias <name> --url <url>"},
+	{name: ".delplayalias", argHint: "<name>"},
 	{name: ".image", argHint: "<filename> [-h <height>]"},
 	{name: ".jump", argHint: "<line>"},
 	{name: ".play", argHint: "--mp3-or-m3u-or-alias <url|alias> [--track <0-2>]"},
@@ -62,6 +63,12 @@ type cursorBlinkMsg struct{ gen int }
 
 // chatCreateRoomResultMsg carries the result of a .createroom operation.
 type chatCreateRoomResultMsg struct {
+	text string
+	err  error
+}
+
+// chatDelAliasResultMsg carries the result of a .delplayalias operation.
+type chatDelAliasResultMsg struct {
 	text string
 	err  error
 }
@@ -135,6 +142,23 @@ func (l *CommandComponent) SetFocused(focused bool) {
 
 func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
+	case chatDelAliasResultMsg:
+		if msg.err != nil {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".delplayalias: " + msg.err.Error(), isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		text := msg.text
+		return tea.Batch(
+			func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: text, isResponse: true},
+				}, Tab: TabChat}
+			},
+			func() tea.Msg { return RefreshTrackStateMsg{} },
+		)
 	case chatCreateRoomResultMsg:
 		if msg.err != nil {
 			return func() tea.Msg {
@@ -527,10 +551,38 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 				}, Tab: TabChat}
 			}
 		}
+		savedName := name
+		savedURL := aliasURL
+		return tea.Batch(
+			func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: fmt.Sprintf("saved alias %q → %s", savedName, savedURL), isResponse: true},
+				}, Tab: TabChat}
+			},
+			func() tea.Msg { return RefreshTrackStateMsg{} },
+		)
+	case ".delplayalias":
+		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".delplayalias: usage: .delplayalias <name>", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
+		aliasName := strings.TrimSpace(filterFlags(strings.Fields(parts[1]))[0])
+		if aliasName == "" {
+			return func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{
+					{text: ".delplayalias: alias name required", isResponse: true},
+				}, Tab: TabChat}
+			}
+		}
 		return func() tea.Msg {
-			return AppendHistoryMsg{Entries: []historyEntry{
-				{text: fmt.Sprintf("saved alias %q → %s", name, aliasURL), isResponse: true},
-			}, Tab: TabChat}
+			err := voice.DeleteAudioAlias(aliasName)
+			if err != nil {
+				return chatDelAliasResultMsg{err: err}
+			}
+			return chatDelAliasResultMsg{text: fmt.Sprintf("deleted alias %q", aliasName)}
 		}
 	case ".play":
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {

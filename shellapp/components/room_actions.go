@@ -19,12 +19,11 @@ import (
 
 // Room action indices.
 const (
-	roomActionCreate     = 0
-	roomActionInvite     = 1
-	roomActionSoundAlias = 2
-	roomActionVoice      = 3
-	roomActionSettings   = 4
-	roomActionCount      = 5
+	roomActionCreate   = 0
+	roomActionInvite   = 1
+	roomActionVoice    = 2
+	roomActionSettings = 3
+	roomActionCount    = 4
 )
 
 // roomsVoiceResultMsg is returned after a voice join/leave attempt.
@@ -135,11 +134,6 @@ func (a *RoomActionsComponent) activate() tea.Cmd {
 		return func() tea.Msg { return PreFillCommandMsg{Text: ".createroom --name ", CursorPos: -1} }
 	case roomActionInvite:
 		return func() tea.Msg { return PreFillCommandMsg{Text: ".invite --user ", CursorPos: -1} }
-	case roomActionSoundAlias:
-		const pfx = ".playalias --alias "
-		return func() tea.Msg {
-			return PreFillCommandMsg{Text: pfx + " --url ", CursorPos: len(pfx)}
-		}
 	case roomActionVoice:
 		if a.testAudioActive || voice.IsConnecting() {
 			return nil
@@ -186,13 +180,11 @@ func (a *RoomActionsComponent) Render() string {
 	items := []string{
 		"Create",
 		"Invite",
-		"Sound Alias",
 		voiceLabel,
 		"Voice Settings",
 	}
 	inRoom := connection.GetSessionRoomID() != nil
 	disabled := [roomActionCount]bool{
-		false,
 		false,
 		false,
 		!inRoom || voiceConnecting || voiceActive,

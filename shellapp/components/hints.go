@@ -102,6 +102,7 @@ func (h *HintsComponent) Render() string {
 				k.Render(".invite") + d.Render(" --user <username>"),
 				k.Render(".play") + d.Render(" --mp3-or-m3u-or-alias <url|alias>"),
 				k.Render(".playalias") + d.Render(" --alias <n> --url <url>"),
+				k.Render(".delplayalias") + d.Render(" <name>"),
 				k.Render(".image") + d.Render(" <file> [-h <height>]"),
 				k.Render(".jump") + d.Render(" <line>") + sep + k.Render(".dm") + d.Render(" <user>"),
 				k.Render(".stoptrack") + d.Render(" <0-2>") + sep + k.Render(".stopall"),

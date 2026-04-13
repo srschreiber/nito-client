@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -403,6 +404,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.audioTracks[msg.Track] = nil
 		}
 		return m, m.trackStateCmd()
+	case components.AudioPlaybackErrorMsg:
+		// Playback failed — free the slot and show the error toast.
+		if msg.Track >= 0 && msg.Track <= 2 {
+			m.audioTracks[msg.Track] = nil
+		}
+		text := msg.Text
+		return m, tea.Batch(
+			m.trackStateCmd(),
+			func() tea.Msg { return components.ShowToastMsg{Text: text} },
+		)
 	case components.StopAudioMsg:
 		if msg.Track < 0 {
 			for i := range m.audioTracks {
@@ -417,6 +428,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.audioTracks[msg.Track] = nil
 			}
 		}
+		return m, m.trackStateCmd()
+	case components.RefreshTrackStateMsg:
 		return m, m.trackStateCmd()
 	case components.PreFillCommandMsg:
 		// Switch focus to command so the user can complete the pre-filled text.
@@ -672,15 +685,26 @@ func (m *model) resolveTrack(hint int) int {
 }
 
 // trackStateCmd returns a Cmd that broadcasts the current track playing state
-// to all components (primarily the status panel).
+// and alias list to all components (primarily the status panel).
 func (m *model) trackStateCmd() tea.Cmd {
 	var playing [3]bool
 	for i, c := range m.audioTracks {
 		playing[i] = c != nil
 	}
 	inRoom := connection.GetSessionRoomID() != nil
-	state := components.TrackStateMsg{Playing: playing, InRoom: inRoom}
-	return func() tea.Msg { return state }
+	return func() tea.Msg {
+		aliasMap, _ := voice.ListAudioAliases()
+		aliases := make([]components.AliasEntry, 0, len(aliasMap))
+		for name := range aliasMap {
+			aliases = append(aliases, components.AliasEntry{Name: name})
+		}
+		sort.Slice(aliases, func(i, j int) bool { return aliases[i].Name < aliases[j].Name })
+		// Pad to exactly 15 slots; empty Name signals an unfilled slot.
+		for len(aliases) < 15 {
+			aliases = append(aliases, components.AliasEntry{})
+		}
+		return components.TrackStateMsg{Playing: playing, InRoom: inRoom, Aliases: aliases}
+	}
 }
 
 func (m model) View() tea.View {

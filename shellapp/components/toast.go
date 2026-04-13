@@ -30,12 +30,24 @@ type StopAudioMsg struct{ Track int }
 // so the main model knows the track slot is free.
 type AudioTrackDoneMsg struct{ Track int }
 
+// AudioPlaybackErrorMsg is sent by PlayAudioFromURL when playback fails.
+// It carries the track number so the slot can be freed, and the error text for
+// the toast notification.
+type AudioPlaybackErrorMsg struct {
+	Track int
+	Text  string
+}
+
+// AliasEntry is a named audio alias displayed in the status panel.
+type AliasEntry struct{ Name string }
+
 // TrackStateMsg updates the status component with the current playback state of
 // all three audio tracks (true = playing, false = idle). InRoom indicates
 // whether the user is currently in a room (controls TRACKS section visibility).
 type TrackStateMsg struct {
 	Playing [3]bool
 	InRoom  bool
+	Aliases []AliasEntry // up to 15, sorted by name
 }
 
 // PreFillCommandMsg asks the command component to pre-fill its input with Text
@@ -45,6 +57,10 @@ type PreFillCommandMsg struct {
 	Text      string
 	CursorPos int
 }
+
+// RefreshTrackStateMsg asks main to re-broadcast the current track+alias state.
+// Emitted after alias mutations so the status panel reflects the change.
+type RefreshTrackStateMsg struct{}
 
 // toastExpireMsg is sent internally when the current toast should be hidden.
 type toastExpireMsg struct{ gen int }

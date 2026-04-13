@@ -21,8 +21,9 @@ import (
 // PlayAudioFromURL returns a tea.Cmd that streams and plays the MP3 (or M3U
 // playlist) at audioURL on the given track slot, but only if the user is
 // currently in a voice call in roomID. ctx can be cancelled to abort early.
-// On natural completion it returns AudioTrackDoneMsg so the caller can free
-// the track slot; on cancellation it returns nil.
+// On natural completion or error it returns AudioTrackDoneMsg or
+// AudioPlaybackErrorMsg so the caller can free the track slot; on
+// cancellation it returns nil.
 func PlayAudioFromURL(ctx context.Context, roomID, audioURL string, track int) tea.Cmd {
 	return func() tea.Msg {
 		if roomID != voice.SelfRoomID && voice.ActiveRoomID() != roomID {
@@ -31,14 +32,14 @@ func PlayAudioFromURL(ctx context.Context, roomID, audioURL string, track int) t
 
 		urls, err := resolveAudioURLs(ctx, audioURL)
 		if err != nil {
-			return audioErr("resolve", err)
+			return audioPlaybackErr(track, "resolve", err)
 		}
 
 		for _, u := range urls {
 			if ctx.Err() != nil {
 				return nil
 			}
-			if msg := playOne(ctx, roomID, u); msg != nil {
+			if msg := playOne(ctx, roomID, u, track); msg != nil {
 				return msg
 			}
 		}
@@ -117,32 +118,32 @@ func fetchAndParseM3U(ctx context.Context, url string) ([]string, error) {
 // a non-nil tea.Msg on error, nil on clean finish or context cancellation.
 // If roomID is voice.SelfRoomID the active-room guard is skipped so the user
 // can play audio locally without being in a voice call.
-func playOne(ctx context.Context, roomID, audioURL string) tea.Msg {
+func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 	if roomID != voice.SelfRoomID && voice.ActiveRoomID() != roomID {
 		return nil
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, audioURL, nil)
 	if err != nil {
-		return audioErr("build request", err)
+		return audioPlaybackErr(track, "build request", err)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil
 		}
-		return audioErr("fetch", err)
+		return audioPlaybackErr(track, "fetch", err)
 	}
 	defer resp.Body.Close()
 
 	otoCtx, err := voice.GetOtoCtx()
 	if err != nil {
-		return audioErr("oto init", err)
+		return audioPlaybackErr(track, "oto init", err)
 	}
 
 	dec, err := mp3.NewDecoder(resp.Body)
 	if err != nil {
-		return audioErr("mp3 decode", err)
+		return audioPlaybackErr(track, "mp3 decode", err)
 	}
 
 	player := otoCtx.NewPlayer(dec)
@@ -164,11 +165,11 @@ func playOne(ctx context.Context, roomID, audioURL string) tea.Msg {
 	}
 }
 
-func audioErr(op string, err error) tea.Msg {
+func audioPlaybackErr(track int, op string, err error) AudioPlaybackErrorMsg {
 	if err != nil {
 		clientlog.Error("audio_player: %s: %v", op, err)
-		return ShowToastMsg{Text: "audio: " + op + ": " + err.Error()}
+		return AudioPlaybackErrorMsg{Track: track, Text: "audio: " + op + ": " + err.Error()}
 	}
-	clientlog.Error("audio_player: %s: no tracks found in playlist", op)
-	return ShowToastMsg{Text: "audio: " + op + ": no tracks found in playlist"}
+	clientlog.Error("audio_player: %s: unknown error", op)
+	return AudioPlaybackErrorMsg{Track: track, Text: "audio: " + op + ": unknown error"}
 }

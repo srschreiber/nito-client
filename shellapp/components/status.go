@@ -13,6 +13,19 @@ import (
 	"github.com/srschreiber/nito-client/shellapp/types"
 )
 
+// Cursor layout (inRoom):
+//
+//	0-2          : track slots
+//	3            : Stop All button
+//	4 .. 4+14    : alias slots 0-14
+//	4+15 = 19    : Sound Alias button
+const (
+	cursorStopAll       = 3
+	cursorAliasBase     = 4
+	cursorSoundAlias    = cursorAliasBase + 15 // = 19
+	cursorDelSoundAlias = cursorSoundAlias + 1 // = 20
+)
+
 type StatusComponent struct {
 	connected    bool
 	brokerURL    string
@@ -24,6 +37,7 @@ type StatusComponent struct {
 	trackPlaying [3]bool
 	trackCursor  int
 	inRoom       bool
+	aliases      []AliasEntry // always 15 entries; empty Name = unfilled slot
 }
 
 func NewStatusComponent(width, height int) *StatusComponent {
@@ -51,9 +65,14 @@ func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
 	case TrackStateMsg:
 		s.trackPlaying = m.Playing
 		s.inRoom = m.InRoom
+		s.aliases = m.Aliases
 	case tea.KeyPressMsg:
 		if !s.focused {
 			return nil
+		}
+		maxCursor := 2
+		if s.inRoom {
+			maxCursor = cursorDelSoundAlias
 		}
 		switch m.String() {
 		case "up", "k":
@@ -61,20 +80,46 @@ func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
 				s.trackCursor--
 			}
 		case "down", "j":
-			if s.trackCursor < 2 {
+			if s.trackCursor < maxCursor {
 				s.trackCursor++
 			}
 		case "enter":
-			t := s.trackCursor
-			if s.trackPlaying[t] {
-				return func() tea.Msg { return StopAudioMsg{Track: t} }
-			}
-			// Not playing — pre-fill command with .play; cursor lands after the url flag.
-			const urlFlag = ".play --mp3-or-m3u-or-alias "
-			text := fmt.Sprintf("%s --track %d", urlFlag, t)
-			return func() tea.Msg {
-				return PreFillCommandMsg{Text: text, CursorPos: len(urlFlag)}
-			}
+			return s.activate()
+		}
+	}
+	return nil
+}
+
+func (s *StatusComponent) activate() tea.Cmd {
+	t := s.trackCursor
+	switch {
+	case t <= 2:
+		if s.trackPlaying[t] {
+			return func() tea.Msg { return StopAudioMsg{Track: t} }
+		}
+		const urlFlag = ".play --mp3-or-m3u-or-alias "
+		text := fmt.Sprintf("%s --track %d", urlFlag, t)
+		return func() tea.Msg {
+			return PreFillCommandMsg{Text: text, CursorPos: len(urlFlag)}
+		}
+	case t == cursorStopAll:
+		return func() tea.Msg { return StopAudioMsg{Track: -1} }
+	case t >= cursorAliasBase && t < cursorSoundAlias:
+		idx := t - cursorAliasBase
+		if idx < len(s.aliases) && s.aliases[idx].Name != "" {
+			name := s.aliases[idx].Name
+			text := ".play --mp3-or-m3u-or-alias " + name
+			return func() tea.Msg { return PreFillCommandMsg{Text: text, CursorPos: -1} }
+		}
+	case t == cursorSoundAlias:
+		const pfx = ".playalias --alias "
+		return func() tea.Msg {
+			return PreFillCommandMsg{Text: pfx + " --url ", CursorPos: len(pfx)}
+		}
+	case t == cursorDelSoundAlias:
+		const pfx = ".delplayalias --alias "
+		return func() tea.Msg {
+			return PreFillCommandMsg{Text: pfx, CursorPos: -1}
 		}
 	}
 	return nil
@@ -90,9 +135,9 @@ func (s *StatusComponent) Render() string {
 	if s.connected {
 		latency := fmt.Sprintf("%dms", s.latencyMs)
 		statusLine = styles.StatusConnectedStyle.Render("● online") +
-			"  " + styles.DimText.Render(latency) +
-			"\n" + styles.DimText.Render("  "+s.brokerURL) +
-			"\n" + styles.DimText.Render("  "+s.userID)
+			"  " + d.Render(latency) +
+			"\n" + d.Render("  "+s.brokerURL) +
+			"\n" + d.Render("  "+s.userID)
 	} else {
 		statusLine = styles.StatusDisconnectedStyle.Render("● offline")
 	}
@@ -100,22 +145,62 @@ func (s *StatusComponent) Render() string {
 	body := label + "\n" + statusLine
 
 	if s.inRoom {
+		// TRACKS section
 		tracksLabel := styles.KeysBadge.Render("TRACKS")
 		var trackLines []string
 		for i := 0; i < 3; i++ {
-			cursor := "  "
+			cur := "  "
 			if s.focused && i == s.trackCursor {
-				cursor = k.Render("▶ ")
+				cur = k.Render("▶ ")
 			}
 			var icon string
 			if s.trackPlaying[i] {
 				icon = k.Render("🔊")
 			} else {
-				icon = d.Render("⏹")
+				icon = lipgloss.NewStyle().
+					Background(lipgloss.Color("#450a0a")).
+					Foreground(lipgloss.Color("#f87171")).
+					Padding(0, 1).
+					Render("⏹")
 			}
-			trackLines = append(trackLines, fmt.Sprintf("%s%s %s", cursor, icon, d.Render(fmt.Sprintf("%d", i))))
+			trackLines = append(trackLines, fmt.Sprintf("%s%s %s", cur, icon, d.Render(fmt.Sprintf("%d", i))))
 		}
-		body += "\n\n" + tracksLabel + "\n" + strings.Join(trackLines, "\n")
+		// Stop All button
+		stopAllCur := "  "
+		if s.focused && s.trackCursor == cursorStopAll {
+			stopAllCur = k.Render("▶ ")
+		}
+		stopAllBtn := stopAllCur + styles.VoiceLeaveStyle.Render("⏹ Stop All")
+		body += "\n\n" + tracksLabel + "\n" + strings.Join(trackLines, "\n\n") + "\n\n" + stopAllBtn
+
+		// PLAY ALIASES section
+		aliasesLabel := styles.KeysBadge.Render("PLAY ALIASES")
+		var aliasLines []string
+		for i, a := range s.aliases {
+			cur := "  "
+			if s.focused && s.trackCursor == cursorAliasBase+i {
+				cur = k.Render("▶ ")
+			}
+			var label string
+			if a.Name == "" {
+				label = d.Render("- <empty>")
+			} else {
+				label = d.Render(a.Name)
+			}
+			aliasLines = append(aliasLines, cur+label)
+		}
+		// Sound Alias button
+		soundAliasCur := "  "
+		if s.focused && s.trackCursor == cursorSoundAlias {
+			soundAliasCur = k.Render("▶ ")
+		}
+		soundAliasBtn := lipgloss.NewStyle().
+			Background(lipgloss.Color("54")).
+			Foreground(lipgloss.Color("225")).
+			Padding(0, 1).
+			Render("+ Sound Alias")
+		aliasLines = append(aliasLines, "\n"+soundAliasCur+soundAliasBtn)
+		body += "\n\n" + aliasesLabel + "\n" + strings.Join(aliasLines, "\n")
 	}
 
 	// Clip to available height.
@@ -135,12 +220,12 @@ func (s *StatusComponent) Render() string {
 		borderColor = styles.PanelFocusedBorderColor
 		bg = styles.ComponentFocusedBg
 	}
-	style := lipgloss.NewStyle().
+	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
 		Background(bg).
 		Padding(0, 1).
 		Width(s.width).
-		Height(s.height)
-	return style.Render(body)
+		Height(s.height).
+		Render(body)
 }
