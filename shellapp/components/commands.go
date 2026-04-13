@@ -461,16 +461,9 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		if resolved, ok := voice.LookupAudioAlias(arg); ok {
 			url = resolved
 		}
-		displayArg := arg
 		playURL := url
 		playTrack := track
-		username := connection.GetSessionUserID()
-		return tea.Batch(
-			func() tea.Msg {
-				return AppendHistoryMsg{Entries: []historyEntry{{text: username + " is playing " + displayArg}}, Tab: TabChat}
-			},
-			func() tea.Msg { return PlayAudioMsg{URL: playURL, Track: playTrack} },
-		)
+		return func() tea.Msg { return PlayAudioMsg{URL: playURL, Track: playTrack} }
 	case ".image":
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
