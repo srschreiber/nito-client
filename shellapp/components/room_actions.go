@@ -83,6 +83,7 @@ func (a *RoomActionsComponent) Update(msg tea.Msg) tea.Cmd {
 			return tea.Batch(
 				func() tea.Msg { return NewChatResponseAppendMsg(action) },
 				func() tea.Msg { return types.UserJoinedVoiceChatMsg{Username: username} },
+				func() tea.Msg { return StopAudioMsg{Track: -1} },
 			)
 		}
 		action := "left voice chat"
