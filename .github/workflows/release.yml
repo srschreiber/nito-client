@@ -112,6 +112,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git update-index --chmod=+x dist/shellapp-darwin-arm64 dist/shellapp-linux-amd64
           git add dist/
           git diff --staged --quiet || git commit -m "release: dist binaries for ${{ github.ref_name }}"
           git push
