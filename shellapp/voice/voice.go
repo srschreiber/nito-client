@@ -165,6 +165,8 @@ var (
 	encodeFrames    atomic.Uint64
 	decodeTimeNs    atomic.Int64
 	decodeFrames    atomic.Uint64
+	lastEncodeNs    atomic.Int64 // most recent single-frame encode duration (not drained)
+	lastDecodeNs    atomic.Int64 // most recent single-frame decode duration (not drained)
 
 	// Loopback latency tracking (used only during JoinSelf test sessions).
 	// pipelineSendTimes records the time before encode; measures full encode→network→decode→write latency.
@@ -173,7 +175,7 @@ var (
 	networkSendTimes  sync.Map     // key: uint16 seq → value: time.Time (just before WriteRTP)
 	loopbackPending   atomic.Int64 // number of unmatched entries (shared cap across both maps)
 	pipelineLatNs     atomic.Int64 // latest pipeline latency in nanoseconds
-	networkRTTNs      atomic.Int64 // latest network RTT in nanoseconds
+	networkRTTNs      atomic.Int64 // latest network RTT in nanoseconds (ICE stats in real calls, loopback timing in test)
 )
 
 const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
@@ -415,24 +417,28 @@ func SetVibratoRange(r int) {
 // IsConnecting reports whether a voice join is currently in progress.
 func IsConnecting() bool { return connecting.Load() }
 
-// estimatedStreamDelayMs derives a speaker→mic round-trip estimate from
-// loopback stats. Falls back to 50 ms when no measurements are available.
-// Formula: (pipeline_latency − network_RTT) / 2 gives a rough proxy for
-// one-way local audio latency (output buffer + room + input buffer).
-func estimatedStreamDelayMs() int {
-	lat := int(pipelineLatNs.Load() / 1_000_000)
-	rtt := int(networkRTTNs.Load() / 1_000_000)
-	if lat > 0 && rtt > 0 && lat > rtt {
-		est := (lat - rtt) / 2
-		if est < 20 {
-			return 20
+// iceRTTMs returns the nominated ICE candidate pair round-trip time in
+// milliseconds, or 0 if unavailable.
+func iceRTTMs(pc *webrtc.PeerConnection) int64 {
+	for _, s := range pc.GetStats() {
+		pair, ok := s.(webrtc.ICECandidatePairStats)
+		if ok && pair.Nominated {
+			return int64(pair.CurrentRoundTripTime * 1000)
 		}
-		if est > 150 {
-			return 150
-		}
-		return est
 	}
-	return 50
+	return 0
+}
+
+// estimatedStreamDelayMs returns the expected speaker→mic round-trip in
+// milliseconds for AEC stream delay configuration.
+// This is a local hardware property: output buffer drain time + room
+// acoustic path + mic input buffer latency. We base it on the buffer sizes
+// we actually configure rather than network stats.
+func estimatedStreamDelayMs() int {
+	// Output buffer: 2 Opus frames (set via SetBufferSize in joinWithAEAD) = 40ms
+	// Mic input buffer: ~1 Opus frame = 20ms
+	// Room acoustic margin: ~5ms
+	return 2*opusFrameMs + opusFrameMs + 5 // 65ms
 }
 
 // IsActive reports whether a voice session is currently live.
@@ -816,8 +822,10 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			}
 			decodeStart := time.Now()
 			n, err := dec.decode(plain, pcmBuf)
-			decodeTimeNs.Add(time.Since(decodeStart).Nanoseconds())
+			decDur := time.Since(decodeStart).Nanoseconds()
+			decodeTimeNs.Add(decDur)
 			decodeFrames.Add(1)
+			lastDecodeNs.Store(decDur)
 			if err != nil {
 				continue
 			}
@@ -917,21 +925,32 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	activeSession = sess
 	mu.Unlock()
 
-	// Periodically refresh the AEC stream delay from measured latency stats.
-	if apm != nil {
-		go func() {
-			t := time.NewTicker(5 * time.Second)
-			defer t.Stop()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-t.C:
+	// Periodically update network stats and refresh AEC stream delay.
+	go func() {
+		t := time.NewTicker(5 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				// Update network RTT from ICE stats (works in both real calls and loopback).
+				if rtt := iceRTTMs(pc); rtt > 0 {
+					networkRTTNs.Store(rtt * 1_000_000)
+				}
+				// Synthesize pipeline latency from measured encode + network + decode times.
+				encNs := lastEncodeNs.Load()
+				decNs := lastDecodeNs.Load()
+				netNs := networkRTTNs.Load()
+				if encNs > 0 && decNs > 0 && netNs > 0 {
+					pipelineLatNs.Store(encNs + netNs + decNs)
+				}
+				if apm != nil {
 					apm.SetStreamDelay(estimatedStreamDelayMs())
 				}
 			}
-		}()
-	}
+		}
+	}()
 
 	pc.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
 		if state == webrtc.PeerConnectionStateFailed {
@@ -1015,9 +1034,11 @@ func Leave(roomID string) error {
 		pipelineSendTimes.Clear()
 		networkSendTimes.Clear()
 		loopbackPending.Store(0)
-		pipelineLatNs.Store(0)
-		networkRTTNs.Store(0)
 	}
+	pipelineLatNs.Store(0)
+	networkRTTNs.Store(0)
+	lastEncodeNs.Store(0)
+	lastDecodeNs.Store(0)
 
 	s := connection.CurrentSession()
 	if s == nil {
@@ -1327,8 +1348,10 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 			}
 
 			n, err := enc.encode(frame, opusBuf)
-			encodeTimeNs.Add(time.Since(encodeStart).Nanoseconds())
+			encDur := time.Since(encodeStart).Nanoseconds()
+			encodeTimeNs.Add(encDur)
 			encodeFrames.Add(1)
+			lastEncodeNs.Store(encDur)
 			if err != nil {
 				debugf("voice: opus encode: %v", err)
 				continue
