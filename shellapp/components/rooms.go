@@ -19,6 +19,32 @@ import (
 
 type roomsPollMsg struct{}
 
+// truncate shortens s to at most maxW visible terminal columns, appending "..."
+// when the string is cut. Uses lipgloss.Width for accurate multi-byte handling.
+func truncate(s string, maxW int) string {
+	if maxW <= 0 {
+		return ""
+	}
+	if lipgloss.Width(s) <= maxW {
+		return s
+	}
+	if maxW <= 3 {
+		runes := []rune(s)
+		if maxW > len(runes) {
+			maxW = len(runes)
+		}
+		return string(runes[:maxW])
+	}
+	runes := []rune(s)
+	for n := len(runes); n >= 0; n-- {
+		candidate := string(runes[:n]) + "..."
+		if lipgloss.Width(candidate) <= maxW {
+			return candidate
+		}
+	}
+	return "..."
+}
+
 type RoomsComponent struct {
 	rooms    []apitypes.RoomEntry
 	selected *string
@@ -130,20 +156,46 @@ func (r *RoomsComponent) Render() string {
 	if len(r.rooms) == 0 {
 		listLines = append(listLines, styles.DimText.Render("  no rooms"))
 	} else {
-		for i, room := range r.rooms {
-			name := room.Name
-			if room.IsOwner {
-				name += " " + styles.DimText.Render("(owner)")
-			}
-			cursor := "  "
-			if room.ID == utils.DerefOrZero(r.selected) {
-				name = fmt.Sprintf("%s %s", name, styles.SelectedStyle.Render("◆"))
-			}
-			if i == r.cursor && r.focused {
-				cursor = styles.CursorStyle.Render("▶ ")
-			}
-			listLines = append(listLines, styles.ItemStyle.Render(cursor+name))
+		// Reserve space for cursor (2) and optional " ◆" (2).
+		maxNameW := r.width - 4
+		if maxNameW < 3 {
+			maxNameW = 3
 		}
+
+		var owned, joined []int
+		for i, room := range r.rooms {
+			if room.IsOwner {
+				owned = append(owned, i)
+			} else {
+				joined = append(joined, i)
+			}
+		}
+
+		renderSection := func(label string, indices []int) {
+			if len(indices) == 0 {
+				return
+			}
+			listLines = append(listLines, styles.DimText.Render(label))
+			for _, i := range indices {
+				room := r.rooms[i]
+				isSelected := room.ID == utils.DerefOrZero(r.selected)
+				name := truncate(room.Name, maxNameW)
+				cursor := "  "
+				if isSelected {
+					name = fmt.Sprintf("%s %s", name, styles.SelectedStyle.Render("◆"))
+				}
+				if i == r.cursor && r.focused {
+					cursor = styles.CursorStyle.Render("▶ ")
+				}
+				listLines = append(listLines, styles.ItemStyle.Render(cursor+name))
+			}
+		}
+
+		renderSection("my rooms", owned)
+		if len(owned) > 0 && len(joined) > 0 {
+			listLines = append(listLines, "")
+		}
+		renderSection("joined", joined)
 	}
 	if len(listLines) > listH {
 		listLines = listLines[len(listLines)-listH:]
@@ -163,6 +215,7 @@ func (r *RoomsComponent) Render() string {
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
+		BorderBackground(bg).
 		Background(bg).
 		Padding(0, 1).
 		Width(r.width + 4).

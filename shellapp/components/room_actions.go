@@ -231,6 +231,7 @@ func (a *RoomActionsComponent) Render() string {
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
+		BorderBackground(bg).
 		Background(bg).
 		Padding(0, 1).
 		Width(a.width + 4).

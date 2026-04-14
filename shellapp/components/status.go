@@ -207,7 +207,11 @@ func (s *StatusComponent) Render() string {
 			if a.Name == "" {
 				label = d.Render("- <empty>")
 			} else {
-				label = d.Render(a.Name)
+				maxNameW := s.width - 2 // 2 for cursor
+				if maxNameW < 3 {
+					maxNameW = 3
+				}
+				label = d.Render(truncate(a.Name, maxNameW))
 			}
 			aliasLines = append(aliasLines, cur+label)
 		}
@@ -255,6 +259,7 @@ func (s *StatusComponent) Render() string {
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
+		BorderBackground(bg).
 		Background(bg).
 		Padding(0, 1).
 		Width(s.width + 4).

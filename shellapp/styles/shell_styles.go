@@ -42,12 +42,14 @@ var (
 	FocusedBorderStyle = lipgloss.NewStyle().
 				Border(lipgloss.ThickBorder(), false, false, false, true).
 				BorderForeground(lipgloss.Color("#a855f7")).
+				BorderBackground(ComponentBg).
 				Background(ComponentBg).
 				Padding(0, 1)
 
 	UnfocusedBorderStyle = lipgloss.NewStyle().
 				Border(lipgloss.ThickBorder(), false, false, false, true).
 				BorderForeground(lipgloss.Color("#4a4a7a")).
+				BorderBackground(ComponentBg).
 				Background(ComponentBg).
 				Padding(0, 1)
 

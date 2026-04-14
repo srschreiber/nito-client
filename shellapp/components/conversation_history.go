@@ -358,6 +358,7 @@ func (h *ConversationHistory) Render() string {
 	style := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
+		BorderBackground(bg).
 		Background(bg).
 		Padding(0, 1).
 		Width(h.width + 4).

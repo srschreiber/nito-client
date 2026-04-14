@@ -770,9 +770,9 @@ func (m model) View() tea.View {
 	s := topRow + "\n" + m.command.Render()
 
 	helpText := styles.HelpStyle.Render(
-		"  tab      switch focus\n" +
+		"  tab        switch focus\n" +
 			"  ctrl+[/]   switch tabs\n" +
-			"  ctrl+c   quit")
+			"  ctrl+c     quit")
 	if m.toast.Visible() {
 		toastStr := m.toast.Render()
 		usableW := m.termW - appPaddingW

@@ -1030,10 +1030,12 @@ func (l *CommandComponent) Render() string {
 
 	style := styles.UnfocusedBorderStyle
 	if l.focused {
-		style = styles.FocusedBorderStyle.Background(styles.ComponentFocusedBg)
+		style = styles.FocusedBorderStyle.
+			Background(styles.ComponentFocusedBg).
+			BorderBackground(styles.ComponentFocusedBg)
 	}
 	if l.width > 0 {
-		style = style.Width(l.width)
+		style = style.Width(l.width + 3) // +3: left border (1) + padding(0,1) (2)
 	}
 	return style.Render(render)
 }

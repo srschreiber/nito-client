@@ -112,6 +112,7 @@ func (m *RoomMembersComponent) Render() string {
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(styles.PanelBorderColor).
+		BorderBackground(styles.ComponentBg).
 		Background(styles.ComponentBg).
 		Padding(0, 1).
 		Width(m.width + 4).

@@ -226,7 +226,7 @@ func (m startupModel) updateSelect(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "left", "h", "shift+tab":
 		m.btnSel = 0
 	case "right", "l", "tab":
-		m.btnSel = 1
+		m.btnSel = (m.btnSel + 1) % 2
 	case "enter", " ":
 		m.login = (m.btnSel == 0)
 		m.focus = sfBroker

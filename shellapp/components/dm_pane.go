@@ -211,6 +211,7 @@ func (p *DMPane) renderUserList() string {
 	style := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
+		BorderBackground(bg).
 		Background(bg).
 		Padding(0, 1).
 		Width(userListInnerW + 4).
@@ -226,6 +227,7 @@ func (p *DMPane) renderHistory() string {
 		style := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(styles.PanelBorderColor).
+			BorderBackground(styles.ComponentBg).
 			Background(styles.ComponentBg).
 			Padding(0, 1).
 			Width(histW + 4).
@@ -239,6 +241,7 @@ func (p *DMPane) renderHistory() string {
 		style := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(styles.PanelBorderColor).
+			BorderBackground(styles.ComponentBg).
 			Background(styles.ComponentBg).
 			Padding(0, 1).
 			Width(histW + 4).
