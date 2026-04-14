@@ -91,13 +91,16 @@ jobs:
             mingw-w64-ucrt-x86_64-rnnoise
             mingw-w64-ucrt-x86_64-meson
             mingw-w64-ucrt-x86_64-ninja
-            mingw-w64-ucrt-x86_64-winrt-headers
       - name: Build
         shell: msys2 {0}
         run: |
           source /ucrt64/etc/profile.d/go.sh
           export GOROOT=/ucrt64/lib/go
           export PATH=/ucrt64/bin:$GOROOT/bin:$PATH
+          # Patch Abseil cctz: <winstring.h> is not included by <windows.h> on
+          # MinGW but time_zone_lookup.cc uses decltype(&WindowsCreateStringReference)
+          # which requires the WinRT type declarations from that header.
+          python3 -c "f='webrtc-audio-processing/subprojects/abseil-cpp-20240722.0/absl/time/internal/cctz/src/time_zone_lookup.cc'; c=open(f).read(); [open(f,'w').write('#ifndef _WIN32_WINNT\n#define _WIN32_WINNT 0x0A00\n#endif\n#include <winstring.h>\n'+c)] if '<winstring.h>' not in c else None"
           # Build vendored webrtc-audio-processing as a static lib.
           cd webrtc-audio-processing
           meson setup build --default-library=static -Dbuildtype=release
