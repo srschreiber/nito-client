@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Sam Schreiber
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: LicenseRef-nito
 
 package main
 
@@ -76,6 +76,7 @@ type startupState int
 const (
 	sStateSelect startupState = iota // choose LOGIN / REGISTER
 	sStateForm                       // fill in fields
+	sStateAbout                      // about / licenses
 )
 
 const (
@@ -107,6 +108,10 @@ type startupModel struct {
 	errMsg       string
 	successMsg   string
 	done         bool
+
+	aboutCursor int // selected license index
+	aboutScroll int // scroll offset in license text
+	aboutFocus  int // 0=list pane, 1=text pane
 }
 
 func newStartupModel() startupModel {
@@ -214,6 +219,8 @@ func (m startupModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateSelect(msg)
 		case sStateForm:
 			return m.updateForm(msg)
+		case sStateAbout:
+			return m.updateAbout(msg)
 		}
 	}
 	return m, nil
@@ -226,11 +233,63 @@ func (m startupModel) updateSelect(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "left", "h", "shift+tab":
 		m.btnSel = 0
 	case "right", "l", "tab":
-		m.btnSel = (m.btnSel + 1) % 2
+		m.btnSel = (m.btnSel + 1) % 3
+	case "a":
+		m.aboutCursor = 0
+		m.aboutScroll = 0
+		m.state = sStateAbout
 	case "enter", " ":
-		m.login = (m.btnSel == 0)
-		m.focus = sfBroker
-		m.state = sStateForm
+		switch m.btnSel {
+		case 0:
+			m.login = true
+			m.focus = sfBroker
+			m.state = sStateForm
+		case 1:
+			m.login = false
+			m.focus = sfBroker
+			m.state = sStateForm
+		case 2:
+			m.aboutCursor = 0
+			m.aboutScroll = 0
+			m.state = sStateAbout
+		}
+	}
+	return m, nil
+}
+
+func (m startupModel) updateAbout(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	maxCursor := len(allLicenses) - 1
+	switch msg.String() {
+	case "ctrl+c":
+		return m, tea.Quit
+	case "esc", "q":
+		m.state = sStateSelect
+	case "tab", "shift+tab":
+		if m.aboutFocus == 0 {
+			m.aboutFocus = 1
+		} else {
+			m.aboutFocus = 0
+		}
+	case "up", "ctrl+p", "k":
+		if m.aboutFocus == 0 {
+			if m.aboutCursor > 0 {
+				m.aboutCursor--
+				m.aboutScroll = 0
+			}
+		} else {
+			if m.aboutScroll > 0 {
+				m.aboutScroll--
+			}
+		}
+	case "down", "ctrl+n", "j":
+		if m.aboutFocus == 0 {
+			if m.aboutCursor < maxCursor {
+				m.aboutCursor++
+				m.aboutScroll = 0
+			}
+		} else {
+			m.aboutScroll++
+		}
 	}
 	return m, nil
 }
@@ -404,6 +463,11 @@ func (m startupModel) View() tea.View {
 		content = m.renderSelect()
 	case sStateForm:
 		content = m.renderForm()
+	case sStateAbout:
+		placed := renderAbout(m.aboutCursor, m.aboutScroll, m.aboutFocus, m.termW, m.termH)
+		v := tea.NewView(placed)
+		v.AltScreen = true
+		return v
 	}
 	placed := lipgloss.Place(m.termW, m.termH, lipgloss.Center, lipgloss.Center, content)
 	v := tea.NewView(placed)
@@ -417,17 +481,22 @@ func (m startupModel) renderSelect() string {
 
 	loginBtn := sButtonStyle.Render("  LOGIN  ")
 	registerBtn := sButtonStyle.Render("  REGISTER  ")
-	if m.btnSel == 0 {
+	aboutBtn := sButtonStyle.Render("  About / Licenses  ")
+	switch m.btnSel {
+	case 0:
 		loginBtn = sButtonActiveStyle.Render("  LOGIN  ")
-	} else {
+	case 1:
 		registerBtn = sButtonActiveStyle.Render("  REGISTER  ")
+	case 2:
+		aboutBtn = sButtonActiveStyle.Render("  About / Licenses  ")
 	}
 	buttons := lipgloss.JoinHorizontal(lipgloss.Top, loginBtn, registerBtn)
 
-	hint := sHintStyle.Render("←/→  select   enter  confirm   ctrl+c  quit")
+	hint := sHintStyle.Render("←/→  select   enter  confirm   a  about   ctrl+c  quit")
 
-	body := lipgloss.JoinVertical(lipgloss.Center, title, subtitle, buttons, hint)
-	body = lipgloss.NewStyle().Width(50).Align(lipgloss.Center).Render(body)
+	body := lipgloss.JoinVertical(lipgloss.Center, title, subtitle, buttons,
+		lipgloss.NewStyle().MarginTop(1).Render(aboutBtn), hint)
+	body = lipgloss.NewStyle().Width(56).Align(lipgloss.Center).Render(body)
 	return sDialogStyle.Render(body)
 }
 

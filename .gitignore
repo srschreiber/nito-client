@@ -1,2 +1,16 @@
 shellapp/.nito/
 *.pem
+webrtc-audio-processing/build/
+webrtc-audio-processing/subprojects/abseil-cpp-20240722.0/
+webrtc-audio-processing/subprojects/packagecache/
+rnnoise/src/.deps/
+rnnoise/src/.libs/
+rnnoise/src/*.lo
+rnnoise/src/*.la
+rnnoise/Makefile
+rnnoise/src/Makefile
+rnnoise/config.h
+rnnoise/config.log
+rnnoise/config.status
+rnnoise/libtool
+rnnoise/stamp-h1

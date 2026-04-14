@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Sam Schreiber
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: LicenseRef-nito
 
 // Package voice manages the client-side WebRTC voice call lifecycle.
 //

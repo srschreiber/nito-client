@@ -15,14 +15,19 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
-          brew install go opus pkg-config autoconf automake libtool
-          # Build rnnoise from source so we get a known .pc file and static lib.
-          git clone https://github.com/xiph/rnnoise.git /tmp/rnnoise
-          cd /tmp/rnnoise
+          brew install go opus pkg-config autoconf automake libtool meson
+          # Build vendored rnnoise as a static lib.
+          cd rnnoise
           ./autogen.sh
           ./configure --prefix=/usr/local --disable-shared
           make -j$(sysctl -n hw.ncpu)
           sudo make install
+          cd ..
+          # Build vendored webrtc-audio-processing as a static lib.
+          cd webrtc-audio-processing
+          meson setup build --default-library=static -Dbuildtype=release
+          ninja -C build
+          cd ..
           # Remove opus dylib so the linker is forced to use libopus.a.
           rm -f "$(brew --prefix opus)/lib/"libopus*.dylib
           echo "PKG_CONFIG_PATH=$(brew --prefix opus)/lib/pkgconfig:/usr/local/lib/pkgconfig" >> $GITHUB_ENV
@@ -45,13 +50,19 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libopus-dev libasound2-dev pkg-config autoconf automake libtool
-          git clone https://github.com/xiph/rnnoise.git /tmp/rnnoise
-          cd /tmp/rnnoise
+          sudo apt-get install -y libopus-dev libasound2-dev pkg-config autoconf automake libtool meson ninja-build
+          # Build vendored rnnoise as a static lib.
+          cd rnnoise
           ./autogen.sh
           ./configure --prefix=/usr/local --disable-shared
           make -j$(nproc)
           sudo make install
+          cd ..
+          # Build vendored webrtc-audio-processing as a static lib.
+          cd webrtc-audio-processing
+          meson setup build --default-library=static -Dbuildtype=release
+          ninja -C build
+          cd ..
           # Remove the opus dynamic lib so the linker uses libopus.a from libopus-dev.
           sudo rm -f /usr/lib/x86_64-linux-gnu/libopus.so*
       - name: Build
@@ -78,13 +89,20 @@ jobs:
             mingw-w64-ucrt-x86_64-pkgconf
             mingw-w64-ucrt-x86_64-opus
             mingw-w64-ucrt-x86_64-rnnoise
+            mingw-w64-ucrt-x86_64-meson
+            mingw-w64-ucrt-x86_64-ninja
       - name: Build
         shell: msys2 {0}
         run: |
           source /ucrt64/etc/profile.d/go.sh
           export GOROOT=/ucrt64/lib/go
           export PATH=/ucrt64/bin:$GOROOT/bin:$PATH
-          mkdir -p ../dist
+          # Build vendored webrtc-audio-processing as a static lib.
+          cd webrtc-audio-processing
+          meson setup build --default-library=static -Dbuildtype=release
+          ninja -C build
+          cd ..
+          mkdir -p dist
           cd shellapp
           CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build \
             -ldflags="-linkmode external -extldflags '-static -lpthread'" \

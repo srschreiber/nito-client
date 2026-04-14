@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Sam Schreiber
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: LicenseRef-nito
 
 // Package clientlog provides a lightweight structured logger that forwards
 // log entries to the Client Logs tab in the TUI via a pluggable sender.
