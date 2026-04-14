@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"net"
 	"net/url"
 	"os"
@@ -17,6 +18,9 @@ import (
 	"github.com/srschreiber/nito-client/shellapp/commands"
 	"gopkg.in/yaml.v3"
 )
+
+//go:embed tag.txt
+var appVersion string
 
 // ── login prefs persistence (~/.nito/defaults.yml) ────────────────────────────
 
@@ -492,12 +496,20 @@ func (m startupModel) renderSelect() string {
 	}
 	buttons := lipgloss.JoinHorizontal(lipgloss.Top, loginBtn, registerBtn)
 
-	hint := sHintStyle.Render("←/→  select   enter  confirm   a  about   ctrl+c  quit")
-
 	body := lipgloss.JoinVertical(lipgloss.Center, title, subtitle, buttons,
-		lipgloss.NewStyle().MarginTop(1).Render(aboutBtn), hint)
+		lipgloss.NewStyle().MarginTop(1).Render(aboutBtn))
 	body = lipgloss.NewStyle().Width(56).Align(lipgloss.Center).Render(body)
-	return sDialogStyle.Render(body)
+	dialog := sDialogStyle.Render(body)
+
+	dialogW := lipgloss.Width(dialog)
+	hint := lipgloss.NewStyle().Width(dialogW).Align(lipgloss.Center).
+		Foreground(lipgloss.Color("#555")).
+		Render("←/→  select   enter  confirm   a  about   ctrl+c  quit")
+	version := lipgloss.NewStyle().Width(dialogW).Align(lipgloss.Right).
+		Foreground(lipgloss.Color("#444")).
+		Render(strings.TrimSpace(appVersion))
+
+	return lipgloss.JoinVertical(lipgloss.Left, dialog, hint, version)
 }
 
 func (m startupModel) renderForm() string {
