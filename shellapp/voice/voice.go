@@ -835,7 +835,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 				copy(pcmBuf[:n*numChannels], float32ToPCM16(f32))
 			}
 			total := n * numChannels
-			if isLoopback && !AECEnabled() {
+			if isLoopback {
 				// Mic check: dampen playback so the mic picks up a quieter echo when noise cancel off
 				samples := pcmBuf[:total]
 				for i, s := range samples {
@@ -843,7 +843,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 				}
 			}
 			// Feed decoded audio as far-end reference before writing to speakers.
-			if apm != nil && aecEnabled.Load() {
+			if apm != nil && aecEnabled.Load() && !isLoopback {
 				for i := 0; i+apmFrameSamples <= total; i += apmFrameSamples {
 					_ = apm.ProcessReverse(pcmBuf[i : i+apmFrameSamples])
 				}
@@ -1313,7 +1313,7 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 			encodeStart := time.Now()
 
 			// AEC: remove echo before noise suppression so RNNoise works on clean signal.
-			if apm != nil && aecEnabled.Load() {
+			if apm != nil && aecEnabled.Load() && !isLoopback {
 				for i := 0; i+apmFrameSamples <= len(frame); i += apmFrameSamples {
 					_ = apm.ProcessCapture(frame[i : i+apmFrameSamples])
 				}

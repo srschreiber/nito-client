@@ -567,7 +567,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			s.sendPacketsPerSec, s.sendKBPerSec, s.networkRTTMs, s.pipelineLatMs, s.avgEncodeMs, s.avgDecodeMs)
 		lines = append(lines, styles.DimText.Render(stats))
 		if voice.AECEnabled() {
-			lines = append(lines, styles.DimText.Render("  ⚠ Use headphones — AEC may cancel your own voice without them."))
+			lines = append(lines, styles.DimText.Render("  ⚠ Use headphones — AEC is disabled during test audio."))
 		}
 	}
 
