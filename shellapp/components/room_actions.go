@@ -233,7 +233,7 @@ func (a *RoomActionsComponent) Render() string {
 		BorderForeground(borderColor).
 		Background(bg).
 		Padding(0, 1).
-		Width(a.width).
+		Width(a.width + 4).
 		Height(a.height).
 		Render(body)
 }

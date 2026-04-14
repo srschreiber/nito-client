@@ -213,7 +213,7 @@ func (p *DMPane) renderUserList() string {
 		BorderForeground(borderColor).
 		Background(bg).
 		Padding(0, 1).
-		Width(userListInnerW).
+		Width(userListInnerW + 4).
 		Height(p.height)
 	return style.Render(strings.Join(rows, "\n"))
 }
@@ -228,7 +228,7 @@ func (p *DMPane) renderHistory() string {
 			BorderForeground(styles.PanelBorderColor).
 			Background(styles.ComponentBg).
 			Padding(0, 1).
-			Width(histW).
+			Width(histW + 4).
 			Height(p.height)
 		return style.Render(hint)
 	}
@@ -241,7 +241,7 @@ func (p *DMPane) renderHistory() string {
 			BorderForeground(styles.PanelBorderColor).
 			Background(styles.ComponentBg).
 			Padding(0, 1).
-			Width(histW).
+			Width(histW + 4).
 			Height(p.height)
 		return style.Render(styles.DimText.Render("(loading)"))
 	}

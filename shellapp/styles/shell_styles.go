@@ -227,8 +227,7 @@ var (
 
 	// VoiceLeaveStyle is the "Leave Voice / Stop Test Audio" button when unfocused.
 	VoiceLeaveStyle = lipgloss.NewStyle().
-			Padding(0, 1).
-			MarginRight(1).
+			PaddingLeft(1).
 			Background(lipgloss.Color("#450a0a")).
 			Foreground(lipgloss.Color("#f87171"))
 

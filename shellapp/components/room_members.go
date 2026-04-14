@@ -114,7 +114,7 @@ func (m *RoomMembersComponent) Render() string {
 		BorderForeground(styles.PanelBorderColor).
 		Background(styles.ComponentBg).
 		Padding(0, 1).
-		Width(m.width).
+		Width(m.width + 4).
 		Height(m.height).
 		Render(body)
 }

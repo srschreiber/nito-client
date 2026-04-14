@@ -173,7 +173,7 @@ func (p *InvitesPane) Render() string {
 		BorderForeground(borderColor).
 		Background(bg).
 		Padding(0, 1).
-		Width(p.width).
+		Width(p.width + 4).
 		Height(p.height).
 		Render(body)
 }

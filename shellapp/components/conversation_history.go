@@ -360,7 +360,7 @@ func (h *ConversationHistory) Render() string {
 		BorderForeground(borderColor).
 		Background(bg).
 		Padding(0, 1).
-		Width(h.width).
+		Width(h.width + 4).
 		Height(h.height)
 	return style.Render(strings.Join(rows, "\n"))
 }

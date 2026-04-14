@@ -152,9 +152,9 @@ func (s *StatusComponent) Render() string {
 	if s.connected {
 		latency := fmt.Sprintf("%dms", s.latencyMs)
 		statusLine = styles.StatusConnectedStyle.Render("● online") +
-			"  " + d.Render(latency) +
-			"\n" + d.Render("  "+s.brokerURL) +
-			"\n" + d.Render("  "+s.userID)
+			"  " + lipgloss.NewStyle().Background(styles.ComponentBg).Render(latency) +
+			"\n" + d.Render("  broker: "+s.brokerURL) +
+			"\n" + d.Render("  user: "+s.userID)
 	} else {
 		statusLine = styles.StatusDisconnectedStyle.Render("● offline")
 	}
@@ -180,14 +180,15 @@ func (s *StatusComponent) Render() string {
 					Padding(0, 1).
 					Render("⏹")
 			}
-			trackLines = append(trackLines, fmt.Sprintf("%s%s %s", cur, icon, d.Render(fmt.Sprintf("%d", i))))
+			trackLines = append(trackLines, fmt.Sprintf("%s%s %s", cur, icon, fmt.Sprintf("%d", i)))
 		}
 		// Stop All button
 		stopAllCur := "  "
 		if s.focused && s.trackCursor == cursorStopAll {
 			stopAllCur = c.Render("▶ ")
 		}
-		stopAllBtn := stopAllCur + styles.VoiceLeaveStyle.Render("⏹ Stop All")
+		stopAllBtn := stopAllCur + styles.VoiceLeaveStyle.Render("⏹ Stop All") +
+			lipgloss.NewStyle().Background(lipgloss.Color("#450a0a")).Render(" ")
 		body += "\n\n" + tracksLabel + "\n\n" + strings.Join(trackLines, "\n\n") + "\n\n" + stopAllBtn
 
 		// PLAY ALIASES section
@@ -214,8 +215,9 @@ func (s *StatusComponent) Render() string {
 		soundAliasBtn := lipgloss.NewStyle().
 			Background(lipgloss.Color("54")).
 			Foreground(lipgloss.Color("225")).
-			Padding(0, 1).
-			Render("+ Sound Alias")
+			PaddingLeft(1).
+			Render("+ Sound Alias") +
+			lipgloss.NewStyle().Background(lipgloss.Color("54")).Render(" ")
 		aliasLines = append(aliasLines, "\n"+soundAliasCur+soundAliasBtn)
 
 		// Del Sound Alias button
@@ -223,7 +225,8 @@ func (s *StatusComponent) Render() string {
 		if s.focused && s.trackCursor == cursorDelSoundAlias {
 			delSoundAliasCur = c.Render("▶ ")
 		}
-		delSoundAliasBtn := styles.VoiceLeaveStyle.Render("- Sound Alias")
+		delSoundAliasBtn := styles.VoiceLeaveStyle.Render("- Sound Alias") +
+			lipgloss.NewStyle().Background(lipgloss.Color("#450a0a")).Render(" ")
 		aliasLines = append(aliasLines, "\n"+delSoundAliasCur+delSoundAliasBtn)
 		body += "\n\n" + aliasesLabel + "\n" + strings.Join(aliasLines, "\n")
 	}
@@ -250,7 +253,7 @@ func (s *StatusComponent) Render() string {
 		BorderForeground(borderColor).
 		Background(bg).
 		Padding(0, 1).
-		Width(s.width).
+		Width(s.width + 4).
 		Height(s.height).
 		Render(body)
 }

@@ -254,7 +254,7 @@ func (t *ConversationTabs) Update(msg tea.Msg) tea.Cmd {
 		return t.activeComponent().Update(msg)
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "left":
+		case "ctrl+[":
 			tabs := visibleTabs()
 			cur := 0
 			for i, tab := range tabs {
@@ -265,7 +265,7 @@ func (t *ConversationTabs) Update(msg tea.Msg) tea.Cmd {
 			}
 			prev := (cur - 1 + len(tabs)) % len(tabs)
 			return t.switchTabWithMessages(tabs[prev])
-		case "right":
+		case "ctrl+]":
 			tabs := visibleTabs()
 			cur := 0
 			for i, tab := range tabs {

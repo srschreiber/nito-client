@@ -165,7 +165,7 @@ func (r *RoomsComponent) Render() string {
 		BorderForeground(borderColor).
 		Background(bg).
 		Padding(0, 1).
-		Width(r.width).
+		Width(r.width + 4).
 		Height(r.height).
 		Render(body)
 }

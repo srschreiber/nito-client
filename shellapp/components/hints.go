@@ -139,7 +139,7 @@ func (h *HintsComponent) Render() string {
 		BorderForeground(styles.PanelBorderColor).
 		Background(styles.ComponentBg).
 		Padding(0, 1).
-		Width(h.width).
+		Width(h.width + 4).
 		Height(h.height).
 		Render(body)
 }

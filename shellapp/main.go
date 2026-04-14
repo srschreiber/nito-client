@@ -40,15 +40,17 @@ const (
 
 // layout holds computed content dimensions for each component.
 type layout struct {
-	histW, histH   int
-	hintsW, hintsH int
-	statW, statH   int
-	cmdW           int
+	histW, histH int
+	statW, statH int
+	cmdW         int
+	histBoxW     int // outer visual width of the history block (histW + 4)
 }
 
+// pHistBoxW is the fraction of usable width given to the history block.
+// The status column takes the remainder.
+const pHistBoxW = 0.70
+
 // computeLayout derives component content dimensions from the terminal size.
-// The history pane (which now includes the rooms/members side panel internally)
-// takes ~75% of width; the right column holds hints + status.
 func computeLayout(termW, termH int) layout {
 	if termW < 30 {
 		termW = 30
@@ -58,21 +60,21 @@ func computeLayout(termW, termH int) layout {
 	}
 
 	usableW := termW - appPaddingW
-	pHistBoxW := .66
 	pHistBoxH := .9
-	histBoxW := int(float64(usableW) * pHistBoxW)
 	histBoxH := int(float64(termH) * pHistBoxH)
+
+	histBoxW := int(float64(usableW) * pHistBoxW)
+	rightBoxW := usableW - histBoxW
+	if rightBoxW < 10 {
+		rightBoxW = 10
+		histBoxW = usableW - rightBoxW
+	}
 
 	histW := histBoxW - histBoxOverheadW
 	histH := histBoxH - histBoxOverheadH
 
-	rightBoxW := usableW - histBoxW
-
-	// Hints and status sit side by side, each half the right column width.
-	halfRight := rightBoxW / 2
-	hintsW := halfRight - rightBoxOverheadW
-	statW := rightBoxW - halfRight - rightBoxOverheadW
-	hintsH := histH
+	// Status takes the full right column.
+	statW := rightBoxW - rightBoxOverheadW
 	statH := histH
 
 	// Pin cmdW to exactly the top-row visual width so they always align.
@@ -84,9 +86,6 @@ func computeLayout(termW, termH int) layout {
 	if histH < 3 {
 		histH = 3
 	}
-	if hintsW < 5 {
-		hintsW = 5
-	}
 	if statW < 5 {
 		statW = 5
 	}
@@ -96,9 +95,9 @@ func computeLayout(termW, termH int) layout {
 
 	return layout{
 		histW: histW, histH: histH,
-		hintsW: hintsW, hintsH: hintsH,
 		statW: statW, statH: statH,
-		cmdW: cmdW,
+		cmdW:     cmdW,
+		histBoxW: histBoxW,
 	}
 }
 
@@ -114,6 +113,7 @@ type model struct {
 	focusable         []int
 	focusedComponent  int
 	termW, termH      int
+	histBoxW          int  // outer visual width of the history block
 	offlineStreak     int  // consecutive failed pings
 	kickedToLogin     bool // set true when kicked back to login screen
 	// audioTracks holds per-track cancellation. Index 0–2 correspond to tracks 0–2.
@@ -130,7 +130,7 @@ func initialModel() model {
 	history := components.NewConversationTabs(l.histW, l.histH)
 	status := components.NewStatusComponent(l.statW, l.statH)
 	command := components.NewCommandComponent(l.cmdW)
-	hints := components.NewHintsComponent(l.hintsW, l.hintsH)
+	hints := components.NewHintsComponent(0, 0)
 	toast := components.NewToastComponent()
 
 	// comps: 0=history, 1=status, 2=command, 3=hints (display-only)
@@ -146,6 +146,7 @@ func initialModel() model {
 		focusedComponent: 1,           // index into focusable → comps[2] = command
 		termW:            termW,
 		termH:            termH,
+		histBoxW:         l.histBoxW,
 	}
 	m.comps[m.focusable[m.focusedComponent]].SetFocused(true)
 	m.hints.SetFocusedComp(m.focusable[m.focusedComponent])
@@ -155,8 +156,9 @@ func initialModel() model {
 func (m *model) relayout(termW, termH int) {
 	m.termW, m.termH = termW, termH
 	l := computeLayout(termW, termH)
+	m.histBoxW = l.histBoxW
 	m.history.SetSize(l.histW, l.histH)
-	m.hints.SetSize(l.hintsW, l.hintsH)
+	// hints component is not rendered; no resize needed
 	m.status.SetSize(l.statW, l.statH)
 	m.command.SetWidth(l.cmdW)
 	m.voiceSettings.SetSize(termW, termH)
@@ -633,6 +635,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, m.comps[m.focusable[m.focusedComponent]].Update(msg)
+		case "ctrl+[", "ctrl+]":
+			// Always route tab-switch keys to history regardless of which component is focused.
+			return m, m.history.Update(msg)
 		case "left", "right":
 			// Route left/right to history for tab switching only when the command
 			// component is not focused — in command mode they move the cursor.
@@ -754,11 +759,17 @@ func (m model) View() tea.View {
 		return v
 	}
 
-	rightCol := lipgloss.JoinHorizontal(lipgloss.Top, m.status.Render(), m.hints.Render())
-	topRow := lipgloss.JoinHorizontal(lipgloss.Top, m.history.Render(), rightCol)
+	rightCol := lipgloss.JoinHorizontal(lipgloss.Top, m.status.Render() /*, m.hints.Render()*/)
+	// Force history to exactly histBoxW columns so JoinVertical trailing-space padding
+	// (from a narrower active-tab content block) does not create a visual gap before rightCol.
+	histStr := lipgloss.NewStyle().Width(m.histBoxW).Render(m.history.Render())
+	topRow := lipgloss.JoinHorizontal(lipgloss.Top, histStr, rightCol)
 	s := topRow + "\n" + m.command.Render()
 
-	helpText := styles.HelpStyle.Render("  tab  switch focus  •  /  focus cmd  •  ctrl+c  quit")
+	helpText := styles.HelpStyle.Render(
+		"  tab        switch focus\n" +
+			"  ctrl+[/]   switch tabs\n" +
+			"  ctrl+c     quit")
 	if m.toast.Visible() {
 		toastStr := m.toast.Render()
 		usableW := m.termW - appPaddingW
