@@ -635,8 +635,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, m.comps[m.focusable[m.focusedComponent]].Update(msg)
-		case "ctrl+[", "ctrl+]":
-			// Always route tab-switch keys to history regardless of which component is focused.
+		case "ctrl+[", "esc":
+			// ctrl+[ sends ESC in most terminals; both switch to the previous tab.
+			return m, m.history.Update(msg)
+		case "ctrl+]":
+			// Switch to the next tab from any focused component.
 			return m, m.history.Update(msg)
 		case "left", "right":
 			// Route left/right to history for tab switching only when the command
@@ -767,9 +770,9 @@ func (m model) View() tea.View {
 	s := topRow + "\n" + m.command.Render()
 
 	helpText := styles.HelpStyle.Render(
-		"  tab        switch focus\n" +
+		"  tab      switch focus\n" +
 			"  ctrl+[/]   switch tabs\n" +
-			"  ctrl+c     quit")
+			"  ctrl+c   quit")
 	if m.toast.Visible() {
 		toastStr := m.toast.Render()
 		usableW := m.termW - appPaddingW

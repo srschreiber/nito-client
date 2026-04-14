@@ -151,10 +151,14 @@ func (s *StatusComponent) Render() string {
 	var statusLine string
 	if s.connected {
 		latency := fmt.Sprintf("%dms", s.latencyMs)
+		dimVal := lipgloss.NewStyle().Background(styles.ComponentBg).Foreground(lipgloss.Color("#8888b8"))
+		lbl := lipgloss.NewStyle().Foreground(lipgloss.Color("#7dd3fc"))
+		brokerDisplay := strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(s.brokerURL, "https://"), "http://"), "www.")
+		// "● online" = 8 visible chars; pad 4 so ping value starts at col 12, same as broker/user values.
 		statusLine = styles.StatusConnectedStyle.Render("● online") +
-			lipgloss.NewStyle().Background(styles.ComponentBg).Render("  "+latency) +
-			"\n" + d.Render("  broker: "+s.brokerURL) +
-			"\n" + d.Render("  user: "+s.userID)
+			dimVal.Render("    "+latency) +
+			"\n" + lbl.Render("⌁ "+fmt.Sprintf("%-9s", "broker")) + dimVal.Render(" "+brokerDisplay) +
+			"\n" + lbl.Render("◉ "+fmt.Sprintf("%-9s", "user")) + dimVal.Render(" "+s.userID)
 	} else {
 		statusLine = styles.StatusDisconnectedStyle.Render("● offline")
 	}
