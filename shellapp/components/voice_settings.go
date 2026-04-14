@@ -177,7 +177,7 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 				s.outputCursor++
 			}
 		} else if s.section == vsSectionAdvanced {
-			if s.advancedCursor < 2 { // jitter(0) + noise-out(1) + noise-in(2)
+			if s.advancedCursor < 3 { // jitter(0) + noise-out(1) + noise-in(2) + aec(3)
 				s.advancedCursor++
 			}
 		} else if s.section == vsSectionTransformations {
@@ -317,6 +317,8 @@ func (s *VoiceSettingsScreen) activate() tea.Cmd {
 			voice.SetDenoiseOutboundEnabled(!voice.DenoiseOutboundEnabled())
 		case 2:
 			voice.SetDenoiseInboundEnabled(!voice.DenoiseInboundEnabled())
+		case 3:
+			voice.SetAECEnabled(!voice.AECEnabled())
 		}
 		return nil
 	case vsSectionTest:
@@ -647,6 +649,7 @@ func (s *VoiceSettingsScreen) Render() string {
 		{"Jitter Buffer", voice.JitterBufferEnabled(), "Smooths packet reordering at the cost of added delay. Takes effect on next connect."},
 		{"Noise Removal (outbound)", voice.DenoiseOutboundEnabled(), "RNNoise on your microphone. Disable if it distorts your voice."},
 		{"Noise Removal (inbound)", voice.DenoiseInboundEnabled(), "RNNoise on received audio. Reduces noise from other participants."},
+		{"Echo Cancellation (AEC)", voice.AECEnabled(), "WebRTC AEC3 removes speaker echo from your microphone signal."},
 	}
 	for i, item := range advItems {
 		cur := "  "

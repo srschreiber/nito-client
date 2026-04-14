@@ -54,6 +54,7 @@ const (
 	sdpFmtp          = "minptime=10;useinbandfec=1"
 	opusFrameMs      = 20                              // 20 ms is the standard Opus frame size
 	opusFrameSamples = sampleRate * opusFrameMs / 1000 // 960 samples
+	apmFrameSamples  = sampleRate / 100                // 10 ms = 480 samples; WebRTC APM frame size
 	opusBufMax       = 4096
 )
 
@@ -142,6 +143,7 @@ var (
 	jitterBufferEnabled atomic.Bool  // if true, use pion's default interceptors (jitter buffer + NACK)
 	denoiseOutEnabled   atomic.Bool  // if false, skip outbound RNNoise (microphone)
 	denoiseInEnabled    atomic.Bool  // if true, apply inbound RNNoise (received audio)
+	aecEnabled          atomic.Bool  // if true, apply WebRTC AEC3 echo cancellation
 	pitchEnabled        atomic.Bool  // if true, apply pitch shift to captured audio
 	pitchPos            atomic.Int32 // 0–24; 12 = no shift, <12 = lower, >12 = higher
 	vibratoEnabled      atomic.Bool  // if true, modulate pitch with a sine oscillator
@@ -178,6 +180,7 @@ const maxLoopbackPending = 200 // stop recording send times if this many are unm
 func init() {
 	denoiseOutEnabled.Store(true) // outbound RNNoise on by default
 	denoiseInEnabled.Store(false) // inbound RNNoise off by default
+	aecEnabled.Store(true)        // AEC3 on by default
 	pitchPos.Store(12)            // center = no shift
 	vibratoFreq.Store(4)          // 4 Hz default
 	vibratoRange.Store(1)         // 1 × 0.5 st = 0.5 st default
@@ -349,6 +352,12 @@ func DenoiseInboundEnabled() bool { return denoiseInEnabled.Load() }
 // SetDenoiseInboundEnabled enables or disables inbound RNNoise. Takes effect immediately.
 func SetDenoiseInboundEnabled(enabled bool) { denoiseInEnabled.Store(enabled) }
 
+// AECEnabled reports whether WebRTC AEC3 echo cancellation is enabled.
+func AECEnabled() bool { return aecEnabled.Load() }
+
+// SetAECEnabled enables or disables echo cancellation. Takes effect immediately.
+func SetAECEnabled(enabled bool) { aecEnabled.Store(enabled) }
+
 // PitchEnabled reports whether pitch shift is enabled.
 func PitchEnabled() bool { return pitchEnabled.Load() }
 
@@ -501,6 +510,7 @@ type voiceSession struct {
 	aead         cipher.AEAD
 	player       oto.Player
 	ab           *audioBuf
+	apm          *apmState // WebRTC AEC3; nil if init failed
 	cancel       context.CancelFunc
 	ctx          context.Context
 	answerCh     chan string // receives the initial SDP answer; closed after use
@@ -722,6 +732,15 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	go player.Play() // Play() can block on Windows waiting for the audio device; don't hold up Join.
 	debugf("voice: player started")
 
+	// Create APM before OnTrack so both the receive and capture closures share it.
+	apm, apmErr := newAPMState(sampleRate, numChannels)
+	if apmErr != nil {
+		debugf("voice: AEC init failed (continuing without): %v", apmErr)
+		apm = nil
+	} else {
+		apm.SetStreamDelay(50) // 50 ms: typical speaker→mic round-trip
+	}
+
 	onTrackCh := make(chan struct{})
 	var onTrackOnce sync.Once
 
@@ -785,6 +804,13 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 				f32 := pcm16ToFloat32(pcmBuf[:n*numChannels])
 				_ = denoiseIn.ProcessFrame(f32)
 				copy(pcmBuf[:n*numChannels], float32ToPCM16(f32))
+			}
+			// Feed decoded audio as far-end reference before writing to speakers.
+			if apm != nil && aecEnabled.Load() {
+				samples := n * numChannels
+				for i := 0; i+apmFrameSamples <= samples; i += apmFrameSamples {
+					_ = apm.ProcessReverse(pcmBuf[i : i+apmFrameSamples])
+				}
 			}
 			ab.Write(int16ToBytes(pcmBuf[:n*numChannels]))
 			// Pipeline latency: measured from before encode to after ab.Write.
@@ -854,7 +880,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	sess := &voiceSession{
 		roomID: roomID, pc: pc, sendTrack: sendTrack,
-		aead: aead, player: player, ab: ab, ctx: ctx, cancel: cancel,
+		aead: aead, player: player, ab: ab, apm: apm, ctx: ctx, cancel: cancel,
 		answerCh: answerCh, iceRestartCh: make(chan string, 1),
 		onTrackCh: onTrackCh,
 	}
@@ -901,7 +927,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		return fmt.Errorf("voice join: timeout waiting for broker answer")
 	}
 
-	go captureAndSend(ctx, aead, sendTrack, roomID == SelfRoomID)
+	go captureAndSend(ctx, aead, sendTrack, roomID == SelfRoomID, apm)
 	return nil
 }
 
@@ -935,6 +961,10 @@ func Leave(roomID string) error {
 	sess.ab.close()
 	_ = sess.player.Close() // release oto resources so the next session starts clean
 	_ = sess.pc.Close()
+	if sess.apm != nil {
+		sess.apm.Destroy()
+		sess.apm = nil
+	}
 
 	if roomID == SelfRoomID {
 		pipelineSendTimes.Clear()
@@ -1106,7 +1136,7 @@ func iceRestart(sess *voiceSession) {
 
 // captureAndSend captures microphone audio, encodes each 20ms frame to Opus,
 // and writes it to the WebRTC send track.
-func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLocalStaticRTP, isLoopback bool) {
+func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLocalStaticRTP, isLoopback bool, apm *apmState) {
 	muSelected.Lock()
 	inputID := selectedInputDevice
 	muSelected.Unlock()
@@ -1216,6 +1246,13 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 			pcmAccum = pcmAccum[opusFrameSamples*numChannels:]
 
 			encodeStart := time.Now()
+
+			// AEC: remove echo before noise suppression so RNNoise works on clean signal.
+			if apm != nil && aecEnabled.Load() {
+				for i := 0; i+apmFrameSamples <= len(frame); i += apmFrameSamples {
+					_ = apm.ProcessCapture(frame[i : i+apmFrameSamples])
+				}
+			}
 
 			if denoise != nil && denoiseOutEnabled.Load() {
 				f32 := pcm16ToFloat32(frame)

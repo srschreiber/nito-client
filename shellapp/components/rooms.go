@@ -156,8 +156,9 @@ func (r *RoomsComponent) Render() string {
 	if len(r.rooms) == 0 {
 		listLines = append(listLines, styles.DimText.Render("  no rooms"))
 	} else {
-		// Reserve space for cursor (2) and optional " ◆" (2).
-		maxNameW := r.width - 4
+		// cursor=2, selected indicator " ◆"=2, plus 2 safety margin for
+		// ambiguous-width glyphs that some terminals render at double-width.
+		maxNameW := r.width - 6
 		if maxNameW < 3 {
 			maxNameW = 3
 		}
