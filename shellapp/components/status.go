@@ -152,7 +152,7 @@ func (s *StatusComponent) Render() string {
 	if s.connected {
 		latency := fmt.Sprintf("%dms", s.latencyMs)
 		statusLine = styles.StatusConnectedStyle.Render("● online") +
-			"  " + lipgloss.NewStyle().Background(styles.ComponentBg).Render(latency) +
+			lipgloss.NewStyle().Background(styles.ComponentBg).Render("  "+latency) +
 			"\n" + d.Render("  broker: "+s.brokerURL) +
 			"\n" + d.Render("  user: "+s.userID)
 	} else {
