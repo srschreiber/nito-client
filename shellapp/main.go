@@ -881,6 +881,7 @@ func main() {
 			connection.Disconnect()
 			continue
 		}
+		voice.LeaveIfActive() // tear down mic stream before process exits
 		return
 	}
 }
