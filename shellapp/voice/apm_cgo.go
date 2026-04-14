@@ -10,7 +10,7 @@ package voice
 #cgo CXXFLAGS: -std=c++17
 #cgo CXXFLAGS: -I${SRCDIR}/../../webrtc-audio-processing/webrtc
 #cgo CXXFLAGS: -I${SRCDIR}/../../webrtc-audio-processing/subprojects/abseil-cpp-20240722.0
-#cgo CXXFLAGS: -DWEBRTC_LIBRARY_IMPL
+#cgo CXXFLAGS: -DWEBRTC_LIBRARY_IMPL -DWEBRTC_APM_DEBUG_DUMP=0
 #cgo darwin  CXXFLAGS: -DWEBRTC_POSIX -DWEBRTC_MAC
 #cgo linux   CXXFLAGS: -DWEBRTC_POSIX -DWEBRTC_LINUX
 #cgo windows CXXFLAGS: -DWEBRTC_WIN -DNOMINMAX -D_USE_MATH_DEFINES

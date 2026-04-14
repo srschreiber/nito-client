@@ -177,7 +177,7 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 				s.outputCursor++
 			}
 		} else if s.section == vsSectionAdvanced {
-			if s.advancedCursor < 3 { // jitter(0) + noise-out(1) + noise-in(2) + aec(3)
+			if s.advancedCursor < 4 { // jitter(0) + noise-out(1) + noise-in(2) + aec(3) + compressor(4)
 				s.advancedCursor++
 			}
 		} else if s.section == vsSectionTransformations {
@@ -212,6 +212,13 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 					sounds.PlayPreview(float64(voice.VoiceChatOverride()) / 100.0)
 				}
 			}
+		case vsSectionAdvanced:
+			if s.advancedCursor == 4 {
+				l := voice.GetCompressorLevel()
+				if l > voice.CompressorOff {
+					voice.SetCompressorLevel(l - 1)
+				}
+			}
 		case vsSectionTransformations:
 			switch s.transformCursor {
 			case 0:
@@ -243,6 +250,13 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 				if voice.VoiceChatOverride() >= 0 {
 					voice.SetVoiceChatOverride(voice.VoiceChatOverride() + 5)
 					sounds.PlayPreview(float64(voice.VoiceChatOverride()) / 100.0)
+				}
+			}
+		case vsSectionAdvanced:
+			if s.advancedCursor == 4 {
+				l := voice.GetCompressorLevel()
+				if l < voice.CompressorHigh {
+					voice.SetCompressorLevel(l + 1)
 				}
 			}
 		case vsSectionTransformations:
@@ -319,6 +333,8 @@ func (s *VoiceSettingsScreen) activate() tea.Cmd {
 			voice.SetDenoiseInboundEnabled(!voice.DenoiseInboundEnabled())
 		case 3:
 			voice.SetAECEnabled(!voice.AECEnabled())
+		case 4:
+			voice.SetCompressorLevel((voice.GetCompressorLevel() + 1) % voice.CompressorCount)
 		}
 		return nil
 	case vsSectionTest:
@@ -567,7 +583,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			s.sendPacketsPerSec, s.sendKBPerSec, s.networkRTTMs, s.pipelineLatMs, s.avgEncodeMs, s.avgDecodeMs)
 		lines = append(lines, styles.DimText.Render(stats))
 		if voice.AECEnabled() {
-			lines = append(lines, styles.DimText.Render("  ⚠ Use headphones — AEC is disabled during test audio."))
+			lines = append(lines, styles.DimText.Render("  ⚠ AEC enabled — use headphones or audio may sound choppy during test."))
 		}
 	}
 
@@ -669,6 +685,23 @@ func (s *VoiceSettingsScreen) Render() string {
 			lines = append(lines, "  "+styles.DimText.Render(item.hint))
 		} else {
 			lines = append(lines, cur+styles.ItemStyle.Render(label))
+		}
+	}
+	// Compressor — multi-level item (off/low/medium/high)
+	{
+		const compIdx = 4
+		cur := "  "
+		if s.section == vsSectionAdvanced && s.advancedCursor == compIdx {
+			cur = styles.CursorStyle.Render("▶ ")
+		}
+		lvl := voice.GetCompressorLevel()
+		lvlName := voice.CompressorLevelNames[lvl]
+		compLabel := "Compressor " + styles.DimText.Render(lvlName)
+		if s.section == vsSectionAdvanced && s.advancedCursor == compIdx {
+			lines = append(lines, cur+styles.RoomBtnActiveStyle.Render(compLabel))
+			lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  enter to cycle  (off/low/medium/high)"))
+		} else {
+			lines = append(lines, cur+styles.ItemStyle.Render(compLabel))
 		}
 	}
 

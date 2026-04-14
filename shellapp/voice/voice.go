@@ -47,16 +47,16 @@ import (
 )
 
 const (
-	sampleRate           = 48000
-	numChannels          = 1 // encode/decode mono; SDP advertises 2 per Opus spec
-	sdpChannels          = 2 // Opus RFC 7587 says SDP always lists 2
-	payloadType          = 111
-	sdpFmtp              = "minptime=10;useinbandfec=1"
-	opusFrameMs          = 20                              // 20 ms is the standard Opus frame size
-	opusFrameSamples     = sampleRate * opusFrameMs / 1000 // 960 samples
-	apmFrameSamples      = sampleRate / 100                // 10 ms = 480 samples; WebRTC APM frame size
-	opusBufMax           = 4096
-	loopbackPlaybackGain = 50 // percent; dampen loopback playback to reduce mic echo feedback
+	sampleRate       = 48000
+	numChannels      = 1 // encode/decode mono; SDP advertises 2 per Opus spec
+	sdpChannels      = 2 // Opus RFC 7587 says SDP always lists 2
+	payloadType      = 111
+	sdpFmtp          = "minptime=10;useinbandfec=1"
+	opusFrameMs      = 20                              // 20 ms is the standard Opus frame size
+	opusFrameSamples = sampleRate * opusFrameMs / 1000 // 960 samples
+	apmFrameSamples  = sampleRate / 100                // 10 ms = 480 samples; WebRTC APM frame size
+	opusBufMax       = 4096
+	playbackGain     = 35 // percent; dampen all voice playback to keep feedback loops in check
 )
 
 // AudioDevice represents a system audio input device.
@@ -784,6 +784,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			return
 		}
 		defer dec.close()
+		comp := &inboundCompressor{}
 		denoiseIn, denoiseInErr := newRNNoiseState()
 		if denoiseInErr != nil {
 			debugf("voice: new inbound rnnoise state, will not denoise: %v", denoiseInErr)
@@ -839,13 +840,16 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 				copy(pcmBuf[:n*numChannels], float32ToPCM16(f32))
 			}
 			total := n * numChannels
-			if isLoopback {
-				// Mic check: dampen playback so the mic picks up a quieter echo when noise cancel off
-				samples := pcmBuf[:total]
-				for i, s := range samples {
-					samples[i] = int16(int32(s) * loopbackPlaybackGain / 100)
-				}
+			// Dampen playback to keep the closed-loop gain below 1 and prevent
+			// feedback loops regardless of whether AEC is active.
+			samples := pcmBuf[:total]
+			for i, s := range samples {
+				samples[i] = int16(int32(s) * playbackGain / 100)
 			}
+			// Compress: clamp sudden loud bursts to a comfortable range without
+			// affecting normal speech levels. Applied after the gain reduction so
+			// the compressor threshold is relative to the dampened signal.
+			comp.process(samples)
 			// AEC reverse path: record each decoded frame as far-end reference
 			// *before* writing it to the speaker. The AEC builds a model of the
 			// echo path from these frames so it knows what to subtract later when
