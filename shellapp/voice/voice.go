@@ -56,7 +56,7 @@ const (
 	opusFrameSamples = sampleRate * opusFrameMs / 1000 // 960 samples
 	apmFrameSamples  = sampleRate / 100                // 10 ms = 480 samples; WebRTC APM frame size
 	opusBufMax       = 4096
-	playbackGain     = 35 // percent; dampen all voice playback to keep feedback loops in check
+	playbackGain     = 75 // percent; dampen all voice playback to keep feedback loops in check
 )
 
 // AudioDevice represents a system audio input device.
