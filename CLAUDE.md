@@ -142,6 +142,28 @@ Pitch/vibrato (signalsmith-stretch, CGo):
 - Vibrato: sine oscillator, 1–8 Hz, ±0.5–3.0 st range
 - Configured in `VoiceSettingsScreen`; atomics in `voice/voice.go`
 
+### AEC stream delay — auto-measurement (`voice/delay_est.go`)
+
+WebRTC AEC3 needs a `SetStreamDelay` hint: the time between audio being sent to
+the speaker and that audio being picked up as echo by the mic. A wrong value
+causes partial, mis-timed cancellation that sounds like the voice phasing in and
+out.
+
+Rather than using a hardcoded constant, `streamDelayEst` measures it live:
+
+- **Far-end ring buffer** (`addReverse`): every decoded remote frame is appended
+  to a 500 ms circular buffer of speaker output samples.
+- **Near-end snapshot** (`addCapture`): every ~3 s (150 × 20 ms frames), the
+  current mic frame is cross-correlated against the ring buffer at every lag
+  from 0–500 ms.
+- The lag with the highest **normalised** cross-correlation is the measured
+  speaker→mic delay. EMA-smoothed and fed to `apm.SetStreamDelay`.
+- If peak correlation < 0.20 (headset user — no acoustic echo path), the
+  estimate is not updated. This makes the estimator a no-op with headsets.
+
+`estimatedStreamDelayMs()` (65 ms, based on buffer math) is still used as the
+seed at session start so AEC converges quickly before the first measurement.
+
 ## Build
 
 ```bash

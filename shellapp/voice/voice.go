@@ -537,7 +537,8 @@ type voiceSession struct {
 	aead         cipher.AEAD
 	player       oto.Player
 	ab           *audioBuf
-	apm          *apmState // WebRTC AEC3; nil if init failed
+	apm          *apmState       // WebRTC AEC3; nil if init failed
+	delayEst     *streamDelayEst // acoustic delay estimator; nil if AEC unavailable
 	cancel       context.CancelFunc
 	ctx          context.Context
 	answerCh     chan string // receives the initial SDP answer; closed after use
@@ -761,11 +762,14 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 
 	// Create APM before OnTrack so both the receive and capture closures share it.
 	apm, apmErr := newAPMState(sampleRate, numChannels)
+	var de *streamDelayEst
 	if apmErr != nil {
 		debugf("voice: AEC init failed (continuing without): %v", apmErr)
 		apm = nil
 	} else {
-		apm.SetStreamDelay(estimatedStreamDelayMs())
+		initDelayMs := estimatedStreamDelayMs()
+		apm.SetStreamDelay(initDelayMs)
+		de = newStreamDelayEst(initDelayMs, apm)
 	}
 
 	onTrackCh := make(chan struct{})
@@ -842,10 +846,16 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 					samples[i] = int16(int32(s) * loopbackPlaybackGain / 100)
 				}
 			}
-			// Feed decoded audio as far-end reference before writing to speakers.
-			if apm != nil && aecEnabled.Load() && !isLoopback {
+			// AEC reverse path: record each decoded frame as far-end reference
+			// *before* writing it to the speaker. The AEC builds a model of the
+			// echo path from these frames so it knows what to subtract later when
+			// the mic picks up the same audio bouncing back from the room.
+			if apm != nil && aecEnabled.Load() {
 				for i := 0; i+apmFrameSamples <= total; i += apmFrameSamples {
 					_ = apm.ProcessReverse(pcmBuf[i : i+apmFrameSamples])
+				}
+				if de != nil {
+					de.addReverse(pcmBuf[:total])
 				}
 			}
 			ab.Write(int16ToBytes(pcmBuf[:total]))
@@ -916,7 +926,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	sess := &voiceSession{
 		roomID: roomID, pc: pc, sendTrack: sendTrack,
-		aead: aead, player: player, ab: ab, apm: apm, ctx: ctx, cancel: cancel,
+		aead: aead, player: player, ab: ab, apm: apm, delayEst: de, ctx: ctx, cancel: cancel,
 		answerCh: answerCh, iceRestartCh: make(chan string, 1),
 		onTrackCh: onTrackCh,
 	}
@@ -944,9 +954,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 				if encNs > 0 && decNs > 0 && netNs > 0 {
 					pipelineLatNs.Store(encNs + netNs + decNs)
 				}
-				if apm != nil {
-					apm.SetStreamDelay(estimatedStreamDelayMs())
-				}
+				// Stream delay is now updated by the streamDelayEst in captureAndSend.
 			}
 		}
 	}()
@@ -990,7 +998,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		return fmt.Errorf("voice join: timeout waiting for broker answer")
 	}
 
-	go captureAndSend(ctx, aead, sendTrack, roomID == SelfRoomID, apm)
+	go captureAndSend(ctx, aead, sendTrack, roomID == SelfRoomID, apm, de)
 	return nil
 }
 
@@ -1024,6 +1032,9 @@ func Leave(roomID string) error {
 	sess.ab.close()
 	_ = sess.player.Close() // release oto resources so the next session starts clean
 	_ = sess.pc.Close()
+	if sess.delayEst != nil {
+		sess.delayEst.destroy() // clear APM ref before APM is destroyed
+	}
 	if sess.apm != nil {
 		sess.apm.Destroy()
 		sess.apm = nil
@@ -1201,7 +1212,7 @@ func iceRestart(sess *voiceSession) {
 
 // captureAndSend captures microphone audio, encodes each 20ms frame to Opus,
 // and writes it to the WebRTC send track.
-func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLocalStaticRTP, isLoopback bool, apm *apmState) {
+func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLocalStaticRTP, isLoopback bool, apm *apmState, de *streamDelayEst) {
 	muSelected.Lock()
 	inputID := selectedInputDevice
 	muSelected.Unlock()
@@ -1312,10 +1323,17 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 
 			encodeStart := time.Now()
 
-			// AEC: remove echo before noise suppression so RNNoise works on clean signal.
-			if apm != nil && aecEnabled.Load() && !isLoopback {
+			// AEC capture path: cancel echo from the mic signal using the
+			// reference frames fed via ProcessReverse. Any speaker audio that
+			// leaked back into the mic is subtracted here, leaving (ideally)
+			// only the speaker's own voice. Must run before RNNoise so the
+			// noise suppressor works on an already-clean signal.
+			if apm != nil && aecEnabled.Load() {
 				for i := 0; i+apmFrameSamples <= len(frame); i += apmFrameSamples {
 					_ = apm.ProcessCapture(frame[i : i+apmFrameSamples])
+				}
+				if de != nil {
+					de.addCapture(frame)
 				}
 			}
 
