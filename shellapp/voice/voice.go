@@ -835,9 +835,8 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 				copy(pcmBuf[:n*numChannels], float32ToPCM16(f32))
 			}
 			total := n * numChannels
-			if isLoopback {
-				// Mic check: dampen playback so the mic picks up a quieter echo.
-				// AEC still runs with the dampened signal as reference.
+			if isLoopback && !AECEnabled() {
+				// Mic check: dampen playback so the mic picks up a quieter echo when noise cancel off
 				samples := pcmBuf[:total]
 				for i, s := range samples {
 					samples[i] = int16(int32(s) * loopbackPlaybackGain / 100)
