@@ -106,7 +106,8 @@ type CommandComponent struct {
 
 func NewCommandComponent(width int) *CommandComponent {
 	return &CommandComponent{
-		Placeholder:   placeholderCmd,
+		Placeholder:   placeholderChat,
+		chatMode:      true,
 		cursorVisible: true,
 		historyIdx:    -1,
 		width:         width,
@@ -229,6 +230,11 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 			l.cursorPos = len(msg.Text)
 		} else {
 			l.cursorPos = msg.CursorPos
+		}
+		// Chat ops (pre-filled text starting with ".") must run in chat mode.
+		if strings.HasPrefix(msg.Text, ".") {
+			l.chatMode = true
+			l.Placeholder = placeholderChat
 		}
 		return nil
 	case types.RoomSelectedMsg:
