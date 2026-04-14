@@ -566,6 +566,9 @@ func (s *VoiceSettingsScreen) Render() string {
 		stats := fmt.Sprintf("  %.0f pkt/s  %.1f KB/s  net %.0f ms  lat %.0f ms  enc %.2f ms  dec %.2f ms",
 			s.sendPacketsPerSec, s.sendKBPerSec, s.networkRTTMs, s.pipelineLatMs, s.avgEncodeMs, s.avgDecodeMs)
 		lines = append(lines, styles.DimText.Render(stats))
+		if voice.AECEnabled() {
+			lines = append(lines, styles.DimText.Render("  ⚠ Use headphones — AEC may cancel your own voice without them."))
+		}
 	}
 
 	// ── Transformations ─────────────────────────────────────────────────────

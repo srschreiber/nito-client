@@ -47,15 +47,16 @@ import (
 )
 
 const (
-	sampleRate       = 48000
-	numChannels      = 1 // encode/decode mono; SDP advertises 2 per Opus spec
-	sdpChannels      = 2 // Opus RFC 7587 says SDP always lists 2
-	payloadType      = 111
-	sdpFmtp          = "minptime=10;useinbandfec=1"
-	opusFrameMs      = 20                              // 20 ms is the standard Opus frame size
-	opusFrameSamples = sampleRate * opusFrameMs / 1000 // 960 samples
-	apmFrameSamples  = sampleRate / 100                // 10 ms = 480 samples; WebRTC APM frame size
-	opusBufMax       = 4096
+	sampleRate           = 48000
+	numChannels          = 1 // encode/decode mono; SDP advertises 2 per Opus spec
+	sdpChannels          = 2 // Opus RFC 7587 says SDP always lists 2
+	payloadType          = 111
+	sdpFmtp              = "minptime=10;useinbandfec=1"
+	opusFrameMs          = 20                              // 20 ms is the standard Opus frame size
+	opusFrameSamples     = sampleRate * opusFrameMs / 1000 // 960 samples
+	apmFrameSamples      = sampleRate / 100                // 10 ms = 480 samples; WebRTC APM frame size
+	opusBufMax           = 4096
+	loopbackPlaybackGain = 50 // percent; dampen loopback playback to reduce mic echo feedback
 )
 
 // AudioDevice represents a system audio input device.
@@ -414,6 +415,26 @@ func SetVibratoRange(r int) {
 // IsConnecting reports whether a voice join is currently in progress.
 func IsConnecting() bool { return connecting.Load() }
 
+// estimatedStreamDelayMs derives a speaker→mic round-trip estimate from
+// loopback stats. Falls back to 50 ms when no measurements are available.
+// Formula: (pipeline_latency − network_RTT) / 2 gives a rough proxy for
+// one-way local audio latency (output buffer + room + input buffer).
+func estimatedStreamDelayMs() int {
+	lat := int(pipelineLatNs.Load() / 1_000_000)
+	rtt := int(networkRTTNs.Load() / 1_000_000)
+	if lat > 0 && rtt > 0 && lat > rtt {
+		est := (lat - rtt) / 2
+		if est < 20 {
+			return 20
+		}
+		if est > 150 {
+			return 150
+		}
+		return est
+	}
+	return 50
+}
+
 // IsActive reports whether a voice session is currently live.
 func IsActive() bool {
 	mu.Lock()
@@ -738,7 +759,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		debugf("voice: AEC init failed (continuing without): %v", apmErr)
 		apm = nil
 	} else {
-		apm.SetStreamDelay(50) // 50 ms: typical speaker→mic round-trip
+		apm.SetStreamDelay(estimatedStreamDelayMs())
 	}
 
 	onTrackCh := make(chan struct{})
@@ -805,14 +826,22 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 				_ = denoiseIn.ProcessFrame(f32)
 				copy(pcmBuf[:n*numChannels], float32ToPCM16(f32))
 			}
+			total := n * numChannels
+			if isLoopback {
+				// Mic check: dampen playback so the mic picks up a quieter echo.
+				// AEC still runs with the dampened signal as reference.
+				samples := pcmBuf[:total]
+				for i, s := range samples {
+					samples[i] = int16(int32(s) * loopbackPlaybackGain / 100)
+				}
+			}
 			// Feed decoded audio as far-end reference before writing to speakers.
 			if apm != nil && aecEnabled.Load() {
-				samples := n * numChannels
-				for i := 0; i+apmFrameSamples <= samples; i += apmFrameSamples {
+				for i := 0; i+apmFrameSamples <= total; i += apmFrameSamples {
 					_ = apm.ProcessReverse(pcmBuf[i : i+apmFrameSamples])
 				}
 			}
-			ab.Write(int16ToBytes(pcmBuf[:n*numChannels]))
+			ab.Write(int16ToBytes(pcmBuf[:total]))
 			// Pipeline latency: measured from before encode to after ab.Write.
 			if isLoopback {
 				if v, ok := pipelineSendTimes.LoadAndDelete(pkt.Header.SequenceNumber); ok {
@@ -887,6 +916,22 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	mu.Lock()
 	activeSession = sess
 	mu.Unlock()
+
+	// Periodically refresh the AEC stream delay from measured latency stats.
+	if apm != nil {
+		go func() {
+			t := time.NewTicker(5 * time.Second)
+			defer t.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-t.C:
+					apm.SetStreamDelay(estimatedStreamDelayMs())
+				}
+			}
+		}()
+	}
 
 	pc.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
 		if state == webrtc.PeerConnectionStateFailed {
