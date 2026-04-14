@@ -17,13 +17,13 @@ import (
 //
 //	0-2          : track slots
 //	3            : Stop All button
-//	4 .. 4+14    : alias slots 0-14
-//	4+15 = 19    : Sound Alias button
+//	4 .. 4+4     : alias slots 0-4
+//	4+5 = 9      : Sound Alias button
 const (
 	cursorStopAll       = 3
 	cursorAliasBase     = 4
-	cursorSoundAlias    = cursorAliasBase + 15 // = 19
-	cursorDelSoundAlias = cursorSoundAlias + 1 // = 20
+	cursorSoundAlias    = cursorAliasBase + 5  // = 9
+	cursorDelSoundAlias = cursorSoundAlias + 1 // = 10
 )
 
 type StatusComponent struct {
@@ -37,7 +37,7 @@ type StatusComponent struct {
 	trackPlaying [3]bool
 	trackCursor  int
 	inRoom       bool
-	aliases      []AliasEntry // always 15 entries; empty Name = unfilled slot
+	aliases      []AliasEntry // always 5 entries; empty Name = unfilled slot
 }
 
 func NewStatusComponent(width, height int) *StatusComponent {

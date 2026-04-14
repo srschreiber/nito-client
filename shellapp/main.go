@@ -58,7 +58,7 @@ func computeLayout(termW, termH int) layout {
 	}
 
 	usableW := termW - appPaddingW
-	pHistBoxW := .80
+	pHistBoxW := .66
 	pHistBoxH := .9
 	histBoxW := int(float64(usableW) * pHistBoxW)
 	histBoxH := int(float64(termH) * pHistBoxH)
@@ -739,8 +739,8 @@ func (m *model) trackStateCmd() tea.Cmd {
 			aliases = append(aliases, components.AliasEntry{Name: name})
 		}
 		sort.Slice(aliases, func(i, j int) bool { return aliases[i].Name < aliases[j].Name })
-		// Pad to exactly 15 slots; empty Name signals an unfilled slot.
-		for len(aliases) < 15 {
+		// Pad to exactly 5 slots; empty Name signals an unfilled slot.
+		for len(aliases) < 5 {
 			aliases = append(aliases, components.AliasEntry{})
 		}
 		return components.TrackStateMsg{Playing: playing, InRoom: inRoom, Aliases: aliases}

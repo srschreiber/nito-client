@@ -47,7 +47,7 @@ type AliasEntry struct{ Name string }
 type TrackStateMsg struct {
 	Playing [3]bool
 	InRoom  bool
-	Aliases []AliasEntry // up to 15, sorted by name
+	Aliases []AliasEntry // up to 5, sorted by name
 }
 
 // PreFillCommandMsg asks the command component to pre-fill its input with Text

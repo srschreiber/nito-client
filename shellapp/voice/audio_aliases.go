@@ -12,7 +12,7 @@ import (
 )
 
 // MaxAudioAliases is the maximum number of audio aliases that can be saved.
-const MaxAudioAliases = 15
+const MaxAudioAliases = 5
 
 func audioAliasesPath() (string, error) {
 	home, err := os.UserHomeDir()
@@ -71,7 +71,7 @@ func SaveAudioAlias(name, url string) error {
 		aliases = map[string]string{}
 	}
 	if _, exists := aliases[name]; !exists && len(aliases) >= MaxAudioAliases {
-		return errors.New("alias limit reached (max 15)")
+		return errors.New("alias limit reached (max 5)")
 	}
 	aliases[name] = url
 	data, err := yaml.Marshal(aliases)
