@@ -161,6 +161,8 @@ var (
 
 	sendPacketCount atomic.Uint64
 	sendByteCount   atomic.Uint64
+	recvPacketCount atomic.Uint64
+	lostPacketCount atomic.Uint64
 	encodeTimeNs    atomic.Int64
 	encodeFrames    atomic.Uint64
 	decodeTimeNs    atomic.Int64
@@ -292,6 +294,12 @@ func EffectiveVoiceChatVolume() float64 {
 // Intended to be called once per second to compute rates.
 func DrainSendStats() (packets uint64, bytes uint64) {
 	return sendPacketCount.Swap(0), sendByteCount.Swap(0)
+}
+
+// DrainRecvLossStats returns the number of packets received and packets lost (detected via sequence-number
+// gaps) since the last call, resetting both counters. Intended to be called once per second.
+func DrainRecvLossStats() (recv uint64, lost uint64) {
+	return recvPacketCount.Swap(0), lostPacketCount.Swap(0)
 }
 
 // DrainEncodeStats returns the average encode time per frame in milliseconds since the last call.
@@ -815,6 +823,9 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 					continue // late or duplicate; already PLC'd past it
 				}
 				gap := int(seq-lastSeq) - 1 // wraps correctly for uint16
+				if gap > 0 {
+					lostPacketCount.Add(uint64(gap))
+				}
 				for i := 0; i < gap && i < 4; i++ {
 					if n, err := dec.decodePLC(pcmBuf); err == nil {
 						ab.Write(int16ToBytes(pcmBuf[:n*numChannels]))
@@ -823,6 +834,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			}
 			lastSeq = seq
 			seenFirst = true
+			recvPacketCount.Add(1)
 			plain, err := decryptFrame(aead, pkt.Payload)
 			if err != nil {
 				continue

@@ -6,11 +6,13 @@ package components
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 	"github.com/srschreiber/nito-client/shellapp/styles"
 	"github.com/srschreiber/nito-client/shellapp/types"
+	"github.com/srschreiber/nito-client/shellapp/voice"
 )
 
 // Cursor layout (inRoom):
@@ -26,22 +28,32 @@ const (
 	cursorDelSoundAlias = cursorSoundAlias + 1 // = 10
 )
 
+// statusVoiceStatsTickMsg fires every second while a voice call is active.
+type statusVoiceStatsTickMsg struct{}
+
 type StatusComponent struct {
-	connected    bool
-	brokerURL    string
-	userID       string
-	latencyMs    int64
-	focused      bool
-	width        int
-	height       int
-	trackPlaying [3]bool
-	trackCursor  int
-	inRoom       bool
-	aliases      []AliasEntry // always 5 entries; empty Name = unfilled slot
+	connected      bool
+	brokerURL      string
+	userID         string
+	latencyMs      int64
+	focused        bool
+	width          int
+	height         int
+	trackPlaying   [3]bool
+	trackCursor    int
+	inRoom         bool
+	aliases        []AliasEntry // always 5 entries; empty Name = unfilled slot
+	voiceActive    bool
+	recvPktsPerSec float64
+	lossPercent    float64 // packet loss percentage over the last second
 }
 
 func NewStatusComponent(width, height int) *StatusComponent {
 	return &StatusComponent{width: width, height: height}
+}
+
+func (s *StatusComponent) voiceStatsTick() tea.Cmd {
+	return tea.Tick(time.Second, func(time.Time) tea.Msg { return statusVoiceStatsTickMsg{} })
 }
 
 func (s *StatusComponent) SetSize(width, height int) {
@@ -66,6 +78,34 @@ func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
 		s.trackPlaying = m.Playing
 		s.inRoom = m.InRoom
 		s.aliases = m.Aliases
+	case roomsVoiceResultMsg:
+		wasActive := s.voiceActive
+		if m.err == nil {
+			s.voiceActive = m.joined
+		}
+		if s.voiceActive && !wasActive {
+			return s.voiceStatsTick()
+		}
+		if !s.voiceActive {
+			s.recvPktsPerSec = 0
+			s.lossPercent = 0
+		}
+	case statusVoiceStatsTickMsg:
+		if s.voiceActive {
+			recv, lost := voice.DrainRecvLossStats()
+			s.recvPktsPerSec = float64(recv)
+			total := recv + lost
+			if total > 0 {
+				p := float64(lost) / float64(total) * 100
+				if p < 1.0 {
+					p = 1.0
+				}
+				s.lossPercent = p
+			} else {
+				s.lossPercent = 1.0
+			}
+			return s.voiceStatsTick()
+		}
 	case tea.KeyPressMsg:
 		if !s.focused {
 			return nil
@@ -164,6 +204,15 @@ func (s *StatusComponent) Render() string {
 	}
 
 	body := label + "\n" + statusLine
+
+	if s.voiceActive {
+		// VOICE section — live packet loss rate
+		voiceLabel := styles.VoiceBadge.Render("VOICE")
+		dimVal := lipgloss.NewStyle().Background(styles.ComponentBg).Foreground(lipgloss.Color("#8888b8"))
+		lossStr := fmt.Sprintf("%.1f%%", s.lossPercent)
+		voiceLine := dimVal.Render(fmt.Sprintf("  %.0f pkt/s  loss %s", s.recvPktsPerSec, lossStr))
+		body += "\n\n" + voiceLabel + "\n" + voiceLine
+	}
 
 	if s.inRoom {
 		// TRACKS section

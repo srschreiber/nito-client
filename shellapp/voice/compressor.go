@@ -56,12 +56,14 @@ type compressorPreset struct {
 }
 
 // compressorPresets defines the parameters for each CompressorLevel.
-// Threshold in dBFS: low = −18, medium = −24, high = −30.
+// Threshold in dBFS: low = −9, medium = −15, high = −21.
+// Normal conversational speech sits around −20 to −15 dBFS, so low and medium
+// leave it untouched and only catch genuine loud bursts.
 var compressorPresets = [4]compressorPreset{
-	{},            // off — unused
-	{0.126, 3.0},  // low:    −18 dBFS, 3:1 — gentle, catches only loud peaks
-	{0.063, 6.0},  // medium: −24 dBFS, 6:1 — moderate, main use case
-	{0.032, 12.0}, // high:   −30 dBFS, 12:1 — aggressive, tight dynamic range
+	{},           // off — unused
+	{0.355, 2.0}, // low:    −9 dBFS, 2:1 — barely perceptible, clips only sharp peaks
+	{0.178, 3.0}, // medium: −15 dBFS, 3:1 — comfortable ceiling, normal speech unaffected
+	{0.089, 6.0}, // high:   −21 dBFS, 6:1 — tighter range, aggressive burst control
 }
 
 const (

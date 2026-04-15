@@ -150,6 +150,13 @@ var (
 			Bold(true).
 			Padding(0, 1)
 
+	// VoiceBadge is the label badge for the live voice stats section in the status panel.
+	VoiceBadge = lipgloss.NewStyle().
+			Background(lipgloss.Color("#14532d")).
+			Foreground(lipgloss.Color("#86efac")).
+			Bold(true).
+			Padding(0, 1)
+
 	// VoiceSettingsBadge is the label badge for the voice settings screen title.
 	VoiceSettingsBadge = lipgloss.NewStyle().
 				Background(lipgloss.Color("#0c4a6e")).
