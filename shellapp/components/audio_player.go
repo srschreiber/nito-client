@@ -214,7 +214,10 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 	// latency requirement so a larger per-player buffer prevents underruns
 	// when the goroutine scheduler doesn't call Read() in time.
 	if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
-		bss.SetBufferSize(dec.SampleRate() * 4) // sampleRate × stereoInt16Bytes × 1s
+		// ~200 ms buffer: sampleRate × 4 bytes/frame ÷ 5.
+		// Smaller than the old 1 s buffer so the spectrum meter stays
+		// in sync with what you hear (lag ≈ 200 ms instead of 1 s).
+		bss.SetBufferSize((dec.SampleRate() / 5) * 4)
 	}
 	player.SetVolume(voice.EffectivePlaybackVolume())
 	defer player.Close()
@@ -266,20 +269,23 @@ func (f *biquad) process(x float32) float32 {
 	return y
 }
 
-// bandCenters are the centre frequencies (Hz) for the spectrum meter's
-// voice.NumBands bars: sub-bass → bass → low-mid → mid → high → air.
-var bandCenters = [voice.NumBands]float32{80, 250, 1000, 4000, 10000, 16000}
-
 // bandAnalyzer runs a bank of bandpass filters on a mono signal and tracks the
 // smoothed amplitude envelope for each band with fast-attack / slow-release.
+// The filter bank is sized dynamically so the number of bands can change at
+// runtime (e.g. when the terminal is resized).
 type bandAnalyzer struct {
-	filters [voice.NumBands]biquad
-	smooth  [voice.NumBands]float32
+	filters []biquad
+	smooth  []float32
 }
 
-func (a *bandAnalyzer) init(sr float32) {
-	for i := range a.filters {
-		a.filters[i] = newBandpass(bandCenters[i], 1.0, sr)
+// init (re)initialises the filter bank for n bands at sample rate sr.
+// Existing smooth values are zeroed; call when the band count changes.
+func (a *bandAnalyzer) init(sr float32, n int) {
+	centers := voice.BandCenters(n)
+	a.filters = make([]biquad, n)
+	a.smooth = make([]float32, n)
+	for i, c := range centers {
+		a.filters[i] = newBandpass(c, 1.0, sr)
 	}
 }
 
@@ -348,6 +354,7 @@ type eqReader struct {
 	src           io.Reader
 	sampleRate    int
 	version       uint64
+	bandVersion   uint64 // mirrors voice.BandCountVersion(); triggers filter bank rebuild
 	left, right   channelEffects
 	leftPipeline  voice.EffectPipeline
 	rightPipeline voice.EffectPipeline
@@ -364,7 +371,8 @@ func newEQReader(src io.Reader, sampleRate, track int) *eqReader {
 	r := &eqReader{src: src, sampleRate: sampleRate, track: track}
 	r.left.pitch = voice.NewPlaybackPitchEffect(sampleRate)
 	r.right.pitch = voice.NewPlaybackPitchEffect(sampleRate)
-	r.bands.init(float32(sampleRate))
+	r.bands.init(float32(sampleRate), voice.NumBands())
+	r.bandVersion = voice.BandCountVersion()
 	r.rebuildEffects()
 	return r
 }
@@ -436,6 +444,10 @@ func (r *eqReader) rebuildEffects() {
 func (r *eqReader) Read(p []byte) (int, error) {
 	if voice.PlaybackEQVersion() != r.version {
 		r.rebuildEffects()
+	}
+	if voice.BandCountVersion() != r.bandVersion {
+		r.bands.init(float32(r.sampleRate), voice.NumBands())
+		r.bandVersion = voice.BandCountVersion()
 	}
 	n, err := r.src.Read(p)
 	// Process only complete stereo frames (4 bytes = L int16 + R int16).

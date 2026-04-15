@@ -10385,3 +10385,30 @@ Run 'room-invites' to list invitations, 'room-accept -r 49afa434-d931-46c1-814b-
 12:40:49 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
 12:41:34 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
 12:42:02 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:54:31 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:56:51 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:59:43 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+13:35:15 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+13:39:42 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+13:41:47 [INFO] audio_player: m3u resolved 8 track(s) from https://ia903208.us.archive.org/15/items/Radiohead-the-remix-project/Radiohead-the-remix-project_vbr.m3u
+13:42:30 [ERROR] audio_player: fetch: Get "radiohead": unsupported protocol scheme ""
+13:53:44 [INFO] audio_player: m3u resolved 129 track(s) from https://ia600605.us.archive.org/5/items/radiohead-midi/radiohead-midi_vbr.m3u
+13:54:02 [INFO] audio_player: m3u resolved 129 track(s) from https://ia600605.us.archive.org/5/items/radiohead-midi/radiohead-midi_vbr.m3u
+14:01:07 [INFO] audio_player: m3u resolved 129 track(s) from https://ia600605.us.archive.org/5/items/radiohead-midi/radiohead-midi_vbr.m3u
+14:01:12 [ERROR] audio_player: fetch: Get "pot": unsupported protocol scheme ""
+14:01:17 [INFO] audio_player: m3u resolved 129 track(s) from https://ia600605.us.archive.org/5/items/radiohead-midi/radiohead-midi_vbr.m3u
+14:01:18 [ERROR] audio_player: mp3 decode: EOF
+14:01:22 [ERROR] audio_player: fetch: Get "radioheads": unsupported protocol scheme ""
+14:01:24 [INFO] audio_player: m3u resolved 129 track(s) from https://ia600605.us.archive.org/5/items/radiohead-midi/radiohead-midi_vbr.m3u
+14:01:35 [INFO] audio_player: m3u resolved 129 track(s) from https://ia600605.us.archive.org/5/items/radiohead-midi/radiohead-midi_vbr.m3u
+14:01:37 [INFO] audio_player: m3u resolved 129 track(s) from https://ia600605.us.archive.org/5/items/radiohead-midi/radiohead-midi_vbr.m3u
+14:01:49 [INFO] audio_player: m3u resolved 129 track(s) from https://ia600605.us.archive.org/5/items/radiohead-midi/radiohead-midi_vbr.m3u
+14:02:16 [INFO] audio_player: m3u resolved 129 track(s) from https://ia600605.us.archive.org/5/items/radiohead-midi/radiohead-midi_vbr.m3u
+14:03:59 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+14:04:57 [INFO] audio_player: m3u resolved 129 track(s) from https://ia600605.us.archive.org/5/items/radiohead-midi/radiohead-midi_vbr.m3u
+14:08:13 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+14:18:37 [ERROR] audio_player: mp3 decode: EOF
+14:29:50 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+15:04:24 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+15:05:05 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+15:14:43 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u

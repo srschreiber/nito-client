@@ -452,10 +452,13 @@ func onOffLabel(enabled bool) string {
 // ── Frequency response graph ──────────────────────────────────────────────────
 
 // renderEQGraph draws an ASCII frequency-response curve for the given EQ
-// settings. The graph is graphH rows tall and graphW columns wide.
+// settings with a live spectrum overlay showing playback energy per band.
+// The graph is graphH rows tall and graphW columns wide.
 // Frequency axis is logarithmic from 20 Hz to 20 kHz.
 // Y axis spans ±graphDBRange dB with the 0 dB line at the centre.
-func renderEQGraph(eq voice.EQSettings, graphW, graphH int) []string {
+// levels contains the per-band smoothed amplitude from the band analyser;
+// pass an all-zero array when nothing is playing.
+func renderEQGraph(eq voice.EQSettings, graphW, graphH int, levels []float32) []string {
 	const sampleRate = 48000.0
 	const graphDBRange = 18.0 // dB above/below zero visible in the graph
 
@@ -470,6 +473,27 @@ func renderEQGraph(eq voice.EQSettings, graphW, graphH int) []string {
 		t := float64(c) / float64(graphW-1)
 		freq := 20.0 * math.Pow(1000.0, t) // 20 Hz → 20 kHz log scale
 		gains[c] = tmpEQ.MagResponseDB(freq, sampleRate)
+	}
+
+	// Compute per-column bar heights from the live band levels.
+	// Same gain/sqrt curve as the status panel meter so they feel consistent.
+	barH := make([]int, graphW)
+	for c := 0; c < graphW; c++ {
+		if graphW > 1 {
+			t := float64(c) / float64(graphW-1)
+			freq := 20.0 * math.Pow(1000.0, t)
+			level := interpolateBandLevel(freq, levels)
+			boosted := level * 8.0
+			if boosted > 1 {
+				boosted = 1
+			}
+			display := float32(math.Sqrt(float64(boosted)))
+			h := int(display * float32(graphH))
+			if h > graphH {
+				h = graphH
+			}
+			barH[c] = h
+		}
 	}
 
 	// Build the character grid: grid[row][col].
@@ -513,6 +537,15 @@ func renderEQGraph(eq voice.EQSettings, graphW, graphH int) []string {
 	curveBelow := lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171")) // red for cut
 	zeroStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#4a4a7a"))
 
+	// Bar overlay background colours — dark tinted backgrounds so the EQ curve
+	// remains readable on top. Gradient from bottom: green → orange → red.
+	barBgGreen := lipgloss.NewStyle().Background(lipgloss.Color("#0a1f0a"))
+	barBgOrange := lipgloss.NewStyle().Background(lipgloss.Color("#1f130a"))
+	barBgRed := lipgloss.NewStyle().Background(lipgloss.Color("#1f0a0a"))
+	// Curve-on-bar styles: brighter so the dot stands out against the tint.
+	barCurveAbove := lipgloss.NewStyle().Foreground(lipgloss.Color("#4ade80")).Bold(true)
+	barCurveBelow := lipgloss.NewStyle().Foreground(lipgloss.Color("#fca5a5")).Bold(true)
+
 	dbPerRow := graphDBRange / float64(zeroRow)
 	var rows []string
 	for r := 0; r < graphH; r++ {
@@ -531,17 +564,52 @@ func renderEQGraph(eq voice.EQSettings, graphW, graphH int) []string {
 		// Render each column with appropriate colour.
 		var rowStr strings.Builder
 		for c, ch := range grid[r] {
+			// Determine whether this cell is inside the spectrum bar for column c.
+			// Bar fills from the bottom: rows graphH-barH[c] … graphH-1 are in bar.
+			inBar := barH[c] > 0 && r >= graphH-barH[c]
+
+			// Pick bar background tint: gradient green (bottom) → orange → red (top).
+			// barFrac = 0 at bottom of bar, ≈1 at top of bar.
+			var barBg lipgloss.Style
+			if inBar && barH[c] > 0 {
+				barFrac := float64(graphH-1-r) / float64(barH[c])
+				switch {
+				case barFrac < 0.55:
+					barBg = barBgGreen // bottom of bar → green
+				case barFrac < 0.82:
+					barBg = barBgOrange
+				default:
+					barBg = barBgRed // top of bar → red
+				}
+			}
+
 			switch ch {
 			case '*':
-				if gains[c] >= 0 {
-					rowStr.WriteString(curveAbove.Render("●"))
+				if inBar {
+					if gains[c] >= 0 {
+						rowStr.WriteString(barBg.Inherit(barCurveAbove).Render("●"))
+					} else {
+						rowStr.WriteString(barBg.Inherit(barCurveBelow).Render("●"))
+					}
 				} else {
-					rowStr.WriteString(curveBelow.Render("●"))
+					if gains[c] >= 0 {
+						rowStr.WriteString(curveAbove.Render("●"))
+					} else {
+						rowStr.WriteString(curveBelow.Render("●"))
+					}
 				}
 			case '-':
-				rowStr.WriteString(zeroStyle.Render("─"))
+				if inBar {
+					rowStr.WriteString(barBg.Render("─"))
+				} else {
+					rowStr.WriteString(zeroStyle.Render("─"))
+				}
 			default:
-				rowStr.WriteByte(' ')
+				if inBar {
+					rowStr.WriteString(barBg.Render(" "))
+				} else {
+					rowStr.WriteByte(' ')
+				}
 			}
 		}
 
@@ -588,6 +656,50 @@ func freqToCol(freqHz, graphW int) int {
 	return int(math.Round(t * float64(graphW-1)))
 }
 
+// interpolateBandLevel returns the smoothed amplitude level at the given
+// frequency by linearly interpolating between the nearest band centers in
+// log-frequency space. Used to paint the live spectrum overlay on the EQ graph.
+func interpolateBandLevel(freq float64, levels []float32) float32 {
+	n := len(levels)
+	if freq <= 0 || n == 0 {
+		return 0
+	}
+	logFreq := math.Log(freq)
+	centers := voice.BandCenters(n)
+	logCenters := make([]float64, n)
+	for i, c := range centers {
+		logCenters[i] = math.Log(float64(c))
+	}
+	if logFreq <= logCenters[0] {
+		return levels[0]
+	}
+	if logFreq >= logCenters[n-1] {
+		return levels[n-1]
+	}
+	for i := 0; i < n-1; i++ {
+		if logFreq >= logCenters[i] && logFreq <= logCenters[i+1] {
+			t := float32((logFreq - logCenters[i]) / (logCenters[i+1] - logCenters[i]))
+			return (1-t)*levels[i] + t*levels[i+1]
+		}
+	}
+	return 0
+}
+
+// currentBandLevels returns the peak band level across all 3 audio tracks
+// for the current active band count.
+func currentBandLevels() []float32 {
+	n := voice.NumBands()
+	out := make([]float32, n)
+	for track := 0; track < 3; track++ {
+		for b := 0; b < n; b++ {
+			if l := voice.GetTrackBandLevel(track, b); l > out[b] {
+				out[b] = l
+			}
+		}
+	}
+	return out
+}
+
 // ── Render ────────────────────────────────────────────────────────────────────
 
 func (s *AudioPlayerSettingsScreen) Render() string {
@@ -629,7 +741,8 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	if graphW < 10 {
 		graphW = 10
 	}
-	for _, row := range renderEQGraph(eq, graphW, graphH) {
+	levels := currentBandLevels()
+	for _, row := range renderEQGraph(eq, graphW, graphH, levels) {
 		headerLines = append(headerLines, row)
 	}
 	headerLines = append(headerLines, "")

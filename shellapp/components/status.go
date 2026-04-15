@@ -76,19 +76,22 @@ func (s *StatusComponent) meterTickCmd() tea.Cmd {
 // box width calculation is never thrown off.
 func (s *StatusComponent) trackMeterBars(track int) string {
 	t := float64(track)
-	// Small per-band wobble so bars have subtle independent animation even
-	// during sustained, spectrally-flat passages.
-	wobbles := [voice.NumBands]float32{
-		float32(0.04 * math.Sin(s.wobblePhase1+t*1.20)),
-		float32(0.03 * math.Sin(s.wobblePhase2+t*0.70)),
-		float32(0.02 * math.Sin(s.wobblePhase1*1.3+t*1.50)),
-		float32(0.02 * math.Sin(s.wobblePhase2*0.9+t*0.90)),
-		float32(0.03 * math.Sin(s.wobblePhase1+t*1.80)),
-		float32(0.04 * math.Sin(s.wobblePhase2*1.2+t*0.60)),
+	n := voice.NumBands()
+
+	// Small per-band wobble: subtle independent animation per band even during
+	// spectrally-flat passages. Generated for any band count via a simple formula
+	// so it works regardless of how many bands the terminal currently requests.
+	wobbles := make([]float32, n)
+	for i := range wobbles {
+		phase := float64(i) / float64(max(n-1, 1)) * math.Pi
+		amp := 0.02 + 0.02*math.Sin(phase) // 0.02–0.04 range
+		wobbles[i] = float32(amp * math.Sin(s.wobblePhase1+t+phase) * math.Cos(s.wobblePhase2+phase))
 	}
 
+	// Color thresholds: green → orange → red as level rises.
+	// Each braille cell is rendered individually so the color follows the level.
 	var sb strings.Builder
-	for band := 0; band < voice.NumBands; band++ {
+	for band := 0; band < n; band++ {
 		raw := voice.GetTrackBandLevel(track, band)
 		// 8× pre-gain + sqrt perceptual curve: bandpass output amplitude is
 		// typically 0.01–0.10 at normal listening volumes; this maps it to a
@@ -103,9 +106,19 @@ func (s *StatusComponent) trackMeterBars(track int) string {
 		} else if display > 1 {
 			display = 1
 		}
-		sb.WriteRune(meterCell(display))
+		cell := meterCell(display)
+		var hex string
+		switch {
+		case display < 0.55:
+			hex = "#4ade80" // green — low level
+		case display < 0.82:
+			hex = "#f97316" // orange — medium level
+		default:
+			hex = "#f87171" // red — high level
+		}
+		sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color(hex)).Render(string(cell)))
 	}
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#4ade80")).Render(sb.String())
+	return sb.String()
 }
 
 // meterCell maps a level in [0,1] to a braille pattern that fills from the
@@ -130,6 +143,15 @@ func meterCell(level float32) rune {
 func (s *StatusComponent) SetSize(width, height int) {
 	s.width = width
 	s.height = height
+	// Set the number of spectrum bands to fill roughly half the panel width.
+	// Each braille cell is 1 terminal column; the track line has 7 cols of fixed
+	// overhead (cur + icon + space + digit + space + 2 buffer), so the rest is
+	// split evenly between the meter and the "started by" label.
+	n := width/2 - 4
+	if n < 4 {
+		n = 4
+	}
+	voice.SetNumBands(n)
 }
 
 func (s *StatusComponent) Init() tea.Cmd { return nil }
@@ -306,15 +328,19 @@ func (s *StatusComponent) Render() string {
 		for i := 0; i < 3; i++ {
 			cur := "  "
 			if s.focused && i == s.trackCursor {
-				cur = c.Render("▶ ")
+				cur = c.Render("> ")
 			}
 			var icon string
 			if s.trackPlaying[i] {
-				icon = k.Render("🔊")
+				// "♪ " = 2 terminal cols (narrow Unicode note + space).
+				// Using a plain emoji like 🔊 is EAW="Wide" (2 terminal cols) but
+				// lipgloss counts it as 1, causing the box border to overflow.
+				icon = k.Render("♪ ")
 			} else {
+				// "• " = bullet + space = 2 terminal cols, always narrow.
 				icon = lipgloss.NewStyle().
 					Foreground(lipgloss.Color("#f87171")).
-					Render("⏹")
+					Render("• ")
 			}
 			// "Started by" and per-track level meter — both plain ASCII (zero ANSI)
 			// so lipgloss's box-fill width calculation is never thrown off by a
@@ -331,7 +357,7 @@ func (s *StatusComponent) Render() string {
 				} else {
 					raw = "  by: " + s.trackStartedBy[i]
 				}
-				maxByW := s.width - 15 // cur(2)+icon(2)+space(1)+digit(1)+meter(7)+buffer(2)
+				maxByW := s.width - 7 - voice.NumBands() - 2 // cur(2)+icon(2)+space+digit+space+N_bars+buffer(2)
 				if maxByW < 0 {
 					maxByW = 0
 				}
@@ -348,7 +374,7 @@ func (s *StatusComponent) Render() string {
 		// Stop All button
 		stopAllCur := "  "
 		if s.focused && s.trackCursor == cursorStopAll {
-			stopAllCur = c.Render("▶ ")
+			stopAllCur = c.Render("> ")
 		}
 		stopAllBtn := stopAllCur + styles.VoiceLeaveStyle.Render("⏹ Stop All") +
 			lipgloss.NewStyle().Background(lipgloss.Color("#450a0a")).Render(" ")
@@ -360,7 +386,7 @@ func (s *StatusComponent) Render() string {
 		for i, a := range s.aliases {
 			cur := "  "
 			if s.focused && s.trackCursor == cursorAliasBase+i {
-				cur = c.Render("▶ ")
+				cur = c.Render("> ")
 			}
 			var label string
 			if a.Name == "" {
@@ -377,7 +403,7 @@ func (s *StatusComponent) Render() string {
 		// Sound Alias button
 		soundAliasCur := "  "
 		if s.focused && s.trackCursor == cursorSoundAlias {
-			soundAliasCur = c.Render("▶ ")
+			soundAliasCur = c.Render("> ")
 		}
 		soundAliasBtn := lipgloss.NewStyle().
 			Background(lipgloss.Color("54")).
@@ -390,7 +416,7 @@ func (s *StatusComponent) Render() string {
 		// Del Sound Alias button
 		delSoundAliasCur := "  "
 		if s.focused && s.trackCursor == cursorDelSoundAlias {
-			delSoundAliasCur = c.Render("▶ ")
+			delSoundAliasCur = c.Render("> ")
 		}
 		delSoundAliasBtn := styles.VoiceLeaveStyle.Render("- Sound Alias") +
 			lipgloss.NewStyle().Background(lipgloss.Color("#450a0a")).Render(" ")

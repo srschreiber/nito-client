@@ -46,8 +46,60 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
-// NumBands is the number of frequency bands in the per-track spectrum meter.
-const NumBands = 6
+// MaxBands is the hard upper limit for the spectrum meter band count.
+// The underlying atomic storage is sized to this; only the first NumBands()
+// slots are written/read at runtime.
+const MaxBands = 32
+
+// numActiveBands is the runtime band count, set from the UI on each resize.
+// Defaults to 6.
+var numActiveBands atomic.Int32
+
+// bandCountVersion increments each time SetNumBands is called so eqReader can
+// detect a change and reinitialise its filter bank mid-playback.
+var bandCountVersion atomic.Uint64
+
+func init() { numActiveBands.Store(6) }
+
+// NumBands returns the current number of active spectrum bands.
+func NumBands() int { return int(numActiveBands.Load()) }
+
+// SetNumBands updates the active band count (clamped to [2, MaxBands]) and
+// bumps the version counter so eqReader rebuilds its filter bank.
+func SetNumBands(n int) {
+	if n < 2 {
+		n = 2
+	} else if n > MaxBands {
+		n = MaxBands
+	}
+	numActiveBands.Store(int32(n))
+	bandCountVersion.Add(1)
+}
+
+// BandCountVersion returns a monotonic counter that increments each time
+// SetNumBands is called. eqReader compares this to detect when to reinit.
+func BandCountVersion() uint64 { return bandCountVersion.Load() }
+
+// BandCenters returns n log-spaced centre frequencies (Hz) from 80 Hz to
+// 16 kHz. Covers sub-bass through air for any band count.
+func BandCenters(n int) []float32 {
+	if n <= 0 {
+		return nil
+	}
+	centers := make([]float32, n)
+	if n == 1 {
+		centers[0] = 1000
+		return centers
+	}
+	const lo, hi = 80.0, 16000.0
+	logLo := math.Log(lo)
+	logHi := math.Log(hi)
+	for i := 0; i < n; i++ {
+		t := float64(i) / float64(n-1)
+		centers[i] = float32(math.Exp(logLo + t*(logHi-logLo)))
+	}
+	return centers
+}
 
 const (
 	sampleRate       = 48000
@@ -228,10 +280,9 @@ var (
 	pannerCfg PannerSettings
 
 	// trackBandLevels stores per-frequency-band smoothed amplitude levels for
-	// each audio track (0–2) and each of NumBands frequency bands. Written by
-	// eqReader (one goroutine per active track), read by the status-panel meter
-	// tick. Value is fixed-point: actual_level * 65535.
-	trackBandLevels [3][NumBands]atomic.Uint32
+	// each audio track (0–2). Sized to MaxBands; only the first NumBands()
+	// slots are written at runtime. Value is fixed-point: actual_level * 65535.
+	trackBandLevels [3][MaxBands]atomic.Uint32
 )
 
 const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
@@ -394,7 +445,7 @@ func SetPannerSettings(s PannerSettings) {
 // GetTrackBandLevel returns the smoothed amplitude level for frequency band
 // `band` of track `i`, normalised to [0, 1]. Returns 0 for invalid indices.
 func GetTrackBandLevel(i, band int) float32 {
-	if i < 0 || i >= 3 || band < 0 || band >= NumBands {
+	if i < 0 || i >= 3 || band < 0 || band >= MaxBands {
 		return 0
 	}
 	return float32(trackBandLevels[i][band].Load()) / 65535.0
@@ -403,7 +454,7 @@ func GetTrackBandLevel(i, band int) float32 {
 // SetTrackBandLevel stores the smoothed amplitude level for the given
 // frequency band of track i (clamped to [0, 1]).
 func SetTrackBandLevel(i, band int, level float32) {
-	if i < 0 || i >= 3 || band < 0 || band >= NumBands {
+	if i < 0 || i >= 3 || band < 0 || band >= MaxBands {
 		return
 	}
 	if level < 0 {
