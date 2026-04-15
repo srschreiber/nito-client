@@ -91,7 +91,7 @@ func BandCenters(n int) []float32 {
 		centers[0] = 1000
 		return centers
 	}
-	const lo, hi = 80.0, 16000.0
+	const lo, hi = 20.0, 20000.0
 	logLo := math.Log(lo)
 	logHi := math.Log(hi)
 	for i := 0; i < n; i++ {
