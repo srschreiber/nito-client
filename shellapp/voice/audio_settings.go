@@ -11,18 +11,20 @@ import (
 )
 
 type AudioSettings struct {
-	MasterVolume      int  `yaml:"master_volume"`
-	ChatSFXOverride   int  `yaml:"chat_sfx_override"`
-	PlaybackOverride  int  `yaml:"playback_override"`
-	VoiceChatOverride int  `yaml:"voice_chat_override"`
-	DenoiseOutEnabled bool `yaml:"denoise_outbound"`
-	DenoiseInEnabled  bool `yaml:"denoise_inbound"`
-	JitterBuffer      bool `yaml:"jitter_buffer"`
-	PitchEnabled      bool `yaml:"pitch_enabled"`
-	PitchPos          int  `yaml:"pitch_pos"`
-	VibratoEnabled    bool `yaml:"vibrato_enabled"`
-	VibratoFreq       int  `yaml:"vibrato_freq"`
-	VibratoRange      int  `yaml:"vibrato_range"`
+	MasterVolume      int   `yaml:"master_volume"`
+	ChatSFXOverride   int   `yaml:"chat_sfx_override"`
+	PlaybackOverride  int   `yaml:"playback_override"`
+	VoiceChatOverride int   `yaml:"voice_chat_override"`
+	DenoiseOutEnabled bool  `yaml:"denoise_outbound"`
+	DenoiseInEnabled  bool  `yaml:"denoise_inbound"`
+	AECEnabled        *bool `yaml:"aec_enabled,omitempty"`
+	CompressorLevel   *int  `yaml:"compressor_level,omitempty"`
+	JitterBuffer      bool  `yaml:"jitter_buffer"`
+	PitchEnabled      bool  `yaml:"pitch_enabled"`
+	PitchPos          int   `yaml:"pitch_pos"`
+	VibratoEnabled    bool  `yaml:"vibrato_enabled"`
+	VibratoFreq       int   `yaml:"vibrato_freq"`
+	VibratoRange      int   `yaml:"vibrato_range"`
 }
 
 func audioSettingsPath() (string, error) {
@@ -67,6 +69,14 @@ func LoadAudioSettings() {
 	}
 	denoiseOutEnabled.Store(s.DenoiseOutEnabled)
 	denoiseInEnabled.Store(s.DenoiseInEnabled)
+	if s.AECEnabled != nil {
+		aecEnabled.Store(*s.AECEnabled)
+	}
+	if s.CompressorLevel != nil {
+		if cl := CompressorLevel(*s.CompressorLevel); cl >= CompressorOff && cl < CompressorCount {
+			compressorLevel.Store(int32(cl))
+		}
+	}
 	jitterBufferEnabled.Store(s.JitterBuffer)
 	pitchEnabled.Store(s.PitchEnabled)
 	if s.PitchPos >= 0 && s.PitchPos <= 24 {
@@ -96,6 +106,8 @@ func SaveAudioSettings() {
 		VoiceChatOverride: int(voiceChatOverride.Load()),
 		DenoiseOutEnabled: denoiseOutEnabled.Load(),
 		DenoiseInEnabled:  denoiseInEnabled.Load(),
+		AECEnabled:        func() *bool { v := aecEnabled.Load(); return &v }(),
+		CompressorLevel:   func() *int { v := int(compressorLevel.Load()); return &v }(),
 		JitterBuffer:      jitterBufferEnabled.Load(),
 		PitchEnabled:      pitchEnabled.Load(),
 		PitchPos:          int(pitchPos.Load()),

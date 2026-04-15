@@ -751,7 +751,9 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	bufferSizeSetter, ok := player.(oto.BufferSizeSetter)
 	if ok {
 		debugf("voice: setting player buffer size to 20ms")
-		bufferSizeSetter.SetBufferSize(opusFrameSamples * numChannels * 2 * 2) // 2 frames = 40 ms
+		// opusFrameSamples(960) × 1 ch × 2 bytes/sample × 2 (stereo upmix) = 3840 bytes.
+		// oto is stereo int16 at 48 kHz → 192000 bytes/s, so 3840 bytes = 20 ms.
+		bufferSizeSetter.SetBufferSize(opusFrameSamples * numChannels * 2 * 2) // 20 ms
 	} else {
 		debugf("voice: player does not support buffer size setter")
 	}
@@ -1282,10 +1284,12 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 	if pitch != nil {
 		defer pitch.close()
 	}
-	// note: brokers are rate-limited, so messing with this value can result in
-	// dropped packets
-	enc.setBitrate(24000)
-	enc.setPacketLossPerc(1)
+	// 64 kbps matches Discord's default voice channel bitrate.
+	// Note: the broker rate-limits per-session, so don't go above 96 kbps.
+	enc.setBitrate(64000)
+	// 5% reflects typical internet packet loss; setting this too low (e.g. 1%)
+	// causes Opus to under-provision in-band FEC and hurts loss resilience.
+	enc.setPacketLossPerc(5)
 	enc.setDTX(true)
 
 	reader := audioTrack.(*media.AudioTrack).NewReader(false)
