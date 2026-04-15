@@ -8608,3 +8608,1780 @@ Run 'room-invites' to list invitations, 'room-accept -r 49afa434-d931-46c1-814b-
 21:53:31 [INFO] joined room 385fcf4d-dc8c-422a-ba61-e53cf0a6c28e
 21:59:29 [INFO] joined room 385fcf4d-dc8c-422a-ba61-e53cf0a6c28e
 22:00:30 [INFO] joined room 385fcf4d-dc8c-422a-ba61-e53cf0a6c28e
+09:47:28 [INFO] connected to broker oregon.nito-broker.com as sammac
+09:47:29 [INFO] reconnected to broker
+09:47:31 [INFO] connected to broker oregon.nito-broker.com as sammac
+09:47:31 [INFO] reconnected to broker
+09:48:10 [INFO] starting test audio
+09:48:10 [INFO] voice: join start roomID=self
+09:48:10 [INFO] voice: keys ok
+09:48:10 [INFO] voice: peer connection created
+09:48:10 [INFO] voice: initialising audio output
+09:48:10 [INFO] voice: audio output ready
+09:48:10 [INFO] voice: creating player
+09:48:10 [INFO] voice: setting player buffer size to 20ms
+09:48:10 [INFO] voice: starting player
+09:48:10 [INFO] voice: player started
+09:48:10 [INFO] voice: creating offer
+09:48:10 [INFO] voice: setting local description
+09:48:10 [INFO] voice: waiting for ICE gathering
+09:48:15 [INFO] voice: ICE gathering complete
+09:48:15 [INFO] voice: sending offer to broker
+09:48:15 [INFO] voice: offer sent, waiting for broker answer
+09:48:15 [INFO] voice: remote description set, join complete
+09:48:15 [INFO] captureAndSend: selected="" available inputs=4 [68f6263b-9096-4e28-a148-1be02ee10045 42105d23-95eb-401b-94a4-dbb6c09fea1d aff6e6b4-c9cc-4771-9f07-3f6d088eba0c 9e46e93f-2593-4b16-b10f-7a36b6d876a1]
+09:48:16 [INFO] voice: OnTrack fired, ssrc=938855511
+09:48:24 [INFO] stopping test audio
+09:48:36 [INFO] starting test audio
+09:48:36 [INFO] voice: join start roomID=self
+09:48:36 [INFO] voice: keys ok
+09:48:36 [INFO] voice: peer connection created
+09:48:36 [INFO] voice: initialising audio output
+09:48:36 [INFO] voice: audio output ready
+09:48:36 [INFO] voice: creating player
+09:48:36 [INFO] voice: setting player buffer size to 20ms
+09:48:36 [INFO] voice: starting player
+09:48:36 [INFO] voice: player started
+09:48:36 [INFO] voice: creating offer
+09:48:36 [INFO] voice: setting local description
+09:48:36 [INFO] voice: waiting for ICE gathering
+09:48:41 [INFO] voice: ICE gathering complete
+09:48:41 [INFO] voice: sending offer to broker
+09:48:41 [INFO] voice: offer sent, waiting for broker answer
+09:48:41 [INFO] voice: remote description set, join complete
+09:48:41 [INFO] captureAndSend: selected="" available inputs=4 [42105d23-95eb-401b-94a4-dbb6c09fea1d aff6e6b4-c9cc-4771-9f07-3f6d088eba0c 9e46e93f-2593-4b16-b10f-7a36b6d876a1 68f6263b-9096-4e28-a148-1be02ee10045]
+09:48:42 [INFO] voice: OnTrack fired, ssrc=2521383947
+09:49:11 [INFO] stopping test audio
+09:49:12 [INFO] starting test audio
+09:49:12 [INFO] voice: join start roomID=self
+09:49:12 [INFO] voice: keys ok
+09:49:12 [INFO] voice: peer connection created
+09:49:12 [INFO] voice: initialising audio output
+09:49:12 [INFO] voice: audio output ready
+09:49:12 [INFO] voice: creating player
+09:49:12 [INFO] voice: setting player buffer size to 20ms
+09:49:12 [INFO] voice: starting player
+09:49:12 [INFO] voice: player started
+09:49:12 [INFO] voice: creating offer
+09:49:12 [INFO] voice: setting local description
+09:49:12 [INFO] voice: waiting for ICE gathering
+09:49:17 [INFO] voice: ICE gathering complete
+09:49:17 [INFO] voice: sending offer to broker
+09:49:17 [INFO] voice: offer sent, waiting for broker answer
+09:49:17 [INFO] voice: remote description set, join complete
+09:49:17 [INFO] captureAndSend: selected="" available inputs=4 [68f6263b-9096-4e28-a148-1be02ee10045 42105d23-95eb-401b-94a4-dbb6c09fea1d aff6e6b4-c9cc-4771-9f07-3f6d088eba0c 9e46e93f-2593-4b16-b10f-7a36b6d876a1]
+09:49:18 [INFO] voice: OnTrack fired, ssrc=343705796
+09:49:21 [INFO] stopping test audio
+09:51:41 [INFO] audio input set to: Built-in Headphone Input
+09:51:45 [INFO] starting test audio
+09:51:45 [INFO] voice: join start roomID=self
+09:51:45 [INFO] voice: keys ok
+09:51:45 [INFO] voice: peer connection created
+09:51:45 [INFO] voice: initialising audio output
+09:51:45 [INFO] voice: audio output ready
+09:51:45 [INFO] voice: creating player
+09:51:45 [INFO] voice: setting player buffer size to 20ms
+09:51:45 [INFO] voice: starting player
+09:51:45 [INFO] voice: player started
+09:51:45 [INFO] voice: creating offer
+09:51:45 [INFO] voice: setting local description
+09:51:45 [INFO] voice: waiting for ICE gathering
+09:51:50 [INFO] voice: ICE gathering complete
+09:51:50 [INFO] voice: sending offer to broker
+09:51:50 [INFO] voice: offer sent, waiting for broker answer
+09:51:50 [INFO] voice: remote description set, join complete
+09:51:50 [INFO] captureAndSend: selected="81d3b019-9a96-492e-86ff-16cf8286752d" available inputs=5 [e3e7f43d-43ac-402a-a34e-ba2f85da7b41 6b6478bc-8eff-4168-b926-96c39ae6ca4d e8886132-10ee-46d2-9938-0090a8e9f444 4b46b010-4c06-4ef1-8e6c-fa2247649b45 81d3b019-9a96-492e-86ff-16cf8286752d]
+09:51:51 [INFO] voice: OnTrack fired, ssrc=2533824034
+10:02:17 [INFO] starting test audio
+10:02:17 [INFO] voice: join start roomID=self
+10:02:17 [INFO] voice: keys ok
+10:02:17 [INFO] voice: peer connection created
+10:02:17 [INFO] voice: initialising audio output
+10:02:17 [INFO] voice: audio output ready
+10:02:17 [INFO] voice: creating player
+10:02:17 [INFO] voice: setting player buffer size to 20ms
+10:02:17 [INFO] voice: starting player
+10:02:17 [INFO] voice: player started
+10:02:17 [INFO] voice: creating offer
+10:02:17 [INFO] voice: setting local description
+10:02:17 [INFO] voice: waiting for ICE gathering
+10:02:22 [INFO] voice: ICE gathering complete
+10:02:22 [INFO] voice: sending offer to broker
+10:02:22 [INFO] voice: offer sent, waiting for broker answer
+10:02:22 [INFO] voice: remote description set, join complete
+10:02:22 [INFO] captureAndSend: selected="" available inputs=4 [01a0c217-f693-4c3d-a88a-3552f7dd4ae8 3feab7c6-a01f-4edb-8e51-e8701d24c195 e593f9fa-e963-4c9d-81c9-e54b1bc92b38 d73c1551-67ba-4e0d-8c2b-4e41bba62a03]
+10:02:23 [INFO] voice: OnTrack fired, ssrc=1552440712
+10:12:40 [INFO] starting test audio
+10:12:40 [INFO] voice: join start roomID=self
+10:12:40 [INFO] voice: keys ok
+10:12:40 [INFO] voice: peer connection created
+10:12:40 [INFO] voice: initialising audio output
+10:12:40 [INFO] voice: audio output ready
+10:12:40 [INFO] voice: creating player
+10:12:40 [INFO] voice: setting player buffer size to 20ms
+10:12:40 [INFO] voice: starting player
+10:12:40 [INFO] voice: player started
+10:12:40 [INFO] voice: creating offer
+10:12:40 [INFO] voice: setting local description
+10:12:40 [INFO] voice: waiting for ICE gathering
+10:12:45 [INFO] voice: ICE gathering complete
+10:12:45 [INFO] voice: sending offer to broker
+10:12:45 [INFO] voice: offer sent, waiting for broker answer
+10:12:45 [INFO] voice: remote description set, join complete
+10:12:45 [INFO] captureAndSend: selected="" available inputs=4 [d7148781-5229-4b60-9396-2d024662cbe7 25f9e1ac-c4bc-4a31-a69c-8bf89e6f0d87 9d00e155-aac2-41b6-971d-6bc2d5728c6b c7eadc11-e61c-4ede-b6f0-00f43eebbe11]
+10:12:46 [INFO] voice: OnTrack fired, ssrc=571838971
+10:16:16 [INFO] starting test audio
+10:16:16 [INFO] voice: join start roomID=self
+10:16:16 [INFO] voice: keys ok
+10:16:16 [INFO] voice: peer connection created
+10:16:16 [INFO] voice: initialising audio output
+10:16:16 [INFO] voice: audio output ready
+10:16:16 [INFO] voice: creating player
+10:16:16 [INFO] voice: setting player buffer size to 20ms
+10:16:16 [INFO] voice: starting player
+10:16:16 [INFO] voice: player started
+10:16:16 [INFO] voice: creating offer
+10:16:16 [INFO] voice: setting local description
+10:16:16 [INFO] voice: waiting for ICE gathering
+10:16:21 [INFO] voice: ICE gathering complete
+10:16:21 [INFO] voice: sending offer to broker
+10:16:21 [INFO] voice: offer sent, waiting for broker answer
+10:16:21 [INFO] voice: remote description set, join complete
+10:16:21 [INFO] captureAndSend: selected="" available inputs=4 [6684e607-84be-463b-b147-10b8ac86c8f5 e21e25e5-4f39-4ffb-bc40-e8281b3e2d66 b3522955-79f9-430b-9180-de60158d37dc 788d8af3-cfb5-4d61-915e-7c742cae4741]
+10:16:22 [INFO] voice: OnTrack fired, ssrc=3437442352
+10:17:16 [INFO] starting test audio
+10:17:16 [INFO] voice: join start roomID=self
+10:17:16 [INFO] voice: keys ok
+10:17:16 [INFO] voice: peer connection created
+10:17:16 [INFO] voice: initialising audio output
+10:17:16 [INFO] voice: audio output ready
+10:17:16 [INFO] voice: creating player
+10:17:16 [INFO] voice: setting player buffer size to 20ms
+10:17:16 [INFO] voice: starting player
+10:17:16 [INFO] voice: player started
+10:17:16 [INFO] voice: creating offer
+10:17:16 [INFO] voice: setting local description
+10:17:16 [INFO] voice: waiting for ICE gathering
+10:17:21 [INFO] voice: ICE gathering complete
+10:17:21 [INFO] voice: sending offer to broker
+10:17:21 [INFO] voice: offer sent, waiting for broker answer
+10:17:21 [INFO] voice: remote description set, join complete
+10:17:21 [INFO] captureAndSend: selected="" available inputs=4 [7b4e5e91-6c96-4400-bf9d-0710713d0c1d 219bae17-96f3-493f-ad64-e06e9b6e03b7 c9bb3db6-6bda-4852-8d0c-4ea207ef241e 77cecc59-0cb4-43ea-a711-93bac4e2c237]
+10:17:22 [INFO] voice: OnTrack fired, ssrc=3712824928
+10:18:38 [INFO] starting test audio
+10:18:38 [INFO] voice: join start roomID=self
+10:18:38 [INFO] voice: keys ok
+10:18:38 [INFO] voice: peer connection created
+10:18:38 [INFO] voice: initialising audio output
+10:18:38 [INFO] voice: audio output ready
+10:18:38 [INFO] voice: creating player
+10:18:38 [INFO] voice: setting player buffer size to 20ms
+10:18:38 [INFO] voice: starting player
+10:18:38 [INFO] voice: player started
+10:18:38 [INFO] voice: creating offer
+10:18:38 [INFO] voice: setting local description
+10:18:38 [INFO] voice: waiting for ICE gathering
+10:18:43 [INFO] voice: ICE gathering complete
+10:18:43 [INFO] voice: sending offer to broker
+10:18:43 [INFO] voice: offer sent, waiting for broker answer
+10:18:43 [INFO] voice: remote description set, join complete
+10:18:43 [INFO] captureAndSend: selected="" available inputs=4 [7b93e763-3a94-4df7-bbc7-5f98c7a3393d 3bd645b9-4976-4101-af58-9fafb88ace2f cccf411a-555b-4017-9a90-3ae01534a8ff 5ea412de-6229-4b90-ac61-e13d95c06aff]
+10:18:44 [INFO] voice: OnTrack fired, ssrc=1889790229
+10:19:12 [INFO] starting test audio
+10:19:12 [INFO] voice: join start roomID=self
+10:19:12 [INFO] voice: keys ok
+10:19:12 [INFO] voice: peer connection created
+10:19:12 [INFO] voice: initialising audio output
+10:19:12 [INFO] voice: audio output ready
+10:19:12 [INFO] voice: creating player
+10:19:12 [INFO] voice: setting player buffer size to 20ms
+10:19:12 [INFO] voice: starting player
+10:19:12 [INFO] voice: player started
+10:19:12 [INFO] voice: creating offer
+10:19:12 [INFO] voice: setting local description
+10:19:12 [INFO] voice: waiting for ICE gathering
+10:19:17 [INFO] voice: ICE gathering complete
+10:19:17 [INFO] voice: sending offer to broker
+10:19:17 [INFO] voice: offer sent, waiting for broker answer
+10:19:17 [INFO] voice: remote description set, join complete
+10:19:17 [INFO] captureAndSend: selected="" available inputs=5 [b9bed71c-b288-4eff-928e-c2080228b768 34ad4328-289b-4fb4-906b-e3fb96a9baee d6429797-fd32-4ccd-a794-6be50dabd743 f4b97ef9-3a67-4bec-8a65-5846323ab225 2678b108-ec13-4f93-9170-ce5a8eafdda7]
+10:19:18 [INFO] voice: OnTrack fired, ssrc=2219541769
+10:23:01 [INFO] starting test audio
+10:23:01 [INFO] voice: join start roomID=self
+10:23:01 [INFO] voice: keys ok
+10:23:01 [INFO] voice: peer connection created
+10:23:01 [INFO] voice: initialising audio output
+10:23:01 [INFO] voice: audio output ready
+10:23:01 [INFO] voice: creating player
+10:23:01 [INFO] voice: setting player buffer size to 20ms
+10:23:01 [INFO] voice: starting player
+10:23:01 [INFO] voice: player started
+10:23:01 [INFO] voice: creating offer
+10:23:01 [INFO] voice: setting local description
+10:23:01 [INFO] voice: waiting for ICE gathering
+10:23:06 [INFO] voice: ICE gathering complete
+10:23:06 [INFO] voice: sending offer to broker
+10:23:06 [INFO] voice: offer sent, waiting for broker answer
+10:23:06 [INFO] voice: remote description set, join complete
+10:23:06 [INFO] captureAndSend: selected="" available inputs=5 [b2d68f3c-7c92-4f0c-83b3-6347040acc8c 5de07e59-fe7d-43f8-a468-b53f2b2867ad c8d1ac4b-226b-4e22-8cee-51c7a723a5bf 7accdb96-c115-4aa2-93da-594b97601ad1 6d69c819-74a7-460c-b428-73dc6f590a07]
+10:23:07 [INFO] voice: OnTrack fired, ssrc=3457522987
+10:23:13 [INFO] stopping test audio
+10:23:24 [INFO] starting test audio
+10:23:24 [INFO] voice: join start roomID=self
+10:23:24 [INFO] voice: keys ok
+10:23:24 [INFO] voice: peer connection created
+10:23:24 [INFO] voice: initialising audio output
+10:23:24 [INFO] voice: audio output ready
+10:23:24 [INFO] voice: creating player
+10:23:24 [INFO] voice: setting player buffer size to 20ms
+10:23:24 [INFO] voice: starting player
+10:23:24 [INFO] voice: player started
+10:23:24 [INFO] voice: creating offer
+10:23:24 [INFO] voice: setting local description
+10:23:24 [INFO] voice: waiting for ICE gathering
+10:23:29 [INFO] voice: ICE gathering complete
+10:23:29 [INFO] voice: sending offer to broker
+10:23:29 [INFO] voice: offer sent, waiting for broker answer
+10:23:29 [INFO] voice: remote description set, join complete
+10:23:29 [INFO] captureAndSend: selected="" available inputs=4 [49238d92-c1ca-4119-a61b-e829d6b54bb2 21ac448b-c34b-4fa0-83f4-d3f45085b612 8cdb66ab-9dae-4bff-9a38-47478e4981f9 622483b3-92ad-405f-a588-3da5ef749d9e]
+10:23:30 [INFO] voice: OnTrack fired, ssrc=3833594146
+10:25:26 [INFO] starting test audio
+10:25:26 [INFO] voice: join start roomID=self
+10:25:26 [INFO] voice: keys ok
+10:25:26 [INFO] voice: peer connection created
+10:25:26 [INFO] voice: initialising audio output
+10:25:26 [INFO] voice: audio output ready
+10:25:26 [INFO] voice: creating player
+10:25:26 [INFO] voice: setting player buffer size to 20ms
+10:25:26 [INFO] voice: starting player
+10:25:26 [INFO] voice: player started
+10:25:26 [INFO] voice: creating offer
+10:25:26 [INFO] voice: setting local description
+10:25:26 [INFO] voice: waiting for ICE gathering
+10:25:33 [INFO] voice: ICE gathering complete
+10:25:33 [INFO] voice: sending offer to broker
+10:25:33 [INFO] voice: offer sent, waiting for broker answer
+10:25:33 [INFO] voice: remote description set, join complete
+10:25:33 [INFO] captureAndSend: selected="" available inputs=4 [19da5d30-ef75-4ab2-9a6d-9bff16073521 b07c899f-00d9-41fe-94f5-b13247b4c3c3 e259338d-60cd-4d53-8abc-2528846ac21a 412087ef-88e0-4393-9c75-2be684b1c8e7]
+10:25:34 [INFO] voice: OnTrack fired, ssrc=2021028095
+10:25:38 [INFO] stopping test audio
+10:26:37 [INFO] starting test audio
+10:26:37 [INFO] voice: join start roomID=self
+10:26:37 [INFO] voice: keys ok
+10:26:37 [INFO] voice: peer connection created
+10:26:37 [INFO] voice: initialising audio output
+10:26:37 [INFO] voice: audio output ready
+10:26:37 [INFO] voice: creating player
+10:26:37 [INFO] voice: setting player buffer size to 20ms
+10:26:37 [INFO] voice: starting player
+10:26:37 [INFO] voice: player started
+10:26:37 [INFO] voice: creating offer
+10:26:37 [INFO] voice: setting local description
+10:26:37 [INFO] voice: waiting for ICE gathering
+10:26:42 [INFO] voice: ICE gathering complete
+10:26:42 [INFO] voice: sending offer to broker
+10:26:42 [INFO] voice: offer sent, waiting for broker answer
+10:26:42 [INFO] voice: remote description set, join complete
+10:26:42 [INFO] captureAndSend: selected="" available inputs=4 [42d3dac5-03d3-4583-a272-018e95e39f6f 56ff7504-78d1-4f3c-bd8e-f52dd5a3e03a f323332c-391a-4c6e-b292-4b0c84f82327 dbc1c736-d64f-452c-83a8-2470c0fa03fb]
+10:26:43 [INFO] voice: OnTrack fired, ssrc=4253903930
+10:26:57 [INFO] stopping test audio
+10:27:00 [INFO] starting test audio
+10:27:00 [INFO] voice: join start roomID=self
+10:27:00 [INFO] voice: keys ok
+10:27:00 [INFO] voice: peer connection created
+10:27:00 [INFO] voice: initialising audio output
+10:27:00 [INFO] voice: audio output ready
+10:27:00 [INFO] voice: creating player
+10:27:00 [INFO] voice: setting player buffer size to 20ms
+10:27:00 [INFO] voice: starting player
+10:27:00 [INFO] voice: player started
+10:27:00 [INFO] voice: creating offer
+10:27:00 [INFO] voice: setting local description
+10:27:00 [INFO] voice: waiting for ICE gathering
+10:27:05 [INFO] voice: ICE gathering complete
+10:27:05 [INFO] voice: sending offer to broker
+10:27:05 [INFO] voice: offer sent, waiting for broker answer
+10:27:05 [INFO] voice: remote description set, join complete
+10:27:05 [INFO] captureAndSend: selected="" available inputs=4 [42d3dac5-03d3-4583-a272-018e95e39f6f 56ff7504-78d1-4f3c-bd8e-f52dd5a3e03a f323332c-391a-4c6e-b292-4b0c84f82327 dbc1c736-d64f-452c-83a8-2470c0fa03fb]
+10:27:06 [INFO] voice: OnTrack fired, ssrc=2264847495
+10:27:12 [INFO] stopping test audio
+10:32:54 [INFO] starting test audio
+10:32:54 [INFO] voice: join start roomID=self
+10:32:54 [INFO] voice: keys ok
+10:32:54 [INFO] voice: peer connection created
+10:32:54 [INFO] voice: initialising audio output
+10:32:54 [INFO] voice: audio output ready
+10:32:54 [INFO] voice: creating player
+10:32:54 [INFO] voice: setting player buffer size to 20ms
+10:32:54 [INFO] voice: starting player
+10:32:54 [INFO] voice: player started
+10:32:54 [INFO] voice: creating offer
+10:32:54 [INFO] voice: setting local description
+10:32:54 [INFO] voice: waiting for ICE gathering
+10:32:59 [INFO] voice: ICE gathering complete
+10:32:59 [INFO] voice: sending offer to broker
+10:32:59 [INFO] voice: offer sent, waiting for broker answer
+10:32:59 [INFO] voice: remote description set, join complete
+10:32:59 [INFO] captureAndSend: selected="" available inputs=4 [9e3d9216-db5d-4163-99a8-2f7f750f0b03 865612a1-3316-4f1e-8489-fab038706f8a 9c41cb88-2f26-4a76-944d-d684fd5dfb61 20c29646-d06f-43de-b96e-efe301c8b9e3]
+10:33:00 [INFO] voice: OnTrack fired, ssrc=1897761452
+10:33:46 [INFO] starting test audio
+10:33:46 [INFO] voice: join start roomID=self
+10:33:46 [INFO] voice: keys ok
+10:33:46 [INFO] voice: peer connection created
+10:33:46 [INFO] voice: initialising audio output
+10:33:46 [INFO] voice: audio output ready
+10:33:46 [INFO] voice: creating player
+10:33:46 [INFO] voice: setting player buffer size to 20ms
+10:33:46 [INFO] voice: starting player
+10:33:46 [INFO] voice: player started
+10:33:46 [INFO] voice: creating offer
+10:33:46 [INFO] voice: setting local description
+10:33:46 [INFO] voice: waiting for ICE gathering
+10:33:51 [INFO] voice: ICE gathering complete
+10:33:51 [INFO] voice: sending offer to broker
+10:33:51 [INFO] voice: offer sent, waiting for broker answer
+10:33:51 [INFO] voice: remote description set, join complete
+10:33:51 [INFO] captureAndSend: selected="" available inputs=4 [7c132c88-f7b7-4638-9705-ee4645bbdf47 7a6d80d5-ed82-47bd-bac1-75cf2958ac4e 24418b36-4fb7-4ab9-8251-3c724075ed36 1dfc3f3e-1a5e-4657-96b3-3521854bb8de]
+10:33:52 [INFO] voice: OnTrack fired, ssrc=2736952228
+10:35:00 [INFO] starting test audio
+10:35:00 [INFO] voice: join start roomID=self
+10:35:00 [INFO] voice: keys ok
+10:35:00 [INFO] voice: peer connection created
+10:35:00 [INFO] voice: initialising audio output
+10:35:00 [INFO] voice: audio output ready
+10:35:00 [INFO] voice: creating player
+10:35:00 [INFO] voice: setting player buffer size to 20ms
+10:35:00 [INFO] voice: starting player
+10:35:00 [INFO] voice: player started
+10:35:00 [INFO] voice: creating offer
+10:35:00 [INFO] voice: setting local description
+10:35:00 [INFO] voice: waiting for ICE gathering
+10:35:05 [INFO] voice: ICE gathering complete
+10:35:05 [INFO] voice: sending offer to broker
+10:35:05 [INFO] voice: offer sent, waiting for broker answer
+10:35:05 [INFO] voice: remote description set, join complete
+10:35:05 [INFO] captureAndSend: selected="" available inputs=4 [618f0834-a44c-4f54-953b-8411922e0ffb 41d08c58-b9d8-4e81-8dd1-fcd6a14a0519 c8f5b673-cb61-4146-af0a-853bd835e6d1 305e1549-b28e-47b4-a2fb-0288c9c68d07]
+10:35:06 [INFO] voice: OnTrack fired, ssrc=1843029788
+10:37:54 [INFO] starting test audio
+10:37:54 [INFO] voice: join start roomID=self
+10:37:54 [INFO] voice: keys ok
+10:37:54 [INFO] voice: peer connection created
+10:37:54 [INFO] voice: initialising audio output
+10:37:54 [INFO] voice: audio output ready
+10:37:54 [INFO] voice: creating player
+10:37:54 [INFO] voice: setting player buffer size to 20ms
+10:37:54 [INFO] voice: starting player
+10:37:54 [INFO] voice: player started
+10:37:54 [INFO] voice: creating offer
+10:37:54 [INFO] voice: setting local description
+10:37:54 [INFO] voice: waiting for ICE gathering
+10:37:59 [INFO] voice: ICE gathering complete
+10:37:59 [INFO] voice: sending offer to broker
+10:37:59 [INFO] voice: offer sent, waiting for broker answer
+10:37:59 [INFO] voice: remote description set, join complete
+10:37:59 [INFO] captureAndSend: selected="" available inputs=4 [67e68aa5-f6f8-4244-a698-4bfd1e0c35cb 74b4d45b-2d3d-4e67-9160-d77f71fb8dc5 f94d5e6f-2327-4340-85a0-b3d175e6390f fc449bd2-3434-4bc0-8fd0-baf94987885b]
+10:38:00 [INFO] voice: OnTrack fired, ssrc=389419727
+10:38:12 [INFO] stopping test audio
+10:38:15 [INFO] starting test audio
+10:38:15 [INFO] voice: join start roomID=self
+10:38:15 [INFO] voice: keys ok
+10:38:15 [INFO] voice: peer connection created
+10:38:15 [INFO] voice: initialising audio output
+10:38:15 [INFO] voice: audio output ready
+10:38:15 [INFO] voice: creating player
+10:38:15 [INFO] voice: setting player buffer size to 20ms
+10:38:15 [INFO] voice: starting player
+10:38:15 [INFO] voice: player started
+10:38:15 [INFO] voice: creating offer
+10:38:15 [INFO] voice: setting local description
+10:38:15 [INFO] voice: waiting for ICE gathering
+10:38:20 [INFO] voice: ICE gathering complete
+10:38:20 [INFO] voice: sending offer to broker
+10:38:20 [INFO] voice: offer sent, waiting for broker answer
+10:38:20 [INFO] voice: remote description set, join complete
+10:38:20 [INFO] captureAndSend: selected="" available inputs=4 [fc449bd2-3434-4bc0-8fd0-baf94987885b 67e68aa5-f6f8-4244-a698-4bfd1e0c35cb 74b4d45b-2d3d-4e67-9160-d77f71fb8dc5 f94d5e6f-2327-4340-85a0-b3d175e6390f]
+10:38:21 [INFO] voice: OnTrack fired, ssrc=1768534443
+10:44:35 [INFO] starting test audio
+10:44:35 [INFO] voice: join start roomID=self
+10:44:35 [INFO] voice: keys ok
+10:44:35 [INFO] voice: peer connection created
+10:44:35 [INFO] voice: initialising audio output
+10:44:35 [INFO] voice: audio output ready
+10:44:35 [INFO] voice: creating player
+10:44:35 [INFO] voice: setting player buffer size to 20ms
+10:44:35 [INFO] voice: starting player
+10:44:35 [INFO] voice: player started
+10:44:35 [INFO] voice: creating offer
+10:44:35 [INFO] voice: setting local description
+10:44:35 [INFO] voice: waiting for ICE gathering
+10:44:40 [INFO] voice: ICE gathering complete
+10:44:40 [INFO] voice: sending offer to broker
+10:44:40 [INFO] voice: offer sent, waiting for broker answer
+10:44:40 [INFO] voice: remote description set, join complete
+10:44:40 [INFO] captureAndSend: selected="" available inputs=4 [583f94e1-769b-403b-a18c-b723e635cddf b397a507-0a91-4d55-b227-a257c23080c2 0b6f8f47-031e-4b72-b31e-591ac581a39d 42e35ffb-7c47-4363-b48e-d9fd59bb48e6]
+10:44:41 [INFO] voice: OnTrack fired, ssrc=2503419855
+10:58:08 [INFO] starting test audio
+10:58:08 [INFO] voice: join start roomID=self
+10:58:08 [INFO] voice: keys ok
+10:58:08 [INFO] voice: peer connection created
+10:58:08 [INFO] voice: initialising audio output
+10:58:08 [INFO] voice: audio output ready
+10:58:08 [INFO] voice: creating player
+10:58:08 [INFO] voice: setting player buffer size to 20ms
+10:58:08 [INFO] voice: starting player
+10:58:08 [INFO] voice: player started
+10:58:08 [INFO] voice: creating offer
+10:58:08 [INFO] voice: setting local description
+10:58:08 [INFO] voice: waiting for ICE gathering
+10:58:13 [INFO] voice: ICE gathering complete
+10:58:13 [INFO] voice: sending offer to broker
+10:58:13 [INFO] voice: offer sent, waiting for broker answer
+10:58:13 [INFO] voice: remote description set, join complete
+10:58:13 [INFO] captureAndSend: selected="" available inputs=4 [b9b461b2-9ee9-47c8-9d12-f8f434cc9e99 b3f7dad5-d3e3-42a2-8e26-c33b50ed5e07 cfdb3f7b-80e7-4e6b-8f66-471fb8fdaea4 0d021f04-344f-45bb-b2b3-dfd83c0cc24c]
+10:58:14 [INFO] voice: OnTrack fired, ssrc=1909398642
+11:01:17 [INFO] starting test audio
+11:01:17 [INFO] voice: join start roomID=self
+11:01:17 [INFO] voice: keys ok
+11:01:17 [INFO] voice: peer connection created
+11:01:17 [INFO] voice: initialising audio output
+11:01:17 [INFO] voice: audio output ready
+11:01:17 [INFO] voice: creating player
+11:01:17 [INFO] voice: setting player buffer size to 20ms
+11:01:17 [INFO] voice: starting player
+11:01:17 [INFO] voice: player started
+11:01:17 [INFO] voice: creating offer
+11:01:17 [INFO] voice: setting local description
+11:01:17 [INFO] voice: waiting for ICE gathering
+11:01:22 [INFO] voice: ICE gathering complete
+11:01:22 [INFO] voice: sending offer to broker
+11:01:22 [INFO] voice: offer sent, waiting for broker answer
+11:01:22 [INFO] voice: remote description set, join complete
+11:01:22 [INFO] captureAndSend: selected="" available inputs=4 [17c6c5a9-7357-471a-a1ca-2db0e5335fbf 8420c261-c130-4746-88ba-95dba99b638e f47c0dd7-ab14-4b5e-a8c0-73cf0d55dd06 6dc29b5b-dec2-4eb1-90b4-8a1e43b56325]
+11:01:23 [INFO] voice: OnTrack fired, ssrc=2912203213
+11:03:51 [INFO] starting test audio
+11:03:51 [INFO] voice: join start roomID=self
+11:03:51 [INFO] voice: keys ok
+11:03:51 [INFO] voice: peer connection created
+11:03:51 [INFO] voice: initialising audio output
+11:03:52 [INFO] voice: audio output ready
+11:03:52 [INFO] voice: creating player
+11:03:52 [INFO] voice: setting player buffer size to 20ms
+11:03:52 [INFO] voice: starting player
+11:03:52 [INFO] voice: player started
+11:03:52 [INFO] voice: creating offer
+11:03:52 [INFO] voice: setting local description
+11:03:52 [INFO] voice: waiting for ICE gathering
+11:03:57 [INFO] voice: ICE gathering complete
+11:03:57 [INFO] voice: sending offer to broker
+11:03:57 [INFO] voice: offer sent, waiting for broker answer
+11:03:57 [INFO] voice: remote description set, join complete
+11:03:57 [INFO] captureAndSend: selected="" available inputs=4 [213111b5-b141-47b4-b5fc-1d8c1e78e21e 3900b932-2507-4bc8-b6d7-8ecbbd9c5615 d2633dfd-17ac-4a19-9ecc-5fb82ef2149a 949b2f34-b28d-4b1a-a9c1-c23b6dec5899]
+11:03:57 [INFO] voice: OnTrack fired, ssrc=487495016
+11:05:02 [INFO] starting test audio
+11:05:02 [INFO] voice: join start roomID=self
+11:05:02 [INFO] voice: keys ok
+11:05:02 [INFO] voice: peer connection created
+11:05:02 [INFO] voice: initialising audio output
+11:05:02 [INFO] voice: audio output ready
+11:05:02 [INFO] voice: creating player
+11:05:02 [INFO] voice: setting player buffer size to 20ms
+11:05:02 [INFO] voice: starting player
+11:05:02 [INFO] voice: player started
+11:05:02 [INFO] voice: creating offer
+11:05:02 [INFO] voice: setting local description
+11:05:02 [INFO] voice: waiting for ICE gathering
+11:05:07 [INFO] voice: ICE gathering complete
+11:05:07 [INFO] voice: sending offer to broker
+11:05:07 [INFO] voice: offer sent, waiting for broker answer
+11:05:08 [INFO] voice: remote description set, join complete
+11:05:08 [INFO] captureAndSend: selected="" available inputs=4 [68a6afea-f8d2-43d0-b39b-b0596e510b37 4a75b390-755c-4803-9f7c-1c672484dcd7 d28c3b01-8ada-452d-9767-37b940be5470 ddaa8684-3b09-4c4d-9365-df11b4bf3cac]
+11:05:08 [INFO] voice: OnTrack fired, ssrc=1343103465
+11:17:31 [INFO] starting test audio
+11:17:31 [INFO] voice: join start roomID=self
+11:17:31 [INFO] voice: keys ok
+11:17:31 [INFO] voice: peer connection created
+11:17:31 [INFO] voice: initialising audio output
+11:17:31 [INFO] voice: audio output ready
+11:17:31 [INFO] voice: creating player
+11:17:31 [INFO] voice: setting player buffer size to 20ms
+11:17:31 [INFO] voice: starting player
+11:17:31 [INFO] voice: player started
+11:17:31 [INFO] voice: creating offer
+11:17:31 [INFO] voice: setting local description
+11:17:31 [INFO] voice: waiting for ICE gathering
+11:17:36 [INFO] voice: ICE gathering complete
+11:17:36 [INFO] voice: sending offer to broker
+11:17:36 [INFO] voice: offer sent, waiting for broker answer
+11:17:36 [INFO] voice: remote description set, join complete
+11:17:36 [INFO] captureAndSend: selected="" available inputs=4 [294d1f80-a436-48f3-bc69-c710f7e37425 2bd5ab72-1fb0-464e-9c41-12cd14359110 5480523f-f389-41fd-9be3-bd9676475376 972dd48b-37f5-49b2-8ebc-f357e4516685]
+11:17:36 [INFO] voice: OnTrack fired, ssrc=4010652374
+11:21:01 [INFO] starting test audio
+11:21:01 [INFO] voice: join start roomID=self
+11:21:01 [INFO] voice: keys ok
+11:21:01 [INFO] voice: peer connection created
+11:21:01 [INFO] voice: initialising audio output
+11:21:01 [INFO] voice: audio output ready
+11:21:01 [INFO] voice: creating player
+11:21:01 [INFO] voice: setting player buffer size to 20ms
+11:21:01 [INFO] voice: starting player
+11:21:01 [INFO] voice: player started
+11:21:01 [INFO] voice: creating offer
+11:21:01 [INFO] voice: setting local description
+11:21:01 [INFO] voice: waiting for ICE gathering
+11:21:06 [INFO] voice: ICE gathering complete
+11:21:06 [INFO] voice: sending offer to broker
+11:21:06 [INFO] voice: offer sent, waiting for broker answer
+11:21:06 [INFO] voice: remote description set, join complete
+11:21:06 [INFO] captureAndSend: selected="" available inputs=4 [5464d4e4-446c-4f5c-9c1b-8360401dbc5e 25fc9ca4-7237-4dd5-8ed5-2b8d9369a502 d20ac0b0-e54a-4e74-a36e-43334b3096db 098fbdf8-5f80-4fc9-be97-97a9d13cdbbd]
+11:21:07 [INFO] voice: OnTrack fired, ssrc=2905453900
+11:21:19 [INFO] starting test audio
+11:21:19 [INFO] voice: join start roomID=self
+11:21:19 [INFO] voice: keys ok
+11:21:19 [INFO] voice: peer connection created
+11:21:19 [INFO] voice: initialising audio output
+11:21:19 [INFO] voice: audio output ready
+11:21:19 [INFO] voice: creating player
+11:21:19 [INFO] voice: setting player buffer size to 20ms
+11:21:19 [INFO] voice: starting player
+11:21:19 [INFO] voice: player started
+11:21:19 [INFO] voice: creating offer
+11:21:19 [INFO] voice: setting local description
+11:21:19 [INFO] voice: waiting for ICE gathering
+11:21:24 [INFO] voice: ICE gathering complete
+11:21:24 [INFO] voice: sending offer to broker
+11:21:24 [INFO] voice: offer sent, waiting for broker answer
+11:21:24 [INFO] voice: remote description set, join complete
+11:21:24 [INFO] captureAndSend: selected="" available inputs=4 [613fea14-7b59-4850-be8c-8207c8a8923e e75efd8a-69f9-4169-bc60-81e741deb347 6923b190-f514-4666-a5cb-18ee41f88410 ff3ede9c-25cf-4788-a94b-4b3c7c3b1e14]
+11:21:25 [INFO] voice: OnTrack fired, ssrc=1805642855
+11:24:54 [INFO] starting test audio
+11:24:54 [INFO] voice: join start roomID=self
+11:24:54 [INFO] voice: keys ok
+11:24:54 [INFO] voice: peer connection created
+11:24:54 [INFO] voice: initialising audio output
+11:24:54 [INFO] voice: audio output ready
+11:24:54 [INFO] voice: creating player
+11:24:54 [INFO] voice: setting player buffer size to 20ms
+11:24:54 [INFO] voice: starting player
+11:24:54 [INFO] voice: player started
+11:24:54 [INFO] voice: creating offer
+11:24:54 [INFO] voice: setting local description
+11:24:54 [INFO] voice: waiting for ICE gathering
+11:24:59 [INFO] voice: ICE gathering complete
+11:24:59 [INFO] voice: sending offer to broker
+11:24:59 [INFO] voice: offer sent, waiting for broker answer
+11:24:59 [INFO] voice: remote description set, join complete
+11:24:59 [INFO] captureAndSend: selected="" available inputs=4 [683e92a0-e610-4ccd-b74d-6358113979f0 7c24c6ad-dddc-43ac-8205-6228c50f9629 ef658879-0d49-42f5-bdb1-f4214f14c2d7 6fca841c-f678-4c80-b59c-c937df5ccc93]
+11:24:59 [INFO] voice: OnTrack fired, ssrc=2135109952
+11:26:20 [INFO] starting test audio
+11:26:20 [INFO] voice: join start roomID=self
+11:26:20 [INFO] voice: keys ok
+11:26:20 [INFO] voice: peer connection created
+11:26:20 [INFO] voice: initialising audio output
+11:26:20 [INFO] voice: audio output ready
+11:26:20 [INFO] voice: creating player
+11:26:20 [INFO] voice: setting player buffer size to 20ms
+11:26:20 [INFO] voice: starting player
+11:26:20 [INFO] voice: player started
+11:26:20 [INFO] voice: creating offer
+11:26:20 [INFO] voice: setting local description
+11:26:20 [INFO] voice: waiting for ICE gathering
+11:26:25 [INFO] voice: ICE gathering complete
+11:26:25 [INFO] voice: sending offer to broker
+11:26:25 [INFO] voice: offer sent, waiting for broker answer
+11:26:25 [INFO] voice: remote description set, join complete
+11:26:25 [INFO] captureAndSend: selected="" available inputs=4 [53d9d17b-e498-46ec-95a2-a8eb98344fc9 53ebaaec-3841-4918-984a-0b07e41b596f f183fd96-e758-4321-ae03-8dac475d4515 321c9c88-69ca-42c8-a033-71ff51d0d3fc]
+11:26:26 [INFO] voice: OnTrack fired, ssrc=3614845615
+11:27:40 [INFO] starting test audio
+11:27:40 [INFO] voice: join start roomID=self
+11:27:40 [INFO] voice: keys ok
+11:27:40 [INFO] voice: peer connection created
+11:27:40 [INFO] voice: initialising audio output
+11:27:40 [INFO] voice: audio output ready
+11:27:40 [INFO] voice: creating player
+11:27:40 [INFO] voice: setting player buffer size to 20ms
+11:27:40 [INFO] voice: starting player
+11:27:40 [INFO] voice: player started
+11:27:40 [INFO] voice: creating offer
+11:27:40 [INFO] voice: setting local description
+11:27:40 [INFO] voice: waiting for ICE gathering
+11:27:45 [INFO] voice: ICE gathering complete
+11:27:45 [INFO] voice: sending offer to broker
+11:27:45 [INFO] voice: offer sent, waiting for broker answer
+11:27:45 [INFO] voice: remote description set, join complete
+11:27:45 [INFO] captureAndSend: selected="" available inputs=4 [17984229-d2cb-40e9-9cdf-6d24a2e92b8c 09fe1964-cecc-4306-8144-9485dcdf382a fc648a3a-dd37-451d-88a3-232376208f96 f17074a8-91ad-44c0-85a2-12c7fcfb19a1]
+11:27:46 [INFO] voice: OnTrack fired, ssrc=1054921440
+11:29:19 [INFO] starting test audio
+11:29:19 [INFO] voice: join start roomID=self
+11:29:19 [INFO] voice: keys ok
+11:29:19 [INFO] voice: peer connection created
+11:29:19 [INFO] voice: initialising audio output
+11:29:19 [INFO] voice: audio output ready
+11:29:19 [INFO] voice: creating player
+11:29:19 [INFO] voice: setting player buffer size to 20ms
+11:29:19 [INFO] voice: starting player
+11:29:19 [INFO] voice: player started
+11:29:19 [INFO] voice: creating offer
+11:29:19 [INFO] voice: setting local description
+11:29:19 [INFO] voice: waiting for ICE gathering
+11:29:24 [INFO] voice: ICE gathering complete
+11:29:24 [INFO] voice: sending offer to broker
+11:29:24 [INFO] voice: offer sent, waiting for broker answer
+11:29:24 [INFO] voice: remote description set, join complete
+11:29:24 [INFO] captureAndSend: selected="" available inputs=5 [13189547-9988-4da7-8c4e-6b48eabac6f4 b141b230-9362-4784-9379-2c725670789e 5d2d12c5-3a5c-484b-888e-1b664cb35848 37f7a2a0-5b10-4489-a47b-14d919883ec8 4247c96d-cab2-4e59-ae65-0b5deac63806]
+11:29:25 [INFO] voice: OnTrack fired, ssrc=978988298
+11:32:58 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:34:55 [INFO] notification: sam4 joined "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_joined_room]
+11:35:06 [INFO] joining voice chat
+11:35:06 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:35:06 [INFO] voice: keys ok
+11:35:06 [INFO] voice: peer connection created
+11:35:06 [INFO] voice: initialising audio output
+11:35:06 [INFO] voice: audio output ready
+11:35:06 [INFO] voice: creating player
+11:35:06 [INFO] voice: setting player buffer size to 20ms
+11:35:06 [INFO] voice: starting player
+11:35:06 [INFO] voice: player started
+11:35:06 [INFO] voice: creating offer
+11:35:06 [INFO] voice: setting local description
+11:35:06 [INFO] voice: waiting for ICE gathering
+11:35:11 [INFO] notification: sam4 entered "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_joined_room]
+11:35:11 [INFO] voice: ICE gathering complete
+11:35:11 [INFO] voice: sending offer to broker
+11:35:11 [INFO] voice: offer sent, waiting for broker answer
+11:35:11 [INFO] voice: remote description set, join complete
+11:35:11 [INFO] captureAndSend: selected="" available inputs=5 [287c2f5a-0616-45c9-b533-21d123a97d45 2cf55f41-615f-4d66-8c9d-32d4906fd741 8884d96f-ad06-43d0-9ccb-468dcd69ecef b6500a36-4804-47b4-9b44-b5fe8d8ae4c4 bf491948-3973-495e-8f85-61a46c7be483]
+11:35:14 [INFO] notification: sam4 joined the voice call [type=user_joined_voice_chat]
+11:35:15 [INFO] voice: OnTrack fired, ssrc=3881312259
+11:36:01 [INFO] leaving voice chat
+11:36:06 [INFO] joining voice chat
+11:36:06 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:36:06 [INFO] voice: keys ok
+11:36:06 [INFO] voice: peer connection created
+11:36:06 [INFO] voice: initialising audio output
+11:36:06 [INFO] voice: audio output ready
+11:36:06 [INFO] voice: creating player
+11:36:06 [INFO] voice: setting player buffer size to 20ms
+11:36:06 [INFO] voice: starting player
+11:36:06 [INFO] voice: player started
+11:36:06 [INFO] voice: creating offer
+11:36:06 [INFO] voice: setting local description
+11:36:06 [INFO] voice: waiting for ICE gathering
+11:36:11 [INFO] voice: ICE gathering complete
+11:36:11 [INFO] voice: sending offer to broker
+11:36:11 [INFO] voice: offer sent, waiting for broker answer
+11:36:11 [INFO] voice: remote description set, join complete
+11:36:11 [INFO] captureAndSend: selected="" available inputs=5 [287c2f5a-0616-45c9-b533-21d123a97d45 2cf55f41-615f-4d66-8c9d-32d4906fd741 8884d96f-ad06-43d0-9ccb-468dcd69ecef b6500a36-4804-47b4-9b44-b5fe8d8ae4c4 bf491948-3973-495e-8f85-61a46c7be483]
+11:36:12 [INFO] voice: OnTrack fired, ssrc=3444468271
+11:38:02 [INFO] leaving voice chat
+11:38:03 [INFO] joining voice chat
+11:38:03 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:38:03 [INFO] voice: keys ok
+11:38:03 [INFO] voice: peer connection created
+11:38:03 [INFO] voice: initialising audio output
+11:38:03 [INFO] voice: audio output ready
+11:38:03 [INFO] voice: creating player
+11:38:03 [INFO] voice: setting player buffer size to 20ms
+11:38:03 [INFO] voice: starting player
+11:38:03 [INFO] voice: player started
+11:38:03 [INFO] voice: creating offer
+11:38:03 [INFO] voice: setting local description
+11:38:03 [INFO] voice: waiting for ICE gathering
+11:38:08 [INFO] voice: ICE gathering complete
+11:38:08 [INFO] voice: sending offer to broker
+11:38:08 [INFO] voice: offer sent, waiting for broker answer
+11:38:08 [INFO] voice: remote description set, join complete
+11:38:08 [INFO] captureAndSend: selected="" available inputs=5 [287c2f5a-0616-45c9-b533-21d123a97d45 2cf55f41-615f-4d66-8c9d-32d4906fd741 8884d96f-ad06-43d0-9ccb-468dcd69ecef b6500a36-4804-47b4-9b44-b5fe8d8ae4c4 bf491948-3973-495e-8f85-61a46c7be483]
+11:38:09 [INFO] voice: OnTrack fired, ssrc=2431009039
+11:40:35 [INFO] leaving voice chat
+11:40:39 [INFO] joining voice chat
+11:40:39 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:40:39 [INFO] voice: keys ok
+11:40:39 [INFO] voice: peer connection created
+11:40:39 [INFO] voice: initialising audio output
+11:40:39 [INFO] voice: audio output ready
+11:40:39 [INFO] voice: creating player
+11:40:39 [INFO] voice: setting player buffer size to 20ms
+11:40:39 [INFO] voice: starting player
+11:40:39 [INFO] voice: player started
+11:40:39 [INFO] voice: creating offer
+11:40:39 [INFO] voice: setting local description
+11:40:39 [INFO] voice: waiting for ICE gathering
+11:40:44 [INFO] voice: ICE gathering complete
+11:40:44 [INFO] voice: sending offer to broker
+11:40:44 [INFO] voice: offer sent, waiting for broker answer
+11:40:44 [INFO] voice: remote description set, join complete
+11:40:44 [INFO] captureAndSend: selected="" available inputs=5 [2cf55f41-615f-4d66-8c9d-32d4906fd741 8884d96f-ad06-43d0-9ccb-468dcd69ecef b6500a36-4804-47b4-9b44-b5fe8d8ae4c4 bf491948-3973-495e-8f85-61a46c7be483 287c2f5a-0616-45c9-b533-21d123a97d45]
+11:40:45 [INFO] voice: OnTrack fired, ssrc=1856444625
+11:42:18 [INFO] notification: sam4 left "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_left_room]
+11:42:18 [INFO] notification: sam4 left the voice call [type=user_left_voice_chat]
+11:42:29 [INFO] notification: sam4 entered "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_joined_room]
+11:42:37 [INFO] notification: sam4 joined the voice call [type=user_joined_voice_chat]
+11:42:38 [INFO] voice: OnTrack fired, ssrc=3727997181
+11:42:53 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:42:56 [INFO] joining voice chat
+11:42:56 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:42:56 [INFO] voice: keys ok
+11:42:56 [INFO] voice: peer connection created
+11:42:56 [INFO] voice: initialising audio output
+11:42:56 [INFO] voice: audio output ready
+11:42:56 [INFO] voice: creating player
+11:42:56 [INFO] voice: setting player buffer size to 20ms
+11:42:56 [INFO] voice: starting player
+11:42:56 [INFO] voice: player started
+11:42:56 [INFO] voice: creating offer
+11:42:56 [INFO] voice: setting local description
+11:42:56 [INFO] voice: waiting for ICE gathering
+11:43:01 [INFO] voice: ICE gathering complete
+11:43:01 [INFO] voice: sending offer to broker
+11:43:01 [INFO] voice: offer sent, waiting for broker answer
+11:43:01 [INFO] voice: remote description set, join complete
+11:43:01 [INFO] captureAndSend: selected="" available inputs=4 [f106c12a-2f55-45fc-9a61-4387592d7353 baa1dcea-bca8-41af-95b8-dae7f76556a2 7d8944ce-8485-4c40-9639-a1f8acf82cc9 44088701-bf2e-4891-8490-af6a1ff6b428]
+11:43:02 [INFO] voice: OnTrack fired, ssrc=1458663926
+11:44:41 [INFO] audio input set to: Built-in Microphone
+11:44:45 [INFO] starting test audio
+11:44:45 [INFO] voice: join start roomID=self
+11:44:45 [INFO] voice: keys ok
+11:44:45 [INFO] voice: peer connection created
+11:44:45 [INFO] voice: initialising audio output
+11:44:45 [INFO] voice: audio output ready
+11:44:45 [INFO] voice: creating player
+11:44:45 [INFO] voice: setting player buffer size to 20ms
+11:44:45 [INFO] voice: starting player
+11:44:45 [INFO] voice: player started
+11:44:45 [INFO] voice: creating offer
+11:44:45 [INFO] voice: setting local description
+11:44:45 [INFO] voice: waiting for ICE gathering
+11:44:50 [INFO] voice: ICE gathering complete
+11:44:50 [INFO] voice: sending offer to broker
+11:44:50 [INFO] voice: offer sent, waiting for broker answer
+11:44:50 [INFO] voice: remote description set, join complete
+11:44:50 [INFO] captureAndSend: selected="eae230aa-21bc-4015-8847-2fafda044cff" available inputs=4 [32d68e1d-0b29-4d64-89ea-1fa676d341e5 26a58f78-3faf-4b91-abdb-24f18e23b8a8 eae230aa-21bc-4015-8847-2fafda044cff eaa34ee0-7beb-429d-ad17-bfc3198cdf3d]
+11:44:51 [INFO] voice: OnTrack fired, ssrc=961743381
+11:44:53 [INFO] stopping test audio
+11:44:57 [INFO] joining voice chat
+11:44:57 [ERROR] voice join failed: voice-join: no room selected (use room-select first)
+11:45:04 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:45:05 [INFO] joining voice chat
+11:45:05 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:45:05 [INFO] voice: keys ok
+11:45:05 [INFO] voice: peer connection created
+11:45:05 [INFO] voice: initialising audio output
+11:45:05 [INFO] voice: audio output ready
+11:45:05 [INFO] voice: creating player
+11:45:05 [INFO] voice: setting player buffer size to 20ms
+11:45:05 [INFO] voice: starting player
+11:45:05 [INFO] voice: player started
+11:45:05 [INFO] voice: creating offer
+11:45:05 [INFO] voice: setting local description
+11:45:05 [INFO] voice: waiting for ICE gathering
+11:45:10 [INFO] voice: ICE gathering complete
+11:45:10 [INFO] voice: sending offer to broker
+11:45:10 [INFO] voice: offer sent, waiting for broker answer
+11:45:10 [INFO] voice: remote description set, join complete
+11:45:10 [INFO] captureAndSend: selected="eae230aa-21bc-4015-8847-2fafda044cff" available inputs=4 [32d68e1d-0b29-4d64-89ea-1fa676d341e5 26a58f78-3faf-4b91-abdb-24f18e23b8a8 eae230aa-21bc-4015-8847-2fafda044cff eaa34ee0-7beb-429d-ad17-bfc3198cdf3d]
+11:45:11 [INFO] voice: OnTrack fired, ssrc=4029901478
+11:46:35 [INFO] starting test audio
+11:46:35 [INFO] voice: join start roomID=self
+11:46:35 [INFO] voice: keys ok
+11:46:35 [INFO] voice: peer connection created
+11:46:35 [INFO] voice: initialising audio output
+11:46:35 [INFO] voice: audio output ready
+11:46:35 [INFO] voice: creating player
+11:46:35 [INFO] voice: setting player buffer size to 20ms
+11:46:35 [INFO] voice: starting player
+11:46:35 [INFO] voice: player started
+11:46:35 [INFO] voice: creating offer
+11:46:35 [INFO] voice: setting local description
+11:46:35 [INFO] voice: waiting for ICE gathering
+11:46:40 [INFO] voice: ICE gathering complete
+11:46:40 [INFO] voice: sending offer to broker
+11:46:40 [INFO] voice: offer sent, waiting for broker answer
+11:46:41 [INFO] voice: remote description set, join complete
+11:46:41 [INFO] captureAndSend: selected="" available inputs=4 [677f1725-ea73-49a0-9256-7bc0023f8bf7 b56040a0-3c36-4ecb-9ee8-1eec9c453352 09fc1589-c496-4ca1-b412-12660e9a0d7b 06e90100-ddda-41de-af38-27396e53db16]
+11:46:41 [INFO] voice: OnTrack fired, ssrc=795531030
+11:46:45 [INFO] stopping test audio
+11:46:49 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:46:52 [INFO] joining voice chat
+11:46:52 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:46:52 [INFO] voice: keys ok
+11:46:52 [INFO] voice: peer connection created
+11:46:52 [INFO] voice: initialising audio output
+11:46:52 [INFO] voice: audio output ready
+11:46:52 [INFO] voice: creating player
+11:46:52 [INFO] voice: setting player buffer size to 20ms
+11:46:52 [INFO] voice: starting player
+11:46:52 [INFO] voice: player started
+11:46:52 [INFO] voice: creating offer
+11:46:52 [INFO] voice: setting local description
+11:46:52 [INFO] voice: waiting for ICE gathering
+11:46:55 [INFO] notification: sam4 left the voice call [type=user_left_voice_chat]
+11:46:56 [INFO] notification: sam4 joined the voice call [type=user_joined_voice_chat]
+11:46:57 [INFO] voice: ICE gathering complete
+11:46:57 [INFO] voice: sending offer to broker
+11:46:57 [INFO] voice: offer sent, waiting for broker answer
+11:46:57 [INFO] voice: remote description set, join complete
+11:46:57 [INFO] captureAndSend: selected="" available inputs=4 [677f1725-ea73-49a0-9256-7bc0023f8bf7 b56040a0-3c36-4ecb-9ee8-1eec9c453352 09fc1589-c496-4ca1-b412-12660e9a0d7b 06e90100-ddda-41de-af38-27396e53db16]
+11:47:38 [INFO] notification: sam4 left the voice call [type=user_left_voice_chat]
+11:47:38 [INFO] notification: sam4 left "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_left_room]
+14:37:13 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+14:37:18 [INFO] joining voice chat
+14:37:18 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+14:37:18 [INFO] voice: keys ok
+14:37:18 [INFO] voice: peer connection created
+14:37:18 [INFO] voice: initialising audio output
+14:37:18 [INFO] voice: audio output ready
+14:37:18 [INFO] voice: creating player
+14:37:18 [INFO] voice: setting player buffer size to 20ms
+14:37:18 [INFO] voice: starting player
+14:37:18 [INFO] voice: player started
+14:37:18 [INFO] voice: creating offer
+14:37:18 [INFO] voice: setting local description
+14:37:18 [INFO] voice: waiting for ICE gathering
+14:37:23 [INFO] voice: ICE gathering complete
+14:37:23 [INFO] voice: sending offer to broker
+14:37:23 [INFO] voice: offer sent, waiting for broker answer
+14:37:23 [INFO] voice: remote description set, join complete
+14:37:23 [INFO] captureAndSend: selected="" available inputs=4 [d9e5fd42-b1e4-4150-8a32-fc9f07d150ac 2c973548-4af7-4076-bd3a-d949590825a2 3a09ca0c-8af0-4478-ae66-bb98573eda17 03f8fd1f-ed15-4b24-ac92-168df5bdbad9]
+14:37:24 [INFO] notification: sam4 entered "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_joined_room]
+14:37:26 [INFO] notification: sam4 joined the voice call [type=user_joined_voice_chat]
+14:37:27 [INFO] voice: OnTrack fired, ssrc=2499006200
+14:37:29 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:37:30 [INFO] voice: delay est: corr=0.119 below threshold, skipping
+14:37:41 [INFO] voice: delay est: corr=0.236 below threshold, skipping
+14:37:42 [INFO] voice: delay est: corr=0.027 below threshold, skipping
+14:37:43 [INFO] voice: delay est: corr=0.037 below threshold, skipping
+14:37:49 [INFO] voice: delay est: corr=0.025 below threshold, skipping
+14:37:53 [INFO] voice: delay est: corr=0.061 below threshold, skipping
+14:37:54 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:38:13 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:38:15 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:38:27 [INFO] voice: delay est: corr=0.280 below threshold, skipping
+14:38:32 [INFO] voice: delay est: corr=0.167 below threshold, skipping
+14:38:33 [INFO] voice: delay est: corr=0.074 below threshold, skipping
+14:38:37 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:38:40 [INFO] voice: delay est: corr=0.046 below threshold, skipping
+14:38:46 [INFO] voice: delay est: corr=0.006 below threshold, skipping
+14:39:14 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:39:20 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:39:26 [INFO] voice: delay est: corr=0.015 below threshold, skipping
+14:39:32 [INFO] voice: delay est: corr=0.081 below threshold, skipping
+14:39:36 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:39:47 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:39:50 [INFO] voice: delay est: corr=0.065 below threshold, skipping
+14:39:51 [INFO] voice: delay est: corr=0.101 below threshold, skipping
+14:39:53 [INFO] voice: delay est: corr=0.063 below threshold, skipping
+14:39:54 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:39:56 [INFO] voice: delay est: corr=0.150 below threshold, skipping
+14:39:57 [INFO] voice: delay est: lag=75ms corr=0.577 ema=67ms (was 65ms)
+14:39:58 [INFO] voice: delay est: corr=0.208 below threshold, skipping
+14:39:59 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:40:00 [INFO] voice: delay est: lag=149ms corr=0.588 ema=87ms (was 67ms)
+14:40:01 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:40:10 [INFO] voice: delay est: corr=0.165 below threshold, skipping
+14:40:29 [INFO] voice: delay est: corr=0.108 below threshold, skipping
+14:40:30 [INFO] voice: delay est: corr=0.167 below threshold, skipping
+14:40:31 [INFO] voice: delay est: corr=0.121 below threshold, skipping
+14:40:32 [INFO] voice: delay est: corr=0.145 below threshold, skipping
+14:40:33 [INFO] voice: delay est: corr=0.225 below threshold, skipping
+14:40:34 [INFO] voice: delay est: corr=0.217 below threshold, skipping
+14:40:35 [INFO] voice: delay est: corr=0.027 below threshold, skipping
+14:40:36 [INFO] voice: delay est: corr=0.111 below threshold, skipping
+14:40:37 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:40:38 [INFO] voice: delay est: corr=0.082 below threshold, skipping
+14:40:39 [INFO] voice: delay est: corr=0.105 below threshold, skipping
+14:40:40 [INFO] voice: delay est: corr=0.235 below threshold, skipping
+14:40:41 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:40:42 [INFO] voice: delay est: corr=0.205 below threshold, skipping
+14:40:43 [INFO] voice: delay est: corr=0.079 below threshold, skipping
+14:40:44 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:40:45 [INFO] voice: delay est: corr=0.176 below threshold, skipping
+14:40:46 [INFO] voice: delay est: corr=0.101 below threshold, skipping
+14:40:47 [INFO] voice: delay est: corr=0.067 below threshold, skipping
+14:40:48 [INFO] voice: delay est: corr=0.113 below threshold, skipping
+14:40:49 [INFO] voice: delay est: corr=0.053 below threshold, skipping
+14:40:50 [INFO] voice: delay est: corr=0.075 below threshold, skipping
+14:40:51 [INFO] voice: delay est: corr=0.232 below threshold, skipping
+14:40:52 [INFO] voice: delay est: lag=1ms corr=0.314 ema=65ms (was 87ms)
+14:40:54 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:40:55 [INFO] voice: delay est: corr=0.082 below threshold, skipping
+14:40:56 [INFO] voice: delay est: corr=0.084 below threshold, skipping
+14:40:57 [INFO] voice: delay est: corr=0.072 below threshold, skipping
+14:40:58 [INFO] voice: delay est: corr=0.109 below threshold, skipping
+14:40:59 [INFO] voice: delay est: corr=0.174 below threshold, skipping
+14:41:00 [INFO] voice: delay est: corr=0.054 below threshold, skipping
+14:41:01 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:41:03 [INFO] voice: delay est: corr=0.130 below threshold, skipping
+14:41:04 [INFO] voice: delay est: corr=0.290 below threshold, skipping
+14:41:05 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:41:06 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:41:07 [INFO] voice: delay est: corr=0.173 below threshold, skipping
+14:41:08 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:41:09 [INFO] voice: delay est: corr=0.146 below threshold, skipping
+14:41:10 [INFO] voice: delay est: corr=0.171 below threshold, skipping
+14:41:11 [INFO] voice: delay est: corr=0.160 below threshold, skipping
+14:41:12 [INFO] voice: delay est: corr=0.233 below threshold, skipping
+14:41:13 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:41:14 [INFO] voice: delay est: corr=0.014 below threshold, skipping
+14:41:15 [INFO] voice: delay est: corr=0.119 below threshold, skipping
+14:43:57 [INFO] voice: delay est: corr=0.214 below threshold, skipping
+14:44:09 [INFO] voice: delay est: corr=0.012 below threshold, skipping
+14:44:22 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:44:24 [INFO] voice: delay est: lag=14ms corr=0.427 ema=52ms (was 65ms)
+14:44:36 [INFO] voice: delay est: corr=0.061 below threshold, skipping
+14:44:38 [INFO] voice: delay est: corr=0.117 below threshold, skipping
+14:44:39 [INFO] voice: delay est: corr=0.197 below threshold, skipping
+14:44:40 [INFO] voice: delay est: corr=0.183 below threshold, skipping
+14:44:41 [INFO] voice: delay est: corr=0.162 below threshold, skipping
+14:44:43 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:44:44 [INFO] voice: delay est: corr=0.143 below threshold, skipping
+14:44:45 [INFO] voice: delay est: lag=136ms corr=0.304 ema=73ms (was 52ms)
+14:44:46 [INFO] voice: delay est: corr=0.203 below threshold, skipping
+14:44:50 [INFO] voice: delay est: corr=0.251 below threshold, skipping
+14:44:51 [INFO] voice: delay est: corr=0.112 below threshold, skipping
+14:45:02 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:45:04 [INFO] voice: delay est: corr=0.019 below threshold, skipping
+14:45:13 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:45:18 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:45:23 [INFO] notification: sam4 left the voice call [type=user_left_voice_chat]
+14:45:23 [INFO] notification: sam4 left "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_left_room]
+14:47:19 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+14:47:22 [INFO] joining voice chat
+14:47:22 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+14:47:22 [INFO] voice: keys ok
+14:47:22 [INFO] voice: peer connection created
+14:47:22 [INFO] voice: initialising audio output
+14:47:22 [INFO] voice: audio output ready
+14:47:22 [INFO] voice: creating player
+14:47:22 [INFO] voice: setting player buffer size to 20ms
+14:47:22 [INFO] voice: starting player
+14:47:22 [INFO] voice: player started
+14:47:22 [INFO] voice: creating offer
+14:47:22 [INFO] voice: setting local description
+14:47:22 [INFO] voice: waiting for ICE gathering
+14:47:27 [INFO] voice: ICE gathering complete
+14:47:27 [INFO] voice: sending offer to broker
+14:47:27 [INFO] voice: offer sent, waiting for broker answer
+14:47:27 [INFO] voice: remote description set, join complete
+14:47:27 [INFO] captureAndSend: selected="" available inputs=4 [fcc79f4c-b456-4809-91cb-738f4c1fccbc be35b1a3-f5ac-4f79-bb5a-bcd679b4ff5c 0a78f923-9dce-42f6-bf12-ab6451b9ee35 9ef2cb40-de7a-46fe-9a06-bd6d906f5424]
+14:47:29 [INFO] leaving voice chat
+14:47:34 [INFO] audio input set to: Logitech StreamCam
+14:47:36 [INFO] starting test audio
+14:47:36 [INFO] voice: join start roomID=self
+14:47:36 [INFO] voice: keys ok
+14:47:36 [INFO] voice: peer connection created
+14:47:36 [INFO] voice: initialising audio output
+14:47:36 [INFO] voice: audio output ready
+14:47:36 [INFO] voice: creating player
+14:47:36 [INFO] voice: setting player buffer size to 20ms
+14:47:36 [INFO] voice: starting player
+14:47:36 [INFO] voice: player started
+14:47:36 [INFO] voice: creating offer
+14:47:36 [INFO] voice: setting local description
+14:47:36 [INFO] voice: waiting for ICE gathering
+14:47:41 [INFO] voice: ICE gathering complete
+14:47:41 [INFO] voice: sending offer to broker
+14:47:41 [INFO] voice: offer sent, waiting for broker answer
+14:47:41 [INFO] voice: remote description set, join complete
+14:47:41 [INFO] captureAndSend: selected="be35b1a3-f5ac-4f79-bb5a-bcd679b4ff5c" available inputs=4 [fcc79f4c-b456-4809-91cb-738f4c1fccbc be35b1a3-f5ac-4f79-bb5a-bcd679b4ff5c 0a78f923-9dce-42f6-bf12-ab6451b9ee35 9ef2cb40-de7a-46fe-9a06-bd6d906f5424]
+14:47:41 [INFO] voice: OnTrack fired, ssrc=580848182
+14:47:49 [INFO] voice: delay est: lag=11ms corr=0.445 ema=51ms (was 65ms)
+14:48:03 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:48:32 [INFO] starting test audio
+14:48:32 [INFO] voice: join start roomID=self
+14:48:32 [INFO] voice: keys ok
+14:48:32 [INFO] voice: peer connection created
+14:48:32 [INFO] voice: initialising audio output
+14:48:32 [INFO] voice: audio output ready
+14:48:32 [INFO] voice: creating player
+14:48:32 [INFO] voice: setting player buffer size to 20ms
+14:48:32 [INFO] voice: starting player
+14:48:32 [INFO] voice: player started
+14:48:32 [INFO] voice: creating offer
+14:48:32 [INFO] voice: setting local description
+14:48:32 [INFO] voice: waiting for ICE gathering
+14:48:37 [INFO] voice: ICE gathering complete
+14:48:37 [INFO] voice: sending offer to broker
+14:48:37 [INFO] voice: offer sent, waiting for broker answer
+14:48:37 [INFO] voice: remote description set, join complete
+14:48:37 [INFO] captureAndSend: selected="" available inputs=4 [a1e7762b-c91a-447c-b339-4cab139ec19e 992cea58-e8cf-41c7-b7c1-44b184208745 46f01510-8d72-477c-81dd-0645972469fc 6d518f75-c6bf-4c58-a39d-a39f8dd06755]
+14:48:38 [INFO] voice: OnTrack fired, ssrc=2502336063
+14:49:04 [INFO] voice: delay est: corr=0.257 below threshold, skipping
+14:49:24 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:49:32 [INFO] voice: delay est: corr=0.277 below threshold, skipping
+14:49:34 [INFO] voice: delay est: corr=0.184 below threshold, skipping
+14:49:35 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:49:37 [INFO] voice: delay est: corr=0.068 below threshold, skipping
+14:49:40 [INFO] voice: delay est: lag=5ms corr=0.401 ema=50ms (was 65ms)
+14:49:43 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:49:49 [INFO] voice: delay est: corr=0.036 below threshold, skipping
+14:49:51 [INFO] voice: delay est: corr=0.217 below threshold, skipping
+14:49:52 [INFO] voice: delay est: corr=0.196 below threshold, skipping
+14:49:57 [INFO] voice: delay est: corr=0.153 below threshold, skipping
+14:49:58 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:50:08 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+14:50:09 [INFO] joining voice chat
+14:50:09 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+14:50:09 [INFO] voice: keys ok
+14:50:09 [INFO] voice: peer connection created
+14:50:09 [INFO] voice: initialising audio output
+14:50:09 [INFO] voice: audio output ready
+14:50:09 [INFO] voice: creating player
+14:50:09 [INFO] voice: setting player buffer size to 20ms
+14:50:09 [INFO] voice: starting player
+14:50:09 [INFO] voice: player started
+14:50:09 [INFO] voice: creating offer
+14:50:09 [INFO] voice: setting local description
+14:50:09 [INFO] voice: waiting for ICE gathering
+14:50:14 [INFO] voice: ICE gathering complete
+14:50:14 [INFO] voice: sending offer to broker
+14:50:14 [INFO] voice: offer sent, waiting for broker answer
+14:50:14 [INFO] voice: remote description set, join complete
+14:50:14 [INFO] captureAndSend: selected="" available inputs=4 [992cea58-e8cf-41c7-b7c1-44b184208745 46f01510-8d72-477c-81dd-0645972469fc 6d518f75-c6bf-4c58-a39d-a39f8dd06755 a1e7762b-c91a-447c-b339-4cab139ec19e]
+14:50:18 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:50:31 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:50:34 [INFO] notification: sam4 entered "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_joined_room]
+14:50:38 [INFO] notification: sam4 joined the voice call [type=user_joined_voice_chat]
+14:50:39 [INFO] voice: OnTrack fired, ssrc=2559615094
+14:50:39 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:50:41 [INFO] voice: delay est: corr=0.073 below threshold, skipping
+14:50:49 [INFO] voice: delay est: corr=0.261 below threshold, skipping
+14:50:52 [INFO] voice: delay est: corr=0.173 below threshold, skipping
+14:50:58 [INFO] voice: delay est: corr=0.116 below threshold, skipping
+14:50:59 [INFO] voice: delay est: corr=0.218 below threshold, skipping
+14:51:04 [INFO] voice: delay est: corr=0.249 below threshold, skipping
+14:51:08 [INFO] voice: delay est: corr=0.091 below threshold, skipping
+14:51:26 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:51:33 [INFO] voice: delay est: lag=0ms corr=0.633 ema=48ms (was 65ms)
+14:51:34 [INFO] voice: delay est: lag=1ms corr=0.766 ema=36ms (was 48ms)
+14:51:40 [INFO] voice: delay est: corr=0.081 below threshold, skipping
+14:51:41 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:51:42 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+14:51:43 [INFO] voice: delay est: corr=0.122 below threshold, skipping
+14:51:44 [INFO] voice: delay est: corr=0.281 below threshold, skipping
+14:53:18 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+14:53:23 [INFO] starting test audio
+14:53:23 [INFO] voice: join start roomID=self
+14:53:23 [INFO] voice: keys ok
+14:53:23 [INFO] voice: peer connection created
+14:53:23 [INFO] voice: initialising audio output
+14:53:23 [INFO] voice: audio output ready
+14:53:23 [INFO] voice: creating player
+14:53:23 [INFO] voice: setting player buffer size to 20ms
+14:53:23 [INFO] voice: starting player
+14:53:23 [INFO] voice: player started
+14:53:23 [INFO] voice: creating offer
+14:53:23 [INFO] voice: setting local description
+14:53:23 [INFO] voice: waiting for ICE gathering
+14:53:28 [INFO] voice: ICE gathering complete
+14:53:28 [INFO] voice: sending offer to broker
+14:53:28 [INFO] voice: offer sent, waiting for broker answer
+14:53:28 [INFO] voice: remote description set, join complete
+14:53:28 [INFO] captureAndSend: selected="" available inputs=4 [b3af1c3a-1ba5-4933-b970-6f62cacbba0a f531babd-1eae-4dae-8285-6d57ae0ca442 9cebe6bb-fd8a-4353-96e9-8d142ed8abfe 9b08cb55-9e8a-44ec-9d73-2c69f7b5c70c]
+14:53:29 [INFO] voice: OnTrack fired, ssrc=784091363
+15:02:54 [INFO] starting test audio
+15:02:54 [INFO] voice: join start roomID=self
+15:02:54 [INFO] voice: keys ok
+15:02:54 [INFO] voice: peer connection created
+15:02:54 [INFO] voice: initialising audio output
+15:02:54 [INFO] voice: audio output ready
+15:02:54 [INFO] voice: creating player
+15:02:54 [INFO] voice: setting player buffer size to 20ms
+15:02:54 [INFO] voice: starting player
+15:02:54 [INFO] voice: player started
+15:02:54 [INFO] voice: creating offer
+15:02:54 [INFO] voice: setting local description
+15:02:54 [INFO] voice: waiting for ICE gathering
+15:02:59 [INFO] voice: ICE gathering complete
+15:02:59 [INFO] voice: sending offer to broker
+15:02:59 [INFO] voice: offer sent, waiting for broker answer
+15:02:59 [INFO] voice: remote description set, join complete
+15:02:59 [INFO] captureAndSend: selected="" available inputs=4 [4629200f-ecf6-4026-8228-e87a7c407e04 05c3779f-c91a-4e8c-bdd0-0ff2790b4ead 1bc8b0ce-8f6c-4c67-9532-51bc9e6c15b7 f0786305-c92b-4235-a311-510ff36c7a03]
+15:03:00 [INFO] voice: OnTrack fired, ssrc=2976550397
+15:03:08 [INFO] voice: delay est: corr=0.247 below threshold, skipping
+15:03:10 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:03:14 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:03:25 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:03:31 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:03:36 [INFO] voice: delay est: corr=0.157 below threshold, skipping
+15:03:51 [INFO] voice: delay est: corr=0.047 below threshold, skipping
+15:04:34 [INFO] starting test audio
+15:04:34 [INFO] voice: join start roomID=self
+15:04:34 [INFO] voice: keys ok
+15:04:34 [INFO] voice: peer connection created
+15:04:34 [INFO] voice: initialising audio output
+15:04:34 [INFO] voice: audio output ready
+15:04:34 [INFO] voice: creating player
+15:04:34 [INFO] voice: setting player buffer size to 20ms
+15:04:34 [INFO] voice: starting player
+15:04:34 [INFO] voice: player started
+15:04:34 [INFO] voice: creating offer
+15:04:34 [INFO] voice: setting local description
+15:04:34 [INFO] voice: waiting for ICE gathering
+15:04:39 [INFO] voice: ICE gathering complete
+15:04:39 [INFO] voice: sending offer to broker
+15:04:39 [INFO] voice: offer sent, waiting for broker answer
+15:04:40 [INFO] voice: remote description set, join complete
+15:04:40 [INFO] captureAndSend: selected="" available inputs=4 [fc8acd52-51c6-4cf9-a62c-2ca4277b034a 21b00df9-7a4b-44b4-94bb-194fa4aca0b9 bc3c6a3a-ba65-44f2-9189-523b51c2cbc1 942b1ea6-2921-487e-aa77-f82637487e12]
+15:04:40 [INFO] voice: OnTrack fired, ssrc=4216193989
+15:04:42 [INFO] voice: delay est: corr=0.167 below threshold, skipping
+15:04:46 [INFO] voice: delay est: lag=56ms corr=0.864 ema=62ms (was 65ms)
+15:05:00 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:05:01 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:05:02 [INFO] voice: delay est: corr=0.186 below threshold, skipping
+15:05:03 [INFO] voice: delay est: corr=0.207 below threshold, skipping
+15:05:06 [INFO] voice: delay est: corr=0.225 below threshold, skipping
+15:05:08 [INFO] voice: delay est: lag=85ms corr=0.403 ema=67ms (was 62ms)
+15:05:11 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:07:24 [INFO] starting test audio
+15:07:24 [INFO] voice: join start roomID=self
+15:07:24 [INFO] voice: keys ok
+15:07:24 [INFO] voice: peer connection created
+15:07:24 [INFO] voice: initialising audio output
+15:07:24 [INFO] voice: audio output ready
+15:07:24 [INFO] voice: creating player
+15:07:24 [INFO] voice: setting player buffer size to 20ms
+15:07:24 [INFO] voice: starting player
+15:07:24 [INFO] voice: player started
+15:07:24 [INFO] voice: creating offer
+15:07:24 [INFO] voice: setting local description
+15:07:24 [INFO] voice: waiting for ICE gathering
+15:07:29 [INFO] voice: ICE gathering complete
+15:07:29 [INFO] voice: sending offer to broker
+15:07:29 [INFO] voice: offer sent, waiting for broker answer
+15:07:29 [INFO] voice: remote description set, join complete
+15:07:29 [INFO] captureAndSend: selected="" available inputs=4 [c0b5d195-1ab8-453a-9698-5830e8142bdf 5afd0623-f186-496b-b124-05c082b9a36b 31b2607b-9784-42f9-bc06-8b2626d020ea fd8cb709-7e28-465e-a2a2-bd69966bfd8e]
+15:07:29 [INFO] voice: OnTrack fired, ssrc=2214317962
+15:07:38 [INFO] voice: delay est: corr=0.131 below threshold, skipping
+15:07:39 [INFO] voice: delay est: corr=0.199 below threshold, skipping
+15:07:41 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:07:44 [INFO] voice: delay est: lag=4ms corr=0.361 ema=49ms (was 65ms)
+15:07:51 [INFO] voice: delay est: corr=0.113 below threshold, skipping
+15:07:53 [INFO] voice: delay est: corr=0.263 below threshold, skipping
+15:07:54 [INFO] voice: delay est: corr=0.160 below threshold, skipping
+15:07:55 [INFO] voice: delay est: lag=12ms corr=0.300 ema=39ms (was 49ms)
+15:07:57 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:08:00 [INFO] voice: delay est: corr=0.284 below threshold, skipping
+15:08:03 [INFO] voice: delay est: corr=0.195 below threshold, skipping
+15:08:07 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:08:54 [INFO] starting test audio
+15:08:54 [INFO] voice: join start roomID=self
+15:08:54 [INFO] voice: keys ok
+15:08:54 [INFO] voice: peer connection created
+15:08:54 [INFO] voice: initialising audio output
+15:08:54 [INFO] voice: audio output ready
+15:08:54 [INFO] voice: creating player
+15:08:54 [INFO] voice: setting player buffer size to 20ms
+15:08:54 [INFO] voice: starting player
+15:08:54 [INFO] voice: player started
+15:08:54 [INFO] voice: creating offer
+15:08:54 [INFO] voice: setting local description
+15:08:54 [INFO] voice: waiting for ICE gathering
+15:08:59 [INFO] voice: ICE gathering complete
+15:08:59 [INFO] voice: sending offer to broker
+15:08:59 [INFO] voice: offer sent, waiting for broker answer
+15:08:59 [INFO] voice: remote description set, join complete
+15:08:59 [INFO] captureAndSend: selected="" available inputs=4 [a75ff2b7-cdc2-497d-943d-b3380e1b8307 0d2ee681-797d-4c68-b0ff-a0a90797acd8 51af8771-0c40-4529-bfea-21f84acb038e ed1e16b7-517a-4c87-9f1d-12fcbb37acb8]
+15:09:00 [INFO] voice: OnTrack fired, ssrc=1859417377
+15:09:07 [INFO] voice: delay est: corr=0.160 below threshold, skipping
+15:09:08 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:09:09 [INFO] voice: delay est: corr=0.095 below threshold, skipping
+15:09:50 [INFO] voice: delay est: lag=9ms corr=0.666 ema=51ms (was 65ms)
+15:09:51 [INFO] voice: delay est: lag=95ms corr=0.731 ema=62ms (was 51ms)
+15:09:53 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:09:57 [INFO] voice: delay est: corr=0.018 below threshold, skipping
+15:10:00 [INFO] voice: delay est: lag=31ms corr=0.333 ema=54ms (was 62ms)
+15:10:02 [INFO] voice: delay est: corr=0.276 below threshold, skipping
+15:10:04 [INFO] voice: delay est: lag=11ms corr=0.322 ema=43ms (was 54ms)
+15:10:06 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:10:07 [INFO] voice: delay est: lag=92ms corr=0.304 ema=55ms (was 43ms)
+15:10:09 [INFO] voice: delay est: corr=0.130 below threshold, skipping
+15:10:39 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:11:09 [INFO] voice: delay est: corr=0.202 below threshold, skipping
+15:11:17 [INFO] voice: delay est: corr=0.248 below threshold, skipping
+15:11:18 [INFO] voice: delay est: corr=0.013 below threshold, skipping
+15:11:20 [INFO] voice: delay est: corr=0.260 below threshold, skipping
+15:11:21 [INFO] voice: delay est: lag=118ms corr=0.448 ema=70ms (was 55ms)
+15:11:23 [INFO] voice: delay est: corr=0.206 below threshold, skipping
+15:11:28 [INFO] voice: delay est: lag=55ms corr=0.395 ema=66ms (was 70ms)
+15:11:29 [INFO] voice: delay est: corr=0.154 below threshold, skipping
+15:11:30 [INFO] voice: delay est: lag=68ms corr=0.356 ema=66ms (was 66ms)
+15:11:35 [INFO] voice: delay est: lag=20ms corr=0.363 ema=54ms (was 66ms)
+15:11:36 [INFO] voice: delay est: corr=0.234 below threshold, skipping
+15:11:37 [INFO] voice: delay est: lag=31ms corr=0.461 ema=48ms (was 54ms)
+15:11:38 [INFO] voice: delay est: corr=0.068 below threshold, skipping
+15:11:39 [INFO] voice: delay est: corr=0.256 below threshold, skipping
+15:11:43 [INFO] voice: delay est: corr=0.131 below threshold, skipping
+15:11:49 [INFO] voice: delay est: corr=0.227 below threshold, skipping
+15:14:15 [INFO] starting test audio
+15:14:15 [INFO] voice: join start roomID=self
+15:14:15 [INFO] voice: keys ok
+15:14:15 [INFO] voice: peer connection created
+15:14:15 [INFO] voice: initialising audio output
+15:14:15 [INFO] voice: audio output ready
+15:14:15 [INFO] voice: creating player
+15:14:15 [INFO] voice: setting player buffer size to 20ms
+15:14:15 [INFO] voice: starting player
+15:14:15 [INFO] voice: player started
+15:14:15 [INFO] voice: creating offer
+15:14:15 [INFO] voice: setting local description
+15:14:15 [INFO] voice: waiting for ICE gathering
+15:14:21 [INFO] voice: ICE gathering complete
+15:14:21 [INFO] voice: sending offer to broker
+15:14:21 [INFO] voice: offer sent, waiting for broker answer
+15:14:21 [INFO] voice: remote description set, join complete
+15:14:21 [INFO] captureAndSend: selected="" available inputs=5 [4e238c62-0c67-4588-b104-594429a8e227 19e60635-e163-43ec-9ad6-69fae49d9f1d 07ae19bf-2e26-4ac7-829a-c12de5fd65c9 ca3a215d-af99-4796-9d23-b727fcd7b7db 52d532a2-1650-4edd-b3f2-7c6397461ec1]
+15:14:21 [INFO] voice: OnTrack fired, ssrc=721390389
+15:14:24 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:14:26 [INFO] voice: delay est: lag=5ms corr=0.884 ema=50ms (was 65ms)
+15:14:33 [INFO] voice: delay est: lag=92ms corr=0.960 ema=60ms (was 50ms)
+15:14:42 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:14:43 [INFO] voice: delay est: lag=3ms corr=0.636 ema=45ms (was 60ms)
+15:15:02 [INFO] voice: delay est: lag=1ms corr=0.492 ema=34ms (was 45ms)
+15:15:11 [INFO] voice: delay est: lag=2ms corr=0.322 ema=26ms (was 34ms)
+15:15:15 [INFO] voice: delay est: lag=9ms corr=0.304 ema=21ms (was 26ms)
+15:15:17 [INFO] voice: delay est: corr=0.232 below threshold, skipping
+15:15:20 [INFO] voice: delay est: corr=0.112 below threshold, skipping
+15:15:21 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:15:22 [INFO] voice: delay est: corr=0.064 below threshold, skipping
+15:15:25 [INFO] voice: delay est: corr=0.032 below threshold, skipping
+15:15:26 [INFO] voice: delay est: corr=0.139 below threshold, skipping
+15:15:27 [INFO] voice: delay est: corr=0.281 below threshold, skipping
+15:15:28 [INFO] voice: delay est: corr=0.277 below threshold, skipping
+15:15:29 [INFO] voice: delay est: lag=104ms corr=0.417 ema=41ms (was 21ms)
+15:15:30 [INFO] voice: delay est: lag=45ms corr=0.465 ema=42ms (was 41ms)
+15:15:31 [INFO] voice: delay est: corr=0.157 below threshold, skipping
+15:16:12 [INFO] starting test audio
+15:16:12 [INFO] voice: join start roomID=self
+15:16:12 [INFO] voice: keys ok
+15:16:12 [INFO] voice: peer connection created
+15:16:12 [INFO] voice: initialising audio output
+15:16:12 [INFO] voice: audio output ready
+15:16:12 [INFO] voice: creating player
+15:16:12 [INFO] voice: setting player buffer size to 20ms
+15:16:12 [INFO] voice: starting player
+15:16:12 [INFO] voice: player started
+15:16:12 [INFO] voice: creating offer
+15:16:12 [INFO] voice: setting local description
+15:16:12 [INFO] voice: waiting for ICE gathering
+15:16:17 [INFO] voice: ICE gathering complete
+15:16:17 [INFO] voice: sending offer to broker
+15:16:17 [INFO] voice: offer sent, waiting for broker answer
+15:16:17 [INFO] voice: remote description set, join complete
+15:16:17 [INFO] captureAndSend: selected="" available inputs=5 [dfe96378-34a8-4850-84fa-5473ad77b906 2cb060f7-396a-41bc-8c86-0ce34d80c6bb 33f856f9-43d2-4f11-aa3b-be780cb07308 f97e5a7d-8156-4a64-96ff-e72bbeff2e89 8d8a6c57-fd29-4311-8d1a-ddd7f93f2870]
+15:16:18 [INFO] voice: OnTrack fired, ssrc=4133292547
+15:16:24 [INFO] voice: delay est: lag=34ms corr=0.314 ema=57ms (was 65ms)
+15:16:33 [INFO] voice: delay est: corr=0.089 below threshold, skipping
+15:16:36 [INFO] voice: delay est: corr=0.115 below threshold, skipping
+15:16:37 [INFO] voice: delay est: corr=0.099 below threshold, skipping
+15:20:03 [INFO] voice: delay est: corr=0.032 below threshold, skipping
+15:20:31 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:20:47 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:21:20 [INFO] voice: delay est: corr=0.163 below threshold, skipping
+15:21:30 [INFO] voice: delay est: corr=0.154 below threshold, skipping
+15:21:31 [INFO] voice: delay est: corr=0.261 below threshold, skipping
+15:21:37 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:21:39 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:21:41 [INFO] voice: delay est: corr=0.110 below threshold, skipping
+15:21:54 [INFO] voice: delay est: corr=0.118 below threshold, skipping
+15:21:55 [INFO] voice: delay est: corr=0.103 below threshold, skipping
+15:21:56 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:23:01 [INFO] voice: delay est: corr=0.199 below threshold, skipping
+15:23:02 [INFO] voice: delay est: lag=5ms corr=0.356 ema=44ms (was 57ms)
+15:23:18 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:23:45 [INFO] voice: delay est: corr=0.097 below threshold, skipping
+15:24:02 [INFO] voice: delay est: corr=0.131 below threshold, skipping
+15:24:08 [INFO] voice: delay est: corr=0.210 below threshold, skipping
+15:24:16 [INFO] voice: delay est: corr=0.181 below threshold, skipping
+15:24:19 [INFO] voice: delay est: corr=0.127 below threshold, skipping
+15:24:24 [INFO] voice: delay est: corr=0.219 below threshold, skipping
+15:24:27 [INFO] voice: delay est: lag=97ms corr=0.426 ema=57ms (was 44ms)
+15:24:29 [INFO] voice: delay est: lag=12ms corr=0.379 ema=45ms (was 57ms)
+15:26:20 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:26:21 [INFO] voice: delay est: lag=56ms corr=0.966 ema=47ms (was 45ms)
+15:26:22 [INFO] voice: delay est: lag=43ms corr=0.699 ema=46ms (was 47ms)
+15:27:48 [INFO] voice: delay est: lag=2ms corr=0.352 ema=35ms (was 46ms)
+15:28:51 [INFO] starting test audio
+15:28:51 [INFO] voice: join start roomID=self
+15:28:51 [INFO] voice: keys ok
+15:28:51 [INFO] voice: peer connection created
+15:28:51 [INFO] voice: initialising audio output
+15:28:51 [INFO] voice: audio output ready
+15:28:51 [INFO] voice: creating player
+15:28:51 [INFO] voice: setting player buffer size to 20ms
+15:28:51 [INFO] voice: starting player
+15:28:51 [INFO] voice: player started
+15:28:51 [INFO] voice: creating offer
+15:28:51 [INFO] voice: setting local description
+15:28:51 [INFO] voice: waiting for ICE gathering
+15:28:56 [INFO] voice: ICE gathering complete
+15:28:56 [INFO] voice: sending offer to broker
+15:28:56 [INFO] voice: offer sent, waiting for broker answer
+15:28:56 [INFO] voice: remote description set, join complete
+15:28:56 [INFO] captureAndSend: selected="" available inputs=5 [8b3b16b3-e0f3-486f-b66f-9b5fa3ad279b 01f7f72b-02be-43ee-8afd-6188d68d8ad7 57f143d3-f9d0-4dee-9c76-91fb1260d9fa e7ac6c35-0bf3-4594-9762-f49f9f806d16 934e62ad-a632-40dd-94ed-1313ad6446b9]
+15:28:57 [INFO] voice: OnTrack fired, ssrc=2658991691
+15:29:00 [INFO] voice: delay est: lag=4ms corr=0.569 ema=49ms (was 65ms)
+15:29:01 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:44:26 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+15:44:29 [INFO] joining voice chat
+15:44:29 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+15:44:29 [INFO] voice: keys ok
+15:44:29 [INFO] voice: peer connection created
+15:44:29 [INFO] voice: initialising audio output
+15:44:29 [INFO] voice: audio output ready
+15:44:29 [INFO] voice: creating player
+15:44:29 [INFO] voice: setting player buffer size to 20ms
+15:44:29 [INFO] voice: starting player
+15:44:29 [INFO] voice: player started
+15:44:29 [INFO] voice: creating offer
+15:44:29 [INFO] voice: setting local description
+15:44:29 [INFO] voice: waiting for ICE gathering
+15:44:32 [INFO] notification: sam4 entered "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_joined_room]
+15:44:34 [INFO] voice: ICE gathering complete
+15:44:34 [INFO] voice: sending offer to broker
+15:44:34 [INFO] voice: offer sent, waiting for broker answer
+15:44:34 [INFO] voice: remote description set, join complete
+15:44:34 [INFO] captureAndSend: selected="" available inputs=5 [ca96c9df-ffab-4b28-ad49-295b8f577cb3 9b2157bf-79f2-42cd-8534-0f06dc9c7b0d 5243289f-a0a9-4e56-9055-30b65c51219d 8e09c085-c38d-4575-a4c5-e25f6ab3569d 4b996417-b005-4324-a979-d814794bbcae]
+15:44:35 [INFO] notification: sam4 joined the voice call [type=user_joined_voice_chat]
+15:44:36 [INFO] voice: OnTrack fired, ssrc=1073378577
+15:44:49 [INFO] voice: delay est: corr=0.188 below threshold, skipping
+15:44:52 [INFO] voice: delay est: corr=0.106 below threshold, skipping
+15:45:02 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:45:12 [INFO] voice: delay est: corr=0.101 below threshold, skipping
+15:45:48 [INFO] voice: delay est: lag=6ms corr=0.597 ema=50ms (was 65ms)
+15:45:52 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:46:02 [INFO] voice: delay est: corr=0.046 below threshold, skipping
+15:46:03 [INFO] voice: delay est: corr=0.278 below threshold, skipping
+15:46:04 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:46:07 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:46:10 [INFO] voice: delay est: corr=0.175 below threshold, skipping
+15:46:11 [INFO] voice: delay est: corr=0.058 below threshold, skipping
+15:46:12 [INFO] voice: delay est: lag=109ms corr=0.319 ema=64ms (was 50ms)
+15:46:13 [INFO] voice: delay est: corr=0.063 below threshold, skipping
+15:46:25 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:46:26 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:46:29 [INFO] voice: delay est: corr=0.071 below threshold, skipping
+15:46:30 [INFO] voice: delay est: lag=3ms corr=0.396 ema=48ms (was 64ms)
+15:46:32 [INFO] voice: delay est: corr=0.077 below threshold, skipping
+15:46:33 [INFO] voice: delay est: lag=119ms corr=0.395 ema=65ms (was 48ms)
+15:46:39 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:46:40 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:47:23 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:47:24 [INFO] voice: delay est: corr=0.173 below threshold, skipping
+15:47:27 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:47:28 [INFO] voice: delay est: lag=62ms corr=0.457 ema=64ms (was 65ms)
+15:47:29 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:47:31 [INFO] voice: delay est: lag=140ms corr=0.390 ema=83ms (was 64ms)
+15:47:33 [INFO] voice: delay est: corr=0.229 below threshold, skipping
+15:47:35 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:47:44 [INFO] voice: delay est: corr=0.189 below threshold, skipping
+15:47:49 [INFO] voice: delay est: corr=0.219 below threshold, skipping
+15:47:52 [INFO] voice: delay est: lag=24ms corr=0.368 ema=68ms (was 83ms)
+15:47:54 [INFO] voice: delay est: lag=6ms corr=0.330 ema=52ms (was 68ms)
+15:47:55 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:01 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:02 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:03 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:05 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:06 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:13 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:33 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:34 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:35 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:45 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:50 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:51 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:54 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:57 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:58 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:48:59 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:26 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:29 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:30 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:33 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:36 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:40 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:41 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:43 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:44 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:45 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:49 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:49:58 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:50:00 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:50:01 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:50:03 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:50:18 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:03 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:04 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:05 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:06 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:08 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:09 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:10 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:12 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:13 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:14 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:15 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:16 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:17 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:18 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:20 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:21 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:23 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:24 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:56 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:51:57 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:00 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:01 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:02 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:03 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:07 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:09 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:10 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:40 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:42 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:44 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:46 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:53 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:54 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:52:56 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:26 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:27 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:28 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:29 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:30 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:35 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:36 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:37 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:39 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:40 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:42 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:43 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:44 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:45 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:47 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:48 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:49 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:50 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:51 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:52 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:53 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:54 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:55 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:56 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:57 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:58 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:54:59 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:00 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:12 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:13 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:14 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:15 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:16 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:17 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:18 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:35 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:36 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:38 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:39 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:40 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:41 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:42 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:43 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:44 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:45 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:47 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:50 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:51 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:55:52 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:56:34 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:56:35 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:56:36 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:56:37 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:56:38 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:56:59 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:02 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:03 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:05 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:06 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:07 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:08 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:09 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:10 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:11 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:12 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:13 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:15 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:16 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:17 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:19 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:37 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:44 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:57:51 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:58:06 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:58:07 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:58:09 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:58:14 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:58:17 [INFO] notification: sam4 left the voice call [type=user_left_voice_chat]
+15:58:17 [INFO] notification: sam4 left "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_left_room]
+15:58:51 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:27 [INFO] notification: sam4 entered "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_joined_room]
+15:59:30 [INFO] notification: sam4 joined the voice call [type=user_joined_voice_chat]
+15:59:31 [INFO] voice: OnTrack fired, ssrc=1516941493
+15:59:35 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:36 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:37 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:38 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:39 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:40 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:41 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:42 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:43 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:47 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:51 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:52 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:54 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+15:59:58 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:09 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:10 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:11 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:18 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:19 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:20 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:21 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:36 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:40 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:41 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:42 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:00:44 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:01:01 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:01:17 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:01:19 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:01:34 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+16:01:36 [INFO] joining voice chat
+16:01:36 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+16:01:36 [INFO] voice: keys ok
+16:01:36 [INFO] voice: peer connection created
+16:01:36 [INFO] voice: initialising audio output
+16:01:36 [INFO] voice: audio output ready
+16:01:36 [INFO] voice: creating player
+16:01:36 [INFO] voice: setting player buffer size to 20ms
+16:01:36 [INFO] voice: starting player
+16:01:36 [INFO] voice: player started
+16:01:36 [INFO] voice: creating offer
+16:01:36 [INFO] voice: setting local description
+16:01:36 [INFO] voice: waiting for ICE gathering
+16:01:41 [INFO] voice: ICE gathering complete
+16:01:41 [INFO] voice: sending offer to broker
+16:01:41 [INFO] voice: offer sent, waiting for broker answer
+16:01:41 [INFO] voice: remote description set, join complete
+16:01:41 [INFO] captureAndSend: selected="" available inputs=5 [ab14e9b7-e904-4f8d-9329-fe5b8b1d9df1 79dec33d-903b-4bf8-81e4-f7c6f5fc5d15 391e1c12-6582-4f3b-90d1-e0b80d3b6e90 177b9296-29e4-44d4-93e9-5c34e532c985 011df713-5ed3-4f2c-aedb-44593dbff013]
+16:01:42 [INFO] voice: OnTrack fired, ssrc=682673707
+16:01:45 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:01:51 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:01:52 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:01:53 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:02:01 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:02:06 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:02:40 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:02:57 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:03:38 [INFO] voice: delay est: corr=0.105 below threshold, skipping
+16:03:46 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:03:51 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:03:57 [INFO] voice: delay est: corr=0.042 below threshold, skipping
+16:04:03 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:04:22 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:04:25 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:04:26 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:04:28 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:04:30 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:04:36 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:04:37 [INFO] voice: delay est: lag=121ms corr=0.368 ema=79ms (was 65ms)
+16:04:38 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:04:52 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:04:53 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:05:17 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:05:19 [INFO] voice: delay est: corr=0.013 below threshold, skipping
+16:05:29 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:05:31 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:05:33 [INFO] voice: delay est: lag=47ms corr=0.356 ema=71ms (was 79ms)
+16:05:36 [INFO] voice: delay est: corr=0.167 below threshold, skipping
+16:05:45 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:05:46 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:06:11 [INFO] notification: sam4 left "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_left_room]
+16:06:11 [INFO] notification: sam4 left the voice call [type=user_left_voice_chat]
+16:06:30 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:06:31 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:06:36 [INFO] notification: sam4 left the voice call [type=user_left_voice_chat]
+16:07:07 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:07:08 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:07:10 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:07:11 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:07:12 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:07:13 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+16:07:20 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+18:34:56 [INFO] starting test audio
+18:34:56 [INFO] voice: join start roomID=self
+18:34:56 [INFO] voice: keys ok
+18:34:56 [INFO] voice: peer connection created
+18:34:56 [INFO] voice: initialising audio output
+18:34:56 [INFO] voice: audio output ready
+18:34:56 [INFO] voice: creating player
+18:34:56 [INFO] voice: setting player buffer size to 20ms
+18:34:56 [INFO] voice: starting player
+18:34:56 [INFO] voice: player started
+18:34:56 [INFO] voice: creating offer
+18:34:56 [INFO] voice: setting local description
+18:34:56 [INFO] voice: waiting for ICE gathering
+18:34:56 [INFO] voice: ICE gathering complete
+18:34:56 [INFO] voice: sending offer to broker
+18:34:56 [INFO] voice: offer sent, waiting for broker answer
+18:34:56 [INFO] voice: remote description set, join complete
+18:34:56 [INFO] captureAndSend: selected="" available inputs=4 [ab77ca07-88e5-44d9-b642-eed9bf1193a8 a396715d-2893-4d65-8fa5-ff8649eb2073 34ed5df0-513c-4d00-8072-936331dbd747 5ffebe1d-95a9-4b23-83a9-4374511b4e44]
+18:34:57 [INFO] voice: OnTrack fired, ssrc=2257437571
+18:35:14 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+18:35:15 [INFO] joining voice chat
+18:35:15 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+18:35:15 [INFO] voice: keys ok
+18:35:15 [INFO] voice: peer connection created
+18:35:15 [INFO] voice: initialising audio output
+18:35:16 [INFO] voice: audio output ready
+18:35:16 [INFO] voice: creating player
+18:35:16 [INFO] voice: setting player buffer size to 20ms
+18:35:16 [INFO] voice: starting player
+18:35:16 [INFO] voice: player started
+18:35:16 [INFO] voice: creating offer
+18:35:16 [INFO] voice: setting local description
+18:35:16 [INFO] voice: waiting for ICE gathering
+18:35:16 [INFO] voice: ICE gathering complete
+18:35:16 [INFO] voice: sending offer to broker
+18:35:16 [INFO] voice: offer sent, waiting for broker answer
+18:35:16 [INFO] voice: remote description set, join complete
+18:35:16 [INFO] captureAndSend: selected="" available inputs=4 [d931b86a-9404-456e-8f0f-b477f82d855c 42276e58-ecec-4f3c-95d8-f7d427072e57 f92c0352-3763-4e18-b9a4-a7cf59c9c1d0 0f5f312f-b19d-4a80-9a90-142a165b50a8]
+18:35:53 [INFO] connected to broker oregon.nito-broker.com as sammac
+18:35:53 [INFO] reconnected to broker
+18:37:00 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+18:37:02 [INFO] joining voice chat
+18:37:02 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+18:37:02 [INFO] voice: keys ok
+18:37:02 [INFO] voice: peer connection created
+18:37:02 [INFO] voice: initialising audio output
+18:37:02 [INFO] voice: audio output ready
+18:37:02 [INFO] voice: creating player
+18:37:02 [INFO] voice: setting player buffer size to 20ms
+18:37:02 [INFO] voice: starting player
+18:37:02 [INFO] voice: player started
+18:37:02 [INFO] voice: creating offer
+18:37:02 [INFO] voice: setting local description
+18:37:02 [INFO] voice: waiting for ICE gathering
+18:37:02 [INFO] voice: ICE gathering complete
+18:37:02 [INFO] voice: sending offer to broker
+18:37:02 [INFO] voice: offer sent, waiting for broker answer
+18:37:02 [INFO] voice: remote description set, join complete
+18:37:02 [INFO] captureAndSend: selected="" available inputs=4 [9356d1b8-a158-4dc3-92c5-ae06a181c947 9e667ba6-d767-4490-a6ef-ba097f9b3d41 331c3951-c4cf-4f5b-a2a9-881335a62018 092463e7-6e48-4d7d-ad41-3034065ab934]
+18:37:22 [INFO] notification: sam4 entered "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_joined_room]
+18:37:25 [INFO] notification: sam4 joined the voice call [type=user_joined_voice_chat]
+18:37:26 [INFO] voice: OnTrack fired, ssrc=2905610156
+20:30:23 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+20:30:26 [INFO] joining voice chat
+20:30:26 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+20:30:26 [INFO] voice: keys ok
+20:30:26 [INFO] voice: peer connection created
+20:30:26 [INFO] voice: initialising audio output
+20:30:26 [INFO] voice: audio output ready
+20:30:26 [INFO] voice: creating player
+20:30:26 [INFO] voice: setting player buffer size to 20ms
+20:30:26 [INFO] voice: starting player
+20:30:26 [INFO] voice: player started
+20:30:26 [INFO] voice: creating offer
+20:30:26 [INFO] voice: setting local description
+20:30:26 [INFO] voice: waiting for ICE gathering
+20:30:31 [INFO] voice: ICE gathering complete
+20:30:31 [INFO] voice: sending offer to broker
+20:30:31 [INFO] voice: offer sent, waiting for broker answer
+20:30:31 [INFO] voice: remote description set, join complete
+20:30:31 [INFO] captureAndSend: selected="" available inputs=4 [52ec28ce-6c6e-4ea0-9d2d-074341929416 943ceb12-01bc-4bcd-b2a4-4551d8f30d44 579b9067-d915-4981-8c0c-bd8115ef10f1 9cecb92a-a569-454b-a255-956f53c59679]
+21:11:15 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+21:11:17 [INFO] joining voice chat
+21:11:17 [INFO] voice: join start roomID=2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+21:11:17 [INFO] voice: keys ok
+21:11:17 [INFO] voice: peer connection created
+21:11:17 [INFO] voice: initialising audio output
+21:11:17 [INFO] voice: audio output ready
+21:11:17 [INFO] voice: creating player
+21:11:17 [INFO] voice: setting player buffer size to 20ms
+21:11:17 [INFO] voice: starting player
+21:11:17 [INFO] voice: player started
+21:11:17 [INFO] voice: creating offer
+21:11:17 [INFO] voice: setting local description
+21:11:17 [INFO] voice: waiting for ICE gathering
+21:11:22 [INFO] voice: ICE gathering complete
+21:11:22 [INFO] voice: sending offer to broker
+21:11:22 [INFO] voice: offer sent, waiting for broker answer
+21:11:22 [INFO] voice: remote description set, join complete
+21:11:22 [INFO] captureAndSend: selected="" available inputs=2 [e0489b47-ff5e-490d-ab3d-035aaabb1222 86846480-d4e8-4bde-b75d-3e685e30b54d]
+21:11:23 [INFO] voice: OnTrack fired, ssrc=1245259981
+21:11:25 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+21:11:26 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+21:11:29 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+21:11:36 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+21:11:39 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+21:11:45 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+21:12:03 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+21:12:14 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+21:12:17 [INFO] voice: delay est: corr=0.054 below threshold, skipping
+21:12:20 [INFO] notification: sam4 left the voice call [type=user_left_voice_chat]
+21:12:34 [INFO] notification: sam4 left "asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl" [type=user_left_room]
+21:12:34 [INFO] voice: delay est: corr=0.000 below threshold, skipping
+09:00:17 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+09:00:28 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+09:14:18 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+09:14:22 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+09:22:35 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+09:22:39 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+09:28:20 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+09:28:24 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+09:28:25 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+09:28:47 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+09:29:55 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+09:30:00 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+09:32:15 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+09:32:19 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+09:42:25 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+09:42:31 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+10:24:09 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:24:14 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+10:32:50 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:32:54 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+10:38:46 [INFO] connected to broker oregon.nito-broker.com as sammac
+10:38:46 [INFO] reconnected to broker
+10:39:10 [ERROR] audio_player: fetch: Get "http://archive.org/download/Radiohead-Remixed-1/02%20-%20Radiohead%20-%20Reckoner%20%28Solar%20Sailing%20Mix%29.mp3": dial tcp 207.241.224.2:80: i/o timeout
+10:54:17 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:54:22 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+10:54:23 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:54:35 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+11:09:07 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:09:12 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+11:34:46 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:34:50 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+11:35:50 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:35:59 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+11:45:15 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:45:41 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+11:53:12 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+11:54:19 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:54:32 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:03:31 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:25:46 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:25:52 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+12:26:03 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:31:39 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:31:40 [ERROR] audio_player: mp3 decode: EOF
+12:32:01 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:32:42 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:33:40 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:33:48 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:33:53 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:40:43 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:40:49 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:41:34 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:42:02 [INFO] audio_player: m3u resolved 14 track(s) from https://ia801003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
