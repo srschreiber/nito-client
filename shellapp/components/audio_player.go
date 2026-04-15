@@ -207,7 +207,7 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 
 	eq := newEQReader(dec, dec.SampleRate(), track)
 	defer eq.Close()
-	defer voice.SetTrackLevel(track, 0) // zero the meter when playback ends
+	defer voice.ClearTrackBandLevels(track) // zero the meter when playback ends
 	player := otoCtx.NewPlayer(eq)
 	// Give the audio player a 1-second buffer. The shared oto context is
 	// initialised at 20ms for voice-call latency, but .play clips have no
@@ -230,6 +230,71 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 			}
 			player.SetVolume(voice.EffectivePlaybackVolume())
 			time.Sleep(20 * time.Millisecond)
+		}
+	}
+}
+
+// biquad is a 2nd-order IIR filter in direct-form-II-transposed. Used to build
+// the per-frequency-band analyser for the spectrum meter.
+type biquad struct {
+	b0, b2 float32 // numerator coefficients; b1 = 0 for bandpass
+	a1n    float32 // a1/a0 (RBJ convention: -2cos(w0)/a0)
+	a2n    float32 // a2/a0 = (1-alpha)/a0
+	w1, w2 float32 // filter state
+}
+
+// newBandpass returns a biquad bandpass filter (0 dB peak gain at fc) using
+// the Audio EQ Cookbook (RBJ) coefficients.
+func newBandpass(fc, q, sr float32) biquad {
+	w0 := 2 * math.Pi * float64(fc) / float64(sr)
+	sinw0 := math.Sin(w0)
+	cosw0 := math.Cos(w0)
+	alpha := sinw0 / (2 * float64(q))
+	a0 := 1 + alpha
+	return biquad{
+		b0:  float32(alpha / a0),
+		b2:  float32(-alpha / a0),
+		a1n: float32(-2 * cosw0 / a0),
+		a2n: float32((1 - alpha) / a0),
+	}
+}
+
+func (f *biquad) process(x float32) float32 {
+	y := f.b0*x + f.w1
+	f.w1 = -f.a1n*y + f.w2
+	f.w2 = f.b2*x - f.a2n*y
+	return y
+}
+
+// bandCenters are the centre frequencies (Hz) for the spectrum meter's
+// voice.NumBands bars: sub-bass → bass → low-mid → mid → high → air.
+var bandCenters = [voice.NumBands]float32{80, 250, 1000, 4000, 10000, 16000}
+
+// bandAnalyzer runs a bank of bandpass filters on a mono signal and tracks the
+// smoothed amplitude envelope for each band with fast-attack / slow-release.
+type bandAnalyzer struct {
+	filters [voice.NumBands]biquad
+	smooth  [voice.NumBands]float32
+}
+
+func (a *bandAnalyzer) init(sr float32) {
+	for i := range a.filters {
+		a.filters[i] = newBandpass(bandCenters[i], 1.0, sr)
+	}
+}
+
+func (a *bandAnalyzer) process(mono float32) {
+	for i := range a.filters {
+		out := a.filters[i].process(mono)
+		amp := out
+		if amp < 0 {
+			amp = -amp
+		}
+		const attack, release = float32(0.4), float32(0.06)
+		if amp > a.smooth[i] {
+			a.smooth[i] = attack*amp + (1-attack)*a.smooth[i]
+		} else {
+			a.smooth[i] = release*amp + (1-release)*a.smooth[i]
 		}
 	}
 }
@@ -288,8 +353,8 @@ type eqReader struct {
 	rightPipeline voice.EffectPipeline
 	preScale      float32
 	outputGain    float32
-	panPhase      float64 // LFO phase for auto-pan; preserved across settings rebuilds
-	levelSmooth   float32 // fast-attack/slow-release smoothed RMS level for the meter
+	panPhase      float64      // LFO phase for auto-pan; preserved across settings rebuilds
+	bands         bandAnalyzer // per-frequency-band spectrum analyser for the meter
 	// Pre-allocated work buffers reused each Read() call to avoid GC churn.
 	workLeft  []float32
 	workRight []float32
@@ -299,6 +364,7 @@ func newEQReader(src io.Reader, sampleRate, track int) *eqReader {
 	r := &eqReader{src: src, sampleRate: sampleRate, track: track}
 	r.left.pitch = voice.NewPlaybackPitchEffect(sampleRate)
 	r.right.pitch = voice.NewPlaybackPitchEffect(sampleRate)
+	r.bands.init(float32(sampleRate))
 	r.rebuildEffects()
 	return r
 }
@@ -401,7 +467,6 @@ func (r *eqReader) Read(p []byte) (int, error) {
 		staticLeftGain := float32(math.Cos(staticAngle))
 		staticRightGain := float32(math.Sin(staticAngle))
 		phaseInc := 2 * math.Pi * float64(panS.AutoPanRate) / float64(r.sampleRate)
-		var sumSq float64
 		for i := 0; i < frames; i++ {
 			var lg, rg float32
 			if panS.AutoPanEnabled {
@@ -425,21 +490,16 @@ func (r *eqReader) Read(p []byte) (int, error) {
 			off := i * 4
 			lv := float32(math.Tanh(float64(left[i] * r.outputGain * lg)))
 			rv := float32(math.Tanh(float64(right[i] * r.outputGain * rg)))
-			sumSq += float64(lv)*float64(lv) + float64(rv)*float64(rv)
 			binary.LittleEndian.PutUint16(p[off:], uint16(int16(lv*32767)))
 			binary.LittleEndian.PutUint16(p[off+2:], uint16(int16(rv*32767)))
+			// Feed mono mix into the band analyser for the spectrum meter.
+			r.bands.process((lv + rv) * 0.5)
 		}
-		// Compute RMS of the output frame and update the smoothed level for the
-		// status-panel meter. Fast attack (snappy), slow release (natural decay).
-		rms := float32(math.Sqrt(sumSq / float64(frames*2)))
-		const attackAlpha = 0.4
-		const releaseAlpha = 0.06
-		if rms > r.levelSmooth {
-			r.levelSmooth = attackAlpha*rms + (1-attackAlpha)*r.levelSmooth
-		} else {
-			r.levelSmooth = releaseAlpha*rms + (1-releaseAlpha)*r.levelSmooth
+		// Publish smoothed per-band levels to the voice package so the
+		// status-panel meter tick can read them without locking.
+		for b := range r.bands.smooth {
+			voice.SetTrackBandLevel(r.track, b, r.bands.smooth[b])
 		}
-		voice.SetTrackLevel(r.track, r.levelSmooth)
 	}
 	return n, err
 }

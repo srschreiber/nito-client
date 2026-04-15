@@ -148,7 +148,7 @@ func initialModel() model {
 		audioPlayerSettings: components.NewAudioPlayerSettingsScreen(termW, termH),
 		comps:               []components.Component{history, status, command, hints},
 		focusable:           []int{0, 1, 2}, // status always navigable (TRACKS always visible)
-		focusedComponent:    1,              // index into focusable → comps[2] = command
+		focusedComponent:    2,              // index into focusable → comps[2] = command
 		termW:               termW,
 		termH:               termH,
 		histBoxW:            l.histBoxW,

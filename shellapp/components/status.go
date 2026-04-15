@@ -69,65 +69,62 @@ func (s *StatusComponent) meterTickCmd() tea.Cmd {
 	return tea.Tick(50*time.Millisecond, func(time.Time) tea.Msg { return meterTickMsg{} })
 }
 
-// trackMeterBars returns a 3-char plain-text level meter for a single track.
-// No ANSI codes are used so lipgloss's box width calculation is never thrown off.
-// The wobble phases are offset per track index so bars animate independently.
+// trackMeterBars returns a 6-cell braille spectrum bar graph for a single
+// track. Each cell corresponds to a frequency band (sub-bass → air) and fills
+// vertically in whole rows of 2 dots based on that band's energy.
+// Braille chars are EAW="Neutral" (always 1 terminal column) so the enclosing
+// box width calculation is never thrown off.
 func (s *StatusComponent) trackMeterBars(track int) string {
-	level := voice.GetTrackLevel(track)
-
-	// 8× pre-gain + sqrt perceptual curve so normal listening levels use the
-	// full block range (raw RMS at 100% vol is typically 0.03–0.15 out of 1.0).
-	boosted := level * 8.0
-	if boosted > 1 {
-		boosted = 1
-	}
-	display := float32(math.Sqrt(float64(boosted)))
-
-	// Per-track wobble: offset phases by track index so each meter moves differently.
-	wobble1 := float32(0.04 * math.Sin(s.wobblePhase1+float64(track)*1.2))
-	wobble2 := float32(0.04 * math.Sin(s.wobblePhase2+float64(track)*0.7))
-
-	const minH = 0.18
-	mid := clampMeter(display)
-	lft := clampMeter(display*0.35 + wobble1)
-	rgt := clampMeter(display*0.25 + wobble2)
-	if mid < minH {
-		mid = minH
-	}
-	if lft < minH {
-		lft = minH
-	}
-	if rgt < minH {
-		rgt = minH
+	t := float64(track)
+	// Small per-band wobble so bars have subtle independent animation even
+	// during sustained, spectrally-flat passages.
+	wobbles := [voice.NumBands]float32{
+		float32(0.04 * math.Sin(s.wobblePhase1+t*1.20)),
+		float32(0.03 * math.Sin(s.wobblePhase2+t*0.70)),
+		float32(0.02 * math.Sin(s.wobblePhase1*1.3+t*1.50)),
+		float32(0.02 * math.Sin(s.wobblePhase2*0.9+t*0.90)),
+		float32(0.03 * math.Sin(s.wobblePhase1+t*1.80)),
+		float32(0.04 * math.Sin(s.wobblePhase2*1.2+t*0.60)),
 	}
 
-	// Return plain text only — no lipgloss/ANSI so the enclosing box can measure
-	// line widths correctly without the trailing-reset off-by-1 problem.
-	return string(meterBlock(lft)) + string(meterBlock(mid)) + string(meterBlock(rgt))
+	var sb strings.Builder
+	for band := 0; band < voice.NumBands; band++ {
+		raw := voice.GetTrackBandLevel(track, band)
+		// 8× pre-gain + sqrt perceptual curve: bandpass output amplitude is
+		// typically 0.01–0.10 at normal listening volumes; this maps it to a
+		// visible fraction of the bar range.
+		boosted := raw * 8.0
+		if boosted > 1 {
+			boosted = 1
+		}
+		display := float32(math.Sqrt(float64(boosted))) + wobbles[band]
+		if display < 0 {
+			display = 0
+		} else if display > 1 {
+			display = 1
+		}
+		sb.WriteRune(meterCell(display))
+	}
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("#4ade80")).Render(sb.String())
 }
 
-// meterBlock maps a level in [0,1] to a Unicode vertical-bar block character.
-func meterBlock(level float32) rune {
-	const chars = " ▁▂▃▄▅▆▇█"
-	runes := []rune(chars)
-	idx := int(level * float32(len(runes)-1))
+// meterCell maps a level in [0,1] to a braille pattern that fills from the
+// bottom up in complete rows of 2 dots. 5 states (0–4 rows filled):
+//
+//	⠀ U+2800  0 rows — silent
+//	⣀ U+28C0  1 row  — dots 7,8   (bottom row)
+//	⣤ U+28E4  2 rows — dots 7,8 + 3,6
+//	⣶ U+28F6  3 rows — dots 7,8 + 3,6 + 2,5
+//	⣿ U+28FF  4 rows — all dots
+func meterCell(level float32) rune {
+	cells := [5]rune{'\u2800', '\u28C0', '\u28E4', '\u28F6', '\u28FF'}
+	idx := int(level * 5)
 	if idx < 0 {
 		idx = 0
-	} else if idx >= len(runes) {
-		idx = len(runes) - 1
+	} else if idx >= 5 {
+		idx = 4
 	}
-	return runes[idx]
-}
-
-// clampMeter clamps v to [0, 1].
-func clampMeter(v float32) float32 {
-	if v < 0 {
-		return 0
-	}
-	if v > 1 {
-		return 1
-	}
-	return v
+	return cells[idx]
 }
 
 func (s *StatusComponent) SetSize(width, height int) {
@@ -272,14 +269,14 @@ func (s *StatusComponent) activate() tea.Cmd {
 func (s *StatusComponent) Render() string {
 	c := styles.CursorStyle
 	k := styles.HintKeyStyle
-	d := styles.DimText
+	d := lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8"))
 
 	// STATUS section
 	label := styles.StatusBadge.Render("STATUS")
 	var statusLine string
 	if s.connected {
 		latency := fmt.Sprintf("%dms", s.latencyMs)
-		dimVal := lipgloss.NewStyle().Background(styles.ComponentBg).Foreground(lipgloss.Color("#8888b8"))
+		dimVal := lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8"))
 		lbl := lipgloss.NewStyle().Foreground(lipgloss.Color("#7dd3fc"))
 		brokerDisplay := strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(s.brokerURL, "https://"), "http://"), "www.")
 		// "● online" = 8 visible chars; pad 4 so ping value starts at col 12, same as broker/user values.
@@ -296,7 +293,7 @@ func (s *StatusComponent) Render() string {
 	if s.voiceActive {
 		// VOICE section — live packet loss rate
 		voiceLabel := styles.VoiceBadge.Render("VOICE")
-		dimVal := lipgloss.NewStyle().Background(styles.ComponentBg).Foreground(lipgloss.Color("#8888b8"))
+		dimVal := lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8"))
 		lossStr := fmt.Sprintf("%.1f%%", s.lossPercent)
 		voiceLine := dimVal.Render(fmt.Sprintf("  %.0f pkt/s  loss %s", s.recvPktsPerSec, lossStr))
 		body += "\n\n" + voiceLabel + "\n" + voiceLine
@@ -316,9 +313,7 @@ func (s *StatusComponent) Render() string {
 				icon = k.Render("🔊")
 			} else {
 				icon = lipgloss.NewStyle().
-					Background(lipgloss.Color("#450a0a")).
 					Foreground(lipgloss.Color("#f87171")).
-					Padding(0, 1).
 					Render("⏹")
 			}
 			// "Started by" and per-track level meter — both plain ASCII (zero ANSI)
@@ -336,14 +331,14 @@ func (s *StatusComponent) Render() string {
 				} else {
 					raw = "  by: " + s.trackStartedBy[i]
 				}
-				maxByW := s.width - 12 // leave room for cursor+icon+num+meter
+				maxByW := s.width - 15 // cur(2)+icon(2)+space(1)+digit(1)+meter(7)+buffer(2)
 				if maxByW < 0 {
 					maxByW = 0
 				}
 				byLabel = truncate(raw, maxByW)
 			}
-			// Inline level meter: 3 plain-text block chars to the right of the
-			// track number so each track shows its own live audio level.
+			// Inline level meter: 6 braille bars to the right of the track number,
+			// each reflecting the live audio level of that track's stream.
 			meter := ""
 			if s.trackPlaying[i] {
 				meter = " " + s.trackMeterBars(i)

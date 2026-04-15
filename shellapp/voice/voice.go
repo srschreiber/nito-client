@@ -46,6 +46,9 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
+// NumBands is the number of frequency bands in the per-track spectrum meter.
+const NumBands = 6
+
 const (
 	sampleRate       = 48000
 	numChannels      = 1 // encode/decode mono; SDP advertises 2 per Opus spec
@@ -224,10 +227,11 @@ var (
 	pannerMu  sync.RWMutex
 	pannerCfg PannerSettings
 
-	// trackLevels stores the current smoothed RMS output level for each audio
-	// track (0–2). Written by eqReader (one goroutine per active track), read by
-	// the status-panel meter tick. Value is fixed-point: actual_level * 65535.
-	trackLevels [3]atomic.Uint32
+	// trackBandLevels stores per-frequency-band smoothed amplitude levels for
+	// each audio track (0–2) and each of NumBands frequency bands. Written by
+	// eqReader (one goroutine per active track), read by the status-panel meter
+	// tick. Value is fixed-point: actual_level * 65535.
+	trackBandLevels [3][NumBands]atomic.Uint32
 )
 
 const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
@@ -387,19 +391,19 @@ func SetPannerSettings(s PannerSettings) {
 	playbackEQVersion.Add(1)
 }
 
-// GetTrackLevel returns the current smoothed RMS playback level for track i,
-// normalised to [0, 1]. Returns 0 for invalid indices or idle tracks.
-func GetTrackLevel(i int) float32 {
-	if i < 0 || i >= 3 {
+// GetTrackBandLevel returns the smoothed amplitude level for frequency band
+// `band` of track `i`, normalised to [0, 1]. Returns 0 for invalid indices.
+func GetTrackBandLevel(i, band int) float32 {
+	if i < 0 || i >= 3 || band < 0 || band >= NumBands {
 		return 0
 	}
-	return float32(trackLevels[i].Load()) / 65535.0
+	return float32(trackBandLevels[i][band].Load()) / 65535.0
 }
 
-// SetTrackLevel stores the smoothed RMS level for track i (clamped to [0,1]).
-// Called from eqReader.Read(); also called with 0 when playback ends.
-func SetTrackLevel(i int, level float32) {
-	if i < 0 || i >= 3 {
+// SetTrackBandLevel stores the smoothed amplitude level for the given
+// frequency band of track i (clamped to [0, 1]).
+func SetTrackBandLevel(i, band int, level float32) {
+	if i < 0 || i >= 3 || band < 0 || band >= NumBands {
 		return
 	}
 	if level < 0 {
@@ -407,7 +411,18 @@ func SetTrackLevel(i int, level float32) {
 	} else if level > 1 {
 		level = 1
 	}
-	trackLevels[i].Store(uint32(level * 65535))
+	trackBandLevels[i][band].Store(uint32(level * 65535))
+}
+
+// ClearTrackBandLevels zeros all frequency-band levels for track i.
+// Called when playback ends so the meter returns to zero cleanly.
+func ClearTrackBandLevels(i int) {
+	if i < 0 || i >= 3 {
+		return
+	}
+	for b := range trackBandLevels[i] {
+		trackBandLevels[i][b].Store(0)
+	}
 }
 
 // clampVol5 clamps v to [0, 100] rounding to the nearest multiple of 5.
