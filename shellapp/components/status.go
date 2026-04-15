@@ -96,7 +96,7 @@ func (s *StatusComponent) trackMeterBars(track int) string {
 		// 8× pre-gain + sqrt perceptual curve: bandpass output amplitude is
 		// typically 0.01–0.10 at normal listening volumes; this maps it to a
 		// visible fraction of the bar range.
-		boosted := raw * 8.0
+		boosted := raw * 5.0
 		if boosted > 1 {
 			boosted = 1
 		}
@@ -109,9 +109,9 @@ func (s *StatusComponent) trackMeterBars(track int) string {
 		cell := meterCell(display)
 		var hex string
 		switch {
-		case display < 0.55:
+		case display < 0.65:
 			hex = "#4ade80" // green — low level
-		case display < 0.82:
+		case display < 0.88:
 			hex = "#f97316" // orange — medium level
 		default:
 			hex = "#f87171" // red — high level
@@ -147,7 +147,7 @@ func (s *StatusComponent) SetSize(width, height int) {
 	// Each braille cell is 1 terminal column; the track line has 7 cols of fixed
 	// overhead (cur + icon + space + digit + space + 2 buffer), so the rest is
 	// split evenly between the meter and the "started by" label.
-	n := width/2 - 4
+	n := width*3/4 - 4
 	if n < 4 {
 		n = 4
 	}
@@ -357,7 +357,7 @@ func (s *StatusComponent) Render() string {
 				} else {
 					raw = "  by: " + s.trackStartedBy[i]
 				}
-				maxByW := s.width - 7 - voice.NumBands() - 2 // cur(2)+icon(2)+space+digit+space+N_bars+buffer(2)
+				maxByW := s.width - 7 - voice.NumBands() - 2 // cur(2)+icon(2)+space+digit+space+N_bars+2_buf
 				if maxByW < 0 {
 					maxByW = 0
 				}
