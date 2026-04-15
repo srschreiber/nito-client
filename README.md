@@ -7,7 +7,7 @@ nito is an end-to-end encrypted terminal chat client.
 
 ## Why source available?
 
-The source is publicly available so that anyone can audit the code and verify our **end-to-end encryption** claims. All encryption and decryption happens exclusively in this client — the broker never sees plaintext messages, keys, or audio. You don't have to take our word for it; you can read every line of code.
+The source is publicly available so that anyone can audit the code and verify our **end-to-end encryption** claims. All encryption and decryption happens exclusively in this client — the broker never sees plaintext messages, keys, or audio. 
 
 ## Broker
 
