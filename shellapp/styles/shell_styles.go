@@ -150,6 +150,13 @@ var (
 			Bold(true).
 			Padding(0, 1)
 
+	// AudioPlayerBadge is the label badge for the audio player EQ settings screen title.
+	AudioPlayerBadge = lipgloss.NewStyle().
+				Background(lipgloss.Color("#1e1b4b")).
+				Foreground(lipgloss.Color("#a5b4fc")).
+				Bold(true).
+				Padding(0, 1)
+
 	// VoiceBadge is the label badge for the live voice stats section in the status panel.
 	VoiceBadge = lipgloss.NewStyle().
 			Background(lipgloss.Color("#14532d")).

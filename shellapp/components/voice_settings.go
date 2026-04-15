@@ -159,7 +159,7 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		return func() tea.Msg { return HideVoiceSettingsMsg{} }
 	case "tab":
 		s.section = (s.section + 1) % vsSectionCount
-	case "up", "ctrl+p":
+	case "up", "ctrl+p", "w":
 		if s.section == vsSectionInput && s.inputCursor > 0 {
 			s.inputCursor--
 		} else if s.section == vsSectionOutput && s.outputCursor > 0 {
@@ -169,7 +169,7 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		} else if s.section == vsSectionTransformations && s.transformCursor > 0 {
 			s.transformCursor--
 		}
-	case "down", "ctrl+n":
+	case "down", "ctrl+n", "s":
 		if s.section == vsSectionInput && s.inputCursor < len(s.inputDevices)-1 {
 			s.inputCursor++
 		} else if s.section == vsSectionOutput {
@@ -177,7 +177,7 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 				s.outputCursor++
 			}
 		} else if s.section == vsSectionAdvanced {
-			if s.advancedCursor < 4 { // jitter(0) + noise-out(1) + noise-in(2) + aec(3) + compressor(4)
+			if s.advancedCursor < 3 { // jitter(0) + noise-out(1) + noise-in(2) + aec(3)
 				s.advancedCursor++
 			}
 		} else if s.section == vsSectionTransformations {
@@ -189,7 +189,7 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 				s.transformCursor++
 			}
 		}
-	case "left":
+	case "left", "a":
 		switch s.section {
 		case vsSectionOutput:
 			switch s.outputCursor {
@@ -212,13 +212,6 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 					sounds.PlayPreview(float64(voice.VoiceChatOverride()) / 100.0)
 				}
 			}
-		case vsSectionAdvanced:
-			if s.advancedCursor == 4 {
-				l := voice.GetCompressorLevel()
-				if l > voice.CompressorOff {
-					voice.SetCompressorLevel(l - 1)
-				}
-			}
 		case vsSectionTransformations:
 			switch s.transformCursor {
 			case 0:
@@ -229,7 +222,7 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 				voice.SetVibratoRange(voice.VibratoRange() - 1)
 			}
 		}
-	case "right":
+	case "right", "d":
 		switch s.section {
 		case vsSectionOutput:
 			switch s.outputCursor {
@@ -250,13 +243,6 @@ func (s *VoiceSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 				if voice.VoiceChatOverride() >= 0 {
 					voice.SetVoiceChatOverride(voice.VoiceChatOverride() + 5)
 					sounds.PlayPreview(float64(voice.VoiceChatOverride()) / 100.0)
-				}
-			}
-		case vsSectionAdvanced:
-			if s.advancedCursor == 4 {
-				l := voice.GetCompressorLevel()
-				if l < voice.CompressorHigh {
-					voice.SetCompressorLevel(l + 1)
 				}
 			}
 		case vsSectionTransformations:
@@ -333,8 +319,6 @@ func (s *VoiceSettingsScreen) activate() tea.Cmd {
 			voice.SetDenoiseInboundEnabled(!voice.DenoiseInboundEnabled())
 		case 3:
 			voice.SetAECEnabled(!voice.AECEnabled())
-		case 4:
-			voice.SetCompressorLevel((voice.GetCompressorLevel() + 1) % voice.CompressorCount)
 		}
 		return nil
 	case vsSectionTest:
@@ -687,24 +671,6 @@ func (s *VoiceSettingsScreen) Render() string {
 			lines = append(lines, cur+styles.ItemStyle.Render(label))
 		}
 	}
-	// Compressor — multi-level item (off/low/medium/high)
-	{
-		const compIdx = 4
-		cur := "  "
-		if s.section == vsSectionAdvanced && s.advancedCursor == compIdx {
-			cur = styles.CursorStyle.Render("▶ ")
-		}
-		lvl := voice.GetCompressorLevel()
-		lvlName := voice.CompressorLevelNames[lvl]
-		compLabel := "Compressor " + styles.DimText.Render(lvlName)
-		if s.section == vsSectionAdvanced && s.advancedCursor == compIdx {
-			lines = append(lines, cur+styles.RoomBtnActiveStyle.Render(compLabel))
-			lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  enter to cycle  (off/low/medium/high)"))
-		} else {
-			lines = append(lines, cur+styles.ItemStyle.Render(compLabel))
-		}
-	}
-
 	content := strings.Join(lines, "\n")
 
 	panel := lipgloss.NewStyle().
@@ -715,6 +681,6 @@ func (s *VoiceSettingsScreen) Render() string {
 		Height(innerH).
 		Render(content)
 
-	hint := styles.HelpStyle.Render("  tab  next section  •  ↑/↓  navigate  •  enter  select/toggle  •  esc  close")
+	hint := styles.HelpStyle.Render("  tab  next section  •  ↑↓/ws  navigate  •  ◀▶/ad  adjust  •  enter/space  select  •  esc  close")
 	return panel + "\n" + hint
 }

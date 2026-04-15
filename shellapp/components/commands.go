@@ -26,7 +26,10 @@ import (
 	"github.com/srschreiber/nito-client/shellapp/voice"
 )
 
-const maxCmdHistory = 20
+const (
+	maxCmdHistory  = 20
+	maxChatHistory = 100
+)
 
 // chatOpDef describes a chat op for autocomplete.
 type chatOpDef struct {
@@ -99,9 +102,11 @@ type CommandComponent struct {
 	blinkGen       int
 	width          int
 	// command history (up/down navigation)
-	cmdHistory []string
-	historyIdx int    // -1 = not navigating
-	draftText  string // saved input before navigating history
+	cmdHistory  []string // CMD-mode entries
+	chatHistory []string // chat/DM/chat-op entries
+	cmdHistIdx  int      // -1 = not navigating (CMD mode)
+	chatHistIdx int      // -1 = not navigating (chat/DM mode)
+	draftText   string   // saved input before entering history navigation
 }
 
 func NewCommandComponent(width int) *CommandComponent {
@@ -109,9 +114,11 @@ func NewCommandComponent(width int) *CommandComponent {
 		Placeholder:   placeholderChat,
 		chatMode:      true,
 		cursorVisible: true,
-		historyIdx:    -1,
+		cmdHistIdx:    -1,
+		chatHistIdx:   -1,
 		width:         width,
 		cmdHistory:    history.Load(),
+		chatHistory:   history.LoadChat(),
 	}
 }
 
@@ -131,6 +138,14 @@ func (l *CommandComponent) resetCursor() tea.Cmd {
 	l.cursorVisible = true
 	l.blinkGen++
 	return l.newBlinkCmd()
+}
+
+// activeHistory returns the history slice and index pointer for the current mode.
+func (l *CommandComponent) activeHistory() ([]string, *int) {
+	if l.chatMode || l.dmMode {
+		return l.chatHistory, &l.chatHistIdx
+	}
+	return l.cmdHistory, &l.cmdHistIdx
 }
 
 func (l *CommandComponent) Init() tea.Cmd {
@@ -182,6 +197,8 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 		l.chatMode = msg.ChatMode
 		l.dmMode = false
 		l.dmTarget = ""
+		l.cmdHistIdx = -1
+		l.chatHistIdx = -1
 		if msg.ChatMode {
 			l.activeTab = TabChat
 			l.Placeholder = placeholderChat
@@ -197,6 +214,8 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 		l.activeTab = msg.Tab
 		l.dmMode = false
 		l.dmTarget = ""
+		l.cmdHistIdx = -1
+		l.chatHistIdx = -1
 		switch msg.Tab {
 		case TabChat:
 			l.chatMode = true
@@ -213,6 +232,8 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 		}
 		return nil
 	case DMTargetChangedMsg:
+		l.cmdHistIdx = -1
+		l.chatHistIdx = -1
 		if msg.User == "" {
 			l.dmMode = false
 			l.dmTarget = ""
@@ -260,6 +281,7 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 			return tea.Batch(func() tea.Msg { return ClearHistoryMsg{} }, emitConn)
 		case commands.SignalExit:
 			_ = history.Save(l.cmdHistory)
+			_ = history.SaveChat(l.chatHistory)
 			return tea.Quit
 		case commands.SignalRefreshRooms:
 			return tea.Batch(func() tea.Msg { return AppendHistoryMsg{Entries: entries} }, emitConn, func() tea.Msg { return types.RoomsFetchMsg{} })
@@ -332,24 +354,26 @@ func (l *CommandComponent) Update(msg tea.Msg) tea.Cmd {
 				l.textFieldValue = string(append(runes[:l.cursorPos], runes[l.cursorPos+1:]...))
 			}
 		case "up":
-			if len(l.cmdHistory) > 0 {
-				if l.historyIdx == -1 {
+			hist, idx := l.activeHistory()
+			if len(hist) > 0 {
+				if *idx == -1 {
 					l.draftText = l.textFieldValue
-					l.historyIdx = len(l.cmdHistory) - 1
-				} else if l.historyIdx > 0 {
-					l.historyIdx--
+					*idx = len(hist) - 1
+				} else if *idx > 0 {
+					(*idx)--
 				}
-				l.textFieldValue = l.cmdHistory[l.historyIdx]
+				l.textFieldValue = hist[*idx]
 				l.cursorPos = len([]rune(l.textFieldValue))
 			}
 		case "down":
-			if l.historyIdx != -1 {
-				if l.historyIdx == len(l.cmdHistory)-1 {
-					l.historyIdx = -1
+			hist, idx := l.activeHistory()
+			if *idx != -1 {
+				if *idx == len(hist)-1 {
+					*idx = -1
 					l.textFieldValue = l.draftText
 				} else {
-					l.historyIdx++
-					l.textFieldValue = l.cmdHistory[l.historyIdx]
+					(*idx)++
+					l.textFieldValue = hist[*idx]
 				}
 				l.cursorPos = len([]rune(l.textFieldValue))
 			}
@@ -594,12 +618,24 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
 				return AppendHistoryMsg{Entries: []historyEntry{
-					{text: ".play: usage: .play --mp3-or-m3u-or-alias <url|alias> [--track <0-2>]", isResponse: true},
+					{text: ".play: usage: .play --mp3-or-m3u-or-alias <url|alias> [--track <0-2>] [--broadcast true|false]", isResponse: true},
 				}, Tab: TabChat}
 			}
 		}
-		// Strip cosmetic --flag tokens; positional: first token = url/alias, last numeric token = track.
-		playArgs := filterFlags(strings.Fields(parts[1]))
+		tokens := strings.Fields(parts[1])
+		// Parse --broadcast flag (default false).
+		broadcast := false
+		var filteredTokens []string
+		for i := 0; i < len(tokens); i++ {
+			if tokens[i] == "--broadcast" && i+1 < len(tokens) {
+				broadcast = tokens[i+1] == "true"
+				i++ // skip value
+			} else {
+				filteredTokens = append(filteredTokens, tokens[i])
+			}
+		}
+		// Strip remaining cosmetic --flag tokens; positional: first = url/alias, last numeric = track.
+		playArgs := filterFlags(filteredTokens)
 		if len(playArgs) == 0 {
 			return func() tea.Msg {
 				return AppendHistoryMsg{Entries: []historyEntry{
@@ -626,7 +662,8 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		}
 		playURL := url
 		playTrack := track
-		return func() tea.Msg { return PlayAudioMsg{URL: playURL, Track: playTrack} }
+		playBroadcast := broadcast
+		return func() tea.Msg { return PlayAudioMsg{URL: playURL, Track: playTrack, Broadcast: playBroadcast} }
 	case ".image":
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
@@ -792,11 +829,19 @@ func (l *CommandComponent) handleEnter() tea.Cmd {
 		return l.handlePasswordSubmit(input)
 	}
 
-	l.cmdHistory = append(l.cmdHistory, input)
-	if len(l.cmdHistory) > maxCmdHistory {
-		l.cmdHistory = l.cmdHistory[1:]
+	if l.chatMode || l.dmMode {
+		l.chatHistory = append(l.chatHistory, input)
+		if len(l.chatHistory) > maxChatHistory {
+			l.chatHistory = l.chatHistory[1:]
+		}
+		l.chatHistIdx = -1
+	} else {
+		l.cmdHistory = append(l.cmdHistory, input)
+		if len(l.cmdHistory) > maxCmdHistory {
+			l.cmdHistory = l.cmdHistory[1:]
+		}
+		l.cmdHistIdx = -1
 	}
-	l.historyIdx = -1
 
 	// Mode-switch commands are intercepted before anything else.
 	if input == "/chat" {

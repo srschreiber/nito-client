@@ -102,23 +102,27 @@ func computeLayout(termW, termH int) layout {
 }
 
 type model struct {
-	history           *components.ConversationTabs
-	status            *components.StatusComponent
-	command           *components.CommandComponent
-	hints             *components.HintsComponent
-	toast             *components.ToastComponent
-	voiceSettings     *components.VoiceSettingsScreen
-	showVoiceSettings bool
-	comps             []components.Component
-	focusable         []int
-	focusedComponent  int
-	termW, termH      int
-	histBoxW          int  // outer visual width of the history block
-	offlineStreak     int  // consecutive failed pings
-	kickedToLogin     bool // set true when kicked back to login screen
+	history                 *components.ConversationTabs
+	status                  *components.StatusComponent
+	command                 *components.CommandComponent
+	hints                   *components.HintsComponent
+	toast                   *components.ToastComponent
+	voiceSettings           *components.VoiceSettingsScreen
+	showVoiceSettings       bool
+	audioPlayerSettings     *components.AudioPlayerSettingsScreen
+	showAudioPlayerSettings bool
+	comps                   []components.Component
+	focusable               []int
+	focusedComponent        int
+	termW, termH            int
+	histBoxW                int  // outer visual width of the history block
+	offlineStreak           int  // consecutive failed pings
+	kickedToLogin           bool // set true when kicked back to login screen
 	// audioTracks holds per-track cancellation. Index 0–2 correspond to tracks 0–2.
 	// A nil cancel means that track is idle.
-	audioTracks [3]context.CancelFunc
+	audioTracks         [3]context.CancelFunc
+	audioTrackStartedBy [3]string // username who started each track; "" if idle
+	audioTrackBroadcast [3]bool   // true if the track was network-broadcast
 }
 
 // startupSuccessMsg holds the auth result message to display on first launch.
@@ -135,18 +139,19 @@ func initialModel() model {
 
 	// comps: 0=history, 1=status, 2=command, 3=hints (display-only)
 	m := model{
-		history:          history,
-		status:           status,
-		command:          command,
-		hints:            hints,
-		toast:            toast,
-		voiceSettings:    components.NewVoiceSettingsScreen(termW, termH),
-		comps:            []components.Component{history, status, command, hints},
-		focusable:        []int{0, 2}, // status (1) added only when in a room
-		focusedComponent: 1,           // index into focusable → comps[2] = command
-		termW:            termW,
-		termH:            termH,
-		histBoxW:         l.histBoxW,
+		history:             history,
+		status:              status,
+		command:             command,
+		hints:               hints,
+		toast:               toast,
+		voiceSettings:       components.NewVoiceSettingsScreen(termW, termH),
+		audioPlayerSettings: components.NewAudioPlayerSettingsScreen(termW, termH),
+		comps:               []components.Component{history, status, command, hints},
+		focusable:           []int{0, 1, 2}, // status always navigable (TRACKS always visible)
+		focusedComponent:    1,              // index into focusable → comps[2] = command
+		termW:               termW,
+		termH:               termH,
+		histBoxW:            l.histBoxW,
 	}
 	m.comps[m.focusable[m.focusedComponent]].SetFocused(true)
 	m.hints.SetFocusedComp(m.focusable[m.focusedComponent])
@@ -162,6 +167,7 @@ func (m *model) relayout(termW, termH int) {
 	m.status.SetSize(l.statW, l.statH)
 	m.command.SetWidth(l.cmdW)
 	m.voiceSettings.SetSize(termW, termH)
+	m.audioPlayerSettings.SetSize(termW, termH)
 }
 
 // notificationMsg is delivered to the model when the readLoop routes a
@@ -404,12 +410,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Track finished naturally — free the slot.
 		if msg.Track >= 0 && msg.Track <= 2 {
 			m.audioTracks[msg.Track] = nil
+			m.audioTrackStartedBy[msg.Track] = ""
+			m.audioTrackBroadcast[msg.Track] = false
 		}
 		return m, m.trackStateCmd()
 	case components.AudioPlaybackErrorMsg:
 		// Playback failed — free the slot and show the error toast.
 		if msg.Track >= 0 && msg.Track <= 2 {
 			m.audioTracks[msg.Track] = nil
+			m.audioTrackStartedBy[msg.Track] = ""
+			m.audioTrackBroadcast[msg.Track] = false
 		}
 		text := msg.Text
 		return m, tea.Batch(
@@ -423,12 +433,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.audioTracks[i]()
 					m.audioTracks[i] = nil
 				}
+				m.audioTrackStartedBy[i] = ""
+				m.audioTrackBroadcast[i] = false
 			}
 		} else if msg.Track <= 2 {
 			if m.audioTracks[msg.Track] != nil {
 				m.audioTracks[msg.Track]()
 				m.audioTracks[msg.Track] = nil
 			}
+			m.audioTrackStartedBy[msg.Track] = ""
+			m.audioTrackBroadcast[msg.Track] = false
 		}
 		return m, m.trackStateCmd()
 	case components.RefreshTrackStateMsg:
@@ -456,11 +470,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.audioTracks[track] = cancel
 		roomID := voice.ActiveRoomID()
 		var extraCmds []tea.Cmd
-		if roomID == "" {
-			// Not in a voice call — play locally only, no broker RPC, no chat message.
-			roomID = voice.SelfRoomID
-			extraCmds = append(extraCmds, m.trackStateCmd(), components.PlayAudioFromURL(ctx, roomID, url, track))
-		} else {
+		if msg.Broadcast && roomID != "" {
+			// Broadcast to voice room: send RPC and let the broker echo start local playback.
 			if err := commands.PlayAudioDirect(url, track); err != nil {
 				m.audioTracks[track] = nil
 				cancel()
@@ -470,15 +481,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					func() tea.Msg { return components.ShowToastMsg{Text: ".play: " + errMsg} },
 				)
 			}
-			// In a voice call: don't start local playback here. The broker echoes
-			// the notification back to all users including the sender, and that
-			// notification handler starts playback for everyone consistently.
-			username := connection.GetSessionUserID()
-			notice := fmt.Sprintf("%s is playing %s (track %d)", username, url, track)
-			extraCmds = append(extraCmds,
-				m.trackStateCmd(),
-				func() tea.Msg { return components.NewChatResponseAppendMsg(notice) },
-			)
+			// The broker echo (SoundClip notification) will set startedBy + start playback.
+			extraCmds = append(extraCmds, m.trackStateCmd())
+		} else {
+			// Local play only (default): play directly without any broker RPC.
+			localRoom := roomID
+			if localRoom == "" {
+				localRoom = voice.SelfRoomID
+			}
+			m.audioTrackStartedBy[track] = connection.GetSessionUserID()
+			m.audioTrackBroadcast[track] = false
+			extraCmds = append(extraCmds, m.trackStateCmd(), components.PlayAudioFromURL(ctx, localRoom, url, track))
 		}
 		return m, tea.Batch(extraCmds...)
 	case types.ConnectedMsg:
@@ -512,6 +525,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				roomID := p.RoomID
 				audioURL := p.AudioURL
 				fromUser := p.FromUsername
+				m.audioTrackStartedBy[track] = fromUser
+				m.audioTrackBroadcast[track] = true
 				playMsg := fmt.Sprintf("%s is playing %s (track %d)", fromUser, audioURL, track)
 				cmds = append(cmds,
 					func() tea.Msg { return components.NewChatResponseAppendMsg(playMsg) },
@@ -589,7 +604,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.audioTracks[i] = nil
 			}
 		}
-		m.setFocusable([]int{0, 1, 2}) // status becomes navigable in a room
+		m.setFocusable([]int{0, 1, 2}) // keep all three focusable
 		var cmds []tea.Cmd
 		cmds = append(cmds, m.trackStateCmd())
 		for _, c := range m.comps {
@@ -601,7 +616,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	case types.RoomDeselectedMsg:
 		go commands.SendRoomLeave(msg.RoomID)
-		m.setFocusable([]int{0, 2}) // status no longer navigable outside a room
+		m.setFocusable([]int{0, 1, 2}) // keep all three focusable
 		return m, m.trackStateCmd()
 	case components.ShowVoiceSettingsMsg:
 		m.showVoiceSettings = true
@@ -610,7 +625,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case components.HideVoiceSettingsMsg:
 		m.showVoiceSettings = false
 		return m, nil
+	case components.ShowAudioPlayerSettingsMsg:
+		m.showAudioPlayerSettings = true
+		return m, nil
+	case components.HideAudioPlayerSettingsMsg:
+		m.showAudioPlayerSettings = false
+		return m, nil
+	case tea.MouseClickMsg:
+		if msg.Button == tea.MouseMiddle {
+			return m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+		}
+		return m, nil
 	case tea.KeyPressMsg:
+		if m.showAudioPlayerSettings {
+			if msg.String() == "ctrl+c" {
+				return m, tea.Quit
+			}
+			return m, m.audioPlayerSettings.Update(msg)
+		}
 		if m.showVoiceSettings {
 			if msg.String() == "ctrl+c" {
 				return m, tea.Quit
@@ -736,6 +768,8 @@ func (m *model) setFocusable(newFocusable []int) {
 // and alias list to all components (primarily the status panel).
 func (m *model) trackStateCmd() tea.Cmd {
 	var playing [3]bool
+	startedBy := m.audioTrackStartedBy
+	broadcast := m.audioTrackBroadcast
 	for i, c := range m.audioTracks {
 		playing[i] = c != nil
 	}
@@ -751,11 +785,22 @@ func (m *model) trackStateCmd() tea.Cmd {
 		for len(aliases) < 5 {
 			aliases = append(aliases, components.AliasEntry{})
 		}
-		return components.TrackStateMsg{Playing: playing, InRoom: inRoom, Aliases: aliases}
+		return components.TrackStateMsg{
+			Playing:   playing,
+			InRoom:    inRoom,
+			Aliases:   aliases,
+			StartedBy: startedBy,
+			Broadcast: broadcast,
+		}
 	}
 }
 
 func (m model) View() tea.View {
+	if m.showAudioPlayerSettings {
+		v := tea.NewView(styles.AppStyle.Render(m.audioPlayerSettings.Render()))
+		v.AltScreen = true
+		return v
+	}
 	if m.showVoiceSettings {
 		v := tea.NewView(styles.AppStyle.Render(m.voiceSettings.Render()))
 		v.AltScreen = true

@@ -159,6 +159,13 @@ var (
 	otoOnce sync.Once
 	otoCtx  *oto.Context
 
+	// musicOtoOnce / musicOtoCtx is a separate oto context used exclusively for
+	// .play music playback. It uses a 500ms hardware buffer so that GC or
+	// scheduler pauses longer than the 20ms voice buffer don't cause pops in
+	// music while voice latency stays low.
+	musicOtoOnce sync.Once
+	musicOtoCtx  *oto.Context
+
 	sendPacketCount atomic.Uint64
 	sendByteCount   atomic.Uint64
 	recvPacketCount atomic.Uint64
@@ -178,6 +185,44 @@ var (
 	loopbackPending   atomic.Int64 // number of unmatched entries (shared cap across both maps)
 	pipelineLatNs     atomic.Int64 // latest pipeline latency in nanoseconds
 	networkRTTNs      atomic.Int64 // latest network RTT in nanoseconds (ICE stats in real calls, loopback timing in test)
+
+	// Playback EQ — applied to MP3 clip playback (not voice chat audio).
+	// Protected by playbackEQMu; bump playbackEQVersion on every write so
+	// active eqReaders know to rebuild their filter coefficients.
+	playbackEQMu      sync.RWMutex
+	playbackEQCfg     EQSettings
+	playbackEQVersion atomic.Uint64
+
+	// playbackEQVolume is a 0–800 integer representing the player output volume
+	// as a percentage. 100 = unity gain. Stored separately so it is folded into
+	// the eqReader output multiplier, allowing values above 100% to compensate
+	// for the pre-scale headroom reduction applied when EQ gains are positive.
+	playbackEQVolume atomic.Int32
+
+	// delayMu guards delayCfg. Writes also bump playbackEQVersion so active
+	// eqReaders rebuild their effect chains automatically.
+	delayMu  sync.RWMutex
+	delayCfg DelaySettings
+
+	// Chorus
+	chorusMu  sync.RWMutex
+	chorusCfg ChorusSettings
+
+	// Playback compressor
+	playbackCompMu  sync.RWMutex
+	playbackCompCfg PlaybackCompressorSettings
+
+	// Playback pitch
+	playbackPitchMu  sync.RWMutex
+	playbackPitchCfg PlaybackPitchSettings
+
+	// Reverb (parallel comb filter bank)
+	reverbMu  sync.RWMutex
+	reverbCfg ReverbSettings
+
+	// Panner (balance + auto-pan)
+	pannerMu  sync.RWMutex
+	pannerCfg PannerSettings
 )
 
 const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
@@ -193,6 +238,148 @@ func init() {
 	chatSFXOverride.Store(-1)   // off = use master
 	playbackOverride.Store(-1)  // off = use master
 	voiceChatOverride.Store(-1) // off = use master
+	playbackEQCfg.SetDefaults()
+	playbackEQVolume.Store(100)
+	delayCfg.SetDefaults()
+	chorusCfg.SetDefaults()
+	playbackCompCfg.SetDefaults()
+	playbackPitchCfg.SetDefaults()
+	reverbCfg.SetDefaults()
+	pannerCfg.SetDefaults()
+}
+
+// GetPlaybackEQSettings returns the current playback EQ configuration.
+func GetPlaybackEQSettings() EQSettings {
+	playbackEQMu.RLock()
+	defer playbackEQMu.RUnlock()
+	return playbackEQCfg
+}
+
+// SetPlaybackEQSettings replaces the playback EQ configuration and bumps the
+// version counter so active eqReaders rebuild their filter coefficients.
+func SetPlaybackEQSettings(s EQSettings) {
+	playbackEQMu.Lock()
+	playbackEQCfg = s
+	playbackEQMu.Unlock()
+	playbackEQVersion.Add(1)
+}
+
+// PlaybackEQVersion returns the current version counter for the playback EQ.
+// An eqReader compares this against its cached version to detect stale filters.
+func PlaybackEQVersion() uint64 { return playbackEQVersion.Load() }
+
+// GetPlaybackEQVolume returns the player output volume as a percentage (0–800).
+// 100 = unity gain before EQ preScale. Push higher to compensate for the level
+// reduction caused by preScale (e.g. +18 dB boost needs ~800% to restore
+// non-boosted bands to their original level).
+func GetPlaybackEQVolume() int { return int(playbackEQVolume.Load()) }
+
+// SetPlaybackEQVolume sets the player output volume (clamped to [0, 800]).
+// Bumps the EQ version so active eqReaders pick up the change.
+func SetPlaybackEQVolume(pct int) {
+	if pct < 0 {
+		pct = 0
+	} else if pct > 800 {
+		pct = 800
+	}
+	playbackEQVolume.Store(int32(pct))
+	playbackEQVersion.Add(1)
+}
+
+// GetDelaySettings returns the current delay configuration.
+func GetDelaySettings() DelaySettings {
+	delayMu.RLock()
+	defer delayMu.RUnlock()
+	return delayCfg
+}
+
+// SetDelaySettings replaces the delay configuration and bumps playbackEQVersion
+// so active eqReaders rebuild their effect chains.
+func SetDelaySettings(s DelaySettings) {
+	delayMu.Lock()
+	delayCfg = s
+	delayMu.Unlock()
+	playbackEQVersion.Add(1)
+}
+
+// GetChorusSettings returns the current chorus configuration.
+func GetChorusSettings() ChorusSettings {
+	chorusMu.RLock()
+	defer chorusMu.RUnlock()
+	return chorusCfg
+}
+
+// SetChorusSettings replaces the chorus configuration and bumps playbackEQVersion
+// so active eqReaders rebuild their effect chains.
+func SetChorusSettings(s ChorusSettings) {
+	chorusMu.Lock()
+	chorusCfg = s
+	chorusMu.Unlock()
+	playbackEQVersion.Add(1)
+}
+
+// GetPlaybackCompressorSettings returns the current playback compressor configuration.
+func GetPlaybackCompressorSettings() PlaybackCompressorSettings {
+	playbackCompMu.RLock()
+	defer playbackCompMu.RUnlock()
+	return playbackCompCfg
+}
+
+// SetPlaybackCompressorSettings replaces the playback compressor configuration
+// and bumps playbackEQVersion so active eqReaders rebuild their effect chains.
+func SetPlaybackCompressorSettings(s PlaybackCompressorSettings) {
+	playbackCompMu.Lock()
+	playbackCompCfg = s
+	playbackCompMu.Unlock()
+	playbackEQVersion.Add(1)
+}
+
+// GetPlaybackPitchSettings returns the current playback pitch configuration.
+func GetPlaybackPitchSettings() PlaybackPitchSettings {
+	playbackPitchMu.RLock()
+	defer playbackPitchMu.RUnlock()
+	return playbackPitchCfg
+}
+
+// SetPlaybackPitchSettings replaces the playback pitch configuration and bumps
+// playbackEQVersion so active eqReaders rebuild their effect chains.
+func SetPlaybackPitchSettings(s PlaybackPitchSettings) {
+	playbackPitchMu.Lock()
+	playbackPitchCfg = s
+	playbackPitchMu.Unlock()
+	playbackEQVersion.Add(1)
+}
+
+// GetReverbSettings returns the current reverb configuration.
+func GetReverbSettings() ReverbSettings {
+	reverbMu.RLock()
+	defer reverbMu.RUnlock()
+	return reverbCfg
+}
+
+// SetReverbSettings replaces the reverb configuration and bumps
+// playbackEQVersion so active eqReaders rebuild their effect chains.
+func SetReverbSettings(s ReverbSettings) {
+	reverbMu.Lock()
+	reverbCfg = s
+	reverbMu.Unlock()
+	playbackEQVersion.Add(1)
+}
+
+// GetPannerSettings returns the current panner configuration.
+func GetPannerSettings() PannerSettings {
+	pannerMu.RLock()
+	defer pannerMu.RUnlock()
+	return pannerCfg
+}
+
+// SetPannerSettings replaces the panner configuration and bumps
+// playbackEQVersion so active eqReaders pick up the change.
+func SetPannerSettings(s PannerSettings) {
+	pannerMu.Lock()
+	pannerCfg = s
+	pannerMu.Unlock()
+	playbackEQVersion.Add(1)
 }
 
 // clampVol5 clamps v to [0, 100] rounding to the nearest multiple of 5.
@@ -556,7 +743,28 @@ type voiceSession struct {
 }
 
 // GetOtoCtx returns the shared oto audio context, initializing it on first call.
+// Used for voice call playback (20 ms hardware buffer for low latency).
 func GetOtoCtx() (*oto.Context, error) { return getOtoCtx() }
+
+// GetMusicOtoCtx returns a dedicated oto context for .play music playback,
+// initializing it on first call. The 500ms hardware buffer absorbs GC/scheduler
+// jitter that would cause pops through the 20ms voice context.
+func GetMusicOtoCtx() (*oto.Context, error) {
+	var initErr error
+	musicOtoOnce.Do(func() {
+		var ready chan struct{}
+		musicOtoCtx, ready, initErr = oto.NewContextWithOptions(&oto.NewContextOptions{
+			SampleRate:   sampleRate,
+			ChannelCount: 2,
+			Format:       oto.FormatSignedInt16LE,
+			BufferSize:   500 * time.Millisecond,
+		})
+		if initErr == nil {
+			<-ready
+		}
+	})
+	return musicOtoCtx, initErr
+}
 
 func getOtoCtx() (*oto.Context, error) {
 	var initErr error
@@ -794,7 +1002,12 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 			return
 		}
 		defer dec.close()
-		comp := &inboundCompressor{}
+		inbound := &InboundPipeline{
+			Chain: EffectPipeline{
+				&InboundGain{Gain: float32(playbackGain) / 100.0},
+				&PeakLimiter{},
+			},
+		}
 		denoiseIn, denoiseInErr := newRNNoiseState()
 		if denoiseInErr != nil {
 			debugf("voice: new inbound rnnoise state, will not denoise: %v", denoiseInErr)
@@ -854,16 +1067,9 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 				copy(pcmBuf[:n*numChannels], float32ToPCM16(f32))
 			}
 			total := n * numChannels
-			// Dampen playback to keep the closed-loop gain below 1 and prevent
-			// feedback loops regardless of whether AEC is active.
 			samples := pcmBuf[:total]
-			for i, s := range samples {
-				samples[i] = int16(int32(s) * playbackGain / 100)
-			}
-			// Compress: clamp sudden loud bursts to a comfortable range without
-			// affecting normal speech levels. Applied after the gain reduction so
-			// the compressor threshold is relative to the dampened signal.
-			comp.process(samples)
+			// Inbound pipeline: gain reduction → peak limiter.
+			inbound.Process(samples)
 			// AEC reverse path: record each decoded frame as far-end reference
 			// *before* writing it to the speaker. The AEC builds a model of the
 			// echo path from these frames so it knows what to subtract later when

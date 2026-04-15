@@ -23,7 +23,8 @@ const (
 	roomActionInvite   = 1
 	roomActionVoice    = 2
 	roomActionSettings = 3
-	roomActionCount    = 4
+	roomActionPlayerEQ = 4
+	roomActionCount    = 5
 )
 
 // roomsVoiceResultMsg is returned after a voice join/leave attempt.
@@ -163,6 +164,8 @@ func (a *RoomActionsComponent) activate() tea.Cmd {
 		}
 	case roomActionSettings:
 		return func() tea.Msg { return ShowVoiceSettingsMsg{} }
+	case roomActionPlayerEQ:
+		return func() tea.Msg { return ShowAudioPlayerSettingsMsg{} }
 	}
 	return nil
 }
@@ -183,12 +186,14 @@ func (a *RoomActionsComponent) Render() string {
 		"Invite",
 		voiceLabel,
 		"Voice Settings",
+		"Player EQ",
 	}
 	inRoom := connection.GetSessionRoomID() != nil
 	disabled := [roomActionCount]bool{
 		false,
 		false,
 		!inRoom || voiceConnecting || voiceActive,
+		false,
 		false,
 	}
 	lines := make([]string, roomActionCount)

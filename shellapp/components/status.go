@@ -40,6 +40,8 @@ type StatusComponent struct {
 	width          int
 	height         int
 	trackPlaying   [3]bool
+	trackStartedBy [3]string // username who started the track; "" if idle
+	trackBroadcast [3]bool   // true if the track was network-broadcast
 	trackCursor    int
 	inRoom         bool
 	aliases        []AliasEntry // always 5 entries; empty Name = unfilled slot
@@ -76,6 +78,8 @@ func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
 		s.latencyMs = m.LatencyMs
 	case TrackStateMsg:
 		s.trackPlaying = m.Playing
+		s.trackStartedBy = m.StartedBy
+		s.trackBroadcast = m.Broadcast
 		s.inRoom = m.InRoom
 		s.aliases = m.Aliases
 	case roomsVoiceResultMsg:
@@ -110,10 +114,7 @@ func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
 		if !s.focused {
 			return nil
 		}
-		maxCursor := 2
-		if s.inRoom {
-			maxCursor = cursorDelSoundAlias
-		}
+		maxCursor := cursorDelSoundAlias
 		switch m.String() {
 		case "up", "k":
 			for next := s.trackCursor - 1; next >= 0; next-- {
@@ -154,7 +155,7 @@ func (s *StatusComponent) activate() tea.Cmd {
 			return func() tea.Msg { return StopAudioMsg{Track: t} }
 		}
 		const urlFlag = ".play --mp3-or-m3u-or-alias "
-		text := fmt.Sprintf("%s --track %d", urlFlag, t)
+		text := fmt.Sprintf("%s --track %d --broadcast false", urlFlag, t)
 		return func() tea.Msg {
 			return PreFillCommandMsg{Text: text, CursorPos: len(urlFlag)}
 		}
@@ -164,7 +165,8 @@ func (s *StatusComponent) activate() tea.Cmd {
 		idx := t - cursorAliasBase
 		if idx < len(s.aliases) && s.aliases[idx].Name != "" {
 			name := s.aliases[idx].Name
-			text := ".play --mp3-or-m3u-or-alias " + name
+			const pfx = ".play --mp3-or-m3u-or-alias "
+			text := pfx + name + " --broadcast false"
 			return func() tea.Msg { return PreFillCommandMsg{Text: text, CursorPos: -1} }
 		}
 	case t == cursorSoundAlias:
@@ -214,8 +216,8 @@ func (s *StatusComponent) Render() string {
 		body += "\n\n" + voiceLabel + "\n" + voiceLine
 	}
 
-	if s.inRoom {
-		// TRACKS section
+	// TRACKS section — always visible so local audio is always accessible.
+	{
 		tracksLabel := styles.TracksBadge.Render("TRACKS")
 		var trackLines []string
 		for i := 0; i < 3; i++ {
@@ -233,7 +235,21 @@ func (s *StatusComponent) Render() string {
 					Padding(0, 1).
 					Render("⏹")
 			}
-			trackLines = append(trackLines, fmt.Sprintf("%s%s %s", cur, icon, fmt.Sprintf("%d", i)))
+			// "Started by" info on the same line — no embedded newlines so the
+			// lipgloss box can measure line widths correctly.
+			byLabel := ""
+			if s.trackStartedBy[i] != "" {
+				if s.trackStartedBy[i] == s.userID {
+					if s.trackBroadcast[i] {
+						byLabel = d.Render("  You (broadcasting)")
+					} else {
+						byLabel = d.Render("  You")
+					}
+				} else {
+					byLabel = d.Render("  by: " + s.trackStartedBy[i])
+				}
+			}
+			trackLines = append(trackLines, fmt.Sprintf("%s%s %d%s", cur, icon, i, byLabel))
 		}
 		// Stop All button
 		stopAllCur := "  "

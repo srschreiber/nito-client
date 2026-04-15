@@ -6,8 +6,10 @@ package components
 import (
 	"bufio"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -116,9 +118,60 @@ func fetchAndParseM3U(ctx context.Context, url string) ([]string, error) {
 	return tracks, nil
 }
 
+// prefetchReader wraps an io.Reader with an asynchronous read-ahead goroutine.
+// The goroutine fills a bounded channel of byte chunks so the MP3 decoder never
+// blocks on network I/O during playback. The goroutine exits when src is
+// exhausted, an error occurs, or ctx is cancelled (closing the channel so
+// Read() returns io.EOF and the player stops naturally).
+type prefetchReader struct {
+	ch   <-chan []byte
+	tail []byte
+}
+
+const (
+	prefetchChunkSize = 16 * 1024 // 16 KB per chunk
+	prefetchChunks    = 64        // up to 1 MB of compressed MP3 ahead of the decoder
+)
+
+func newPrefetchReader(ctx context.Context, src io.Reader) *prefetchReader {
+	ch := make(chan []byte, prefetchChunks)
+	go func() {
+		defer close(ch)
+		for {
+			buf := make([]byte, prefetchChunkSize)
+			n, err := src.Read(buf)
+			if n > 0 {
+				select {
+				case ch <- buf[:n]:
+				case <-ctx.Done():
+					return
+				}
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	return &prefetchReader{ch: ch}
+}
+
+func (r *prefetchReader) Read(p []byte) (int, error) {
+	if len(r.tail) == 0 {
+		chunk, ok := <-r.ch
+		if !ok {
+			return 0, io.EOF
+		}
+		r.tail = chunk
+	}
+	n := copy(p, r.tail)
+	r.tail = r.tail[n:]
+	return n, nil
+}
+
 // playOne streams and plays a single MP3 URL. The HTTP response body is piped
-// directly to the MP3 decoder — no intermediate buffer, no size limit. Returns
-// a non-nil tea.Msg on error, nil on clean finish or context cancellation.
+// through a prefetch buffer to the MP3 decoder — the prefetch goroutine reads
+// ahead so network jitter never causes a playback underrun. Returns a non-nil
+// tea.Msg on error, nil on clean finish or context cancellation.
 // If roomID is voice.SelfRoomID the active-room guard is skipped so the user
 // can play audio locally without being in a voice call.
 func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
@@ -139,12 +192,12 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 	}
 	defer resp.Body.Close()
 
-	otoCtx, err := voice.GetOtoCtx()
+	otoCtx, err := voice.GetMusicOtoCtx()
 	if err != nil {
 		return audioPlaybackErr(track, "oto init", err)
 	}
 
-	dec, err := mp3.NewDecoder(resp.Body)
+	dec, err := mp3.NewDecoder(newPrefetchReader(ctx, resp.Body))
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil
@@ -152,7 +205,16 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 		return audioPlaybackErr(track, "mp3 decode", err)
 	}
 
-	player := otoCtx.NewPlayer(dec)
+	eq := newEQReader(dec, dec.SampleRate())
+	defer eq.Close()
+	player := otoCtx.NewPlayer(eq)
+	// Give the audio player a 1-second buffer. The shared oto context is
+	// initialised at 20ms for voice-call latency, but .play clips have no
+	// latency requirement so a larger per-player buffer prevents underruns
+	// when the goroutine scheduler doesn't call Read() in time.
+	if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
+		bss.SetBufferSize(dec.SampleRate() * 4) // sampleRate × stereoInt16Bytes × 1s
+	}
 	player.SetVolume(voice.EffectivePlaybackVolume())
 	defer player.Close()
 	player.Play()
@@ -169,6 +231,201 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 			time.Sleep(20 * time.Millisecond)
 		}
 	}
+}
+
+// eqReader wraps an io.Reader (typically an mp3.Decoder) and applies the global
+// playback effect chain to each decoded stereo int16-LE frame. Left and right
+// channels are processed through independent effect chains so state stays
+// consistent per channel. The version counter detects settings changes and
+// triggers a rebuild without restarting playback.
+//
+// Pipeline: normalise int16→float32 → preScale → EQ → Delay → Reverb → Chorus →
+//
+//	[Pitch] → Limiter → tanh(outputGain × x) → int16.
+//
+// preScale = 10^(-maxBoostDB/20) ensures the EQ stage never produces a value
+// outside [-1, 1], preventing intermediate clipping. outputGain (the volume
+// slider, 0–800%) is applied after the full chain.
+
+// channelEffects owns the effect instances for a single audio channel. Storing
+// them here keeps their addresses stable across pipeline rebuilds, so the ring
+// buffers, filter history, and CGo state persist between settings changes.
+type channelEffects struct {
+	eq     voice.EQ
+	delay  voice.Delay
+	reverb voice.Reverb
+	chorus voice.Chorus
+	pitch  *voice.PlaybackPitchEffect
+	lim    voice.PeakLimiter
+}
+
+// close releases any CGo resources held by this channel.
+func (c *channelEffects) close() {
+	if c.pitch != nil {
+		c.pitch.Close()
+		c.pitch = nil
+	}
+}
+
+// buildPipeline assembles the channel's effects into an ordered EffectPipeline.
+// Disabled effects are skipped at runtime by EffectPipeline via the Enabler interface.
+func (c *channelEffects) buildPipeline() voice.EffectPipeline {
+	p := voice.EffectPipeline{&c.eq, &c.delay, &c.reverb, &c.chorus}
+	if c.pitch != nil {
+		p = append(p, c.pitch)
+	}
+	return append(p, &c.lim)
+}
+
+type eqReader struct {
+	src           io.Reader
+	sampleRate    int
+	version       uint64
+	left, right   channelEffects
+	leftPipeline  voice.EffectPipeline
+	rightPipeline voice.EffectPipeline
+	preScale      float32
+	outputGain    float32
+	panPhase      float64 // LFO phase for auto-pan; preserved across settings rebuilds
+	// Pre-allocated work buffers reused each Read() call to avoid GC churn.
+	workLeft  []float32
+	workRight []float32
+}
+
+func newEQReader(src io.Reader, sampleRate int) *eqReader {
+	r := &eqReader{src: src, sampleRate: sampleRate}
+	r.left.pitch = voice.NewPlaybackPitchEffect(sampleRate)
+	r.right.pitch = voice.NewPlaybackPitchEffect(sampleRate)
+	r.rebuildEffects()
+	return r
+}
+
+// Close releases CGo resources held by the pitch effects.
+func (r *eqReader) Close() {
+	r.left.close()
+	r.right.close()
+}
+
+func (r *eqReader) rebuildEffects() {
+	sr := float32(r.sampleRate)
+
+	eqS := voice.GetPlaybackEQSettings()
+	r.left.eq.Settings = eqS
+	r.right.eq.Settings = eqS
+	r.left.eq.UpdateFilters(sr)
+	r.right.eq.UpdateFilters(sr)
+
+	delayS := voice.GetDelaySettings()
+	r.left.delay.Settings = delayS
+	r.right.delay.Settings = delayS
+	r.left.delay.UpdateSettings(sr)
+	r.right.delay.UpdateSettings(sr)
+
+	revS := voice.GetReverbSettings()
+	r.left.reverb.Settings = revS
+	r.right.reverb.Settings = revS
+	r.left.reverb.UpdateSettings(sr)
+	r.right.reverb.UpdateSettings(sr)
+
+	choS := voice.GetChorusSettings()
+	r.left.chorus.Settings = choS
+	r.right.chorus.Settings = choS
+	r.left.chorus.UpdateSettings(sr)
+	r.right.chorus.UpdateSettings(sr)
+
+	pitchS := voice.GetPlaybackPitchSettings()
+	if r.left.pitch != nil {
+		r.left.pitch.Settings = pitchS
+		r.left.pitch.UpdateSettings()
+	}
+	if r.right.pitch != nil {
+		r.right.pitch.Settings = pitchS
+		r.right.pitch.UpdateSettings()
+	}
+
+	// preScale: attenuate input so EQ boost never clips the internal float range.
+	maxDB := eqS.BassGain
+	if eqS.MidGain > maxDB {
+		maxDB = eqS.MidGain
+	}
+	if eqS.TrebleGain > maxDB {
+		maxDB = eqS.TrebleGain
+	}
+	if maxDB > 0 {
+		r.preScale = float32(math.Pow(10, -float64(maxDB)/20.0))
+	} else {
+		r.preScale = 1.0
+	}
+	r.outputGain = float32(voice.GetPlaybackEQVolume()) / 100.0
+
+	r.leftPipeline = r.left.buildPipeline()
+	r.rightPipeline = r.right.buildPipeline()
+
+	r.version = voice.PlaybackEQVersion()
+}
+
+func (r *eqReader) Read(p []byte) (int, error) {
+	if voice.PlaybackEQVersion() != r.version {
+		r.rebuildEffects()
+	}
+	n, err := r.src.Read(p)
+	// Process only complete stereo frames (4 bytes = L int16 + R int16).
+	frames := n / 4
+	if frames > 0 {
+		// Grow pre-allocated work buffers only when necessary (typically never
+		// after the first call, eliminating per-Read heap allocation and GC churn).
+		if len(r.workLeft) < frames {
+			r.workLeft = make([]float32, frames)
+			r.workRight = make([]float32, frames)
+		}
+		left := r.workLeft[:frames]
+		right := r.workRight[:frames]
+		scale := float32(1.0/32768.0) * r.preScale
+		for i := 0; i < frames; i++ {
+			off := i * 4
+			left[i] = float32(int16(binary.LittleEndian.Uint16(p[off:]))) * scale
+			right[i] = float32(int16(binary.LittleEndian.Uint16(p[off+2:]))) * scale
+		}
+		// Apply pipelines. EffectPipeline.Apply skips disabled effects automatically.
+		r.leftPipeline.Apply(left)
+		r.rightPipeline.Apply(right)
+		// Apply pan gains, output gain, soft-clip via tanh, reinterleave.
+		// tanh provides smooth saturation instead of hard clipping, which is
+		// audible when the volume slider is pushed well above 100%.
+		panS := voice.GetPannerSettings()
+		// Pre-compute static gains for the non-auto-pan case to avoid per-sample trig.
+		staticAngle := float64(panS.Balance+1) * math.Pi / 4
+		staticLeftGain := float32(math.Cos(staticAngle))
+		staticRightGain := float32(math.Sin(staticAngle))
+		phaseInc := 2 * math.Pi * float64(panS.AutoPanRate) / float64(r.sampleRate)
+		for i := 0; i < frames; i++ {
+			var lg, rg float32
+			if panS.AutoPanEnabled {
+				bal := panS.Balance + panS.AutoPanDepth*float32(math.Sin(r.panPhase))
+				r.panPhase += phaseInc
+				if r.panPhase >= 2*math.Pi {
+					r.panPhase -= 2 * math.Pi
+				}
+				if bal < -1 {
+					bal = -1
+				} else if bal > 1 {
+					bal = 1
+				}
+				angle := float64(bal+1) * math.Pi / 4
+				lg = float32(math.Cos(angle))
+				rg = float32(math.Sin(angle))
+			} else {
+				lg = staticLeftGain
+				rg = staticRightGain
+			}
+			off := i * 4
+			lv := float32(math.Tanh(float64(left[i] * r.outputGain * lg)))
+			rv := float32(math.Tanh(float64(right[i] * r.outputGain * rg)))
+			binary.LittleEndian.PutUint16(p[off:], uint16(int16(lv*32767)))
+			binary.LittleEndian.PutUint16(p[off+2:], uint16(int16(rv*32767)))
+		}
+	}
+	return n, err
 }
 
 func audioPlaybackErr(track int, op string, err error) AudioPlaybackErrorMsg {

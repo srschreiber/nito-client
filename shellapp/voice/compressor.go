@@ -79,6 +79,44 @@ type inboundCompressor struct {
 	envelope float32 // smoothed RMS envelope, normalised to [0, 1]
 }
 
+// IsEnabled implements Enabler. Returns false when compressor level is off.
+func (c *inboundCompressor) IsEnabled() bool {
+	return CompressorLevel(compressorLevel.Load()) != CompressorOff
+}
+
+// Apply implements AudioEffect. It applies the same algorithm as process but
+// operates on float32 samples already normalised to [−1, 1].
+func (c *inboundCompressor) Apply(frame []float32) {
+	level := CompressorLevel(compressorLevel.Load())
+	if level == CompressorOff || len(frame) == 0 {
+		return
+	}
+	preset := compressorPresets[level]
+
+	var sumSq float64
+	for _, s := range frame {
+		sumSq += float64(s) * float64(s)
+	}
+	rms := float32(math.Sqrt(sumSq / float64(len(frame))))
+
+	if rms > c.envelope {
+		c.envelope = compAttackCoef*c.envelope + (1-compAttackCoef)*rms
+	} else {
+		c.envelope = compReleaseCoef*c.envelope + (1-compReleaseCoef)*rms
+	}
+
+	gain := float32(1.0)
+	if c.envelope > preset.thresholdLin {
+		gain = float32(math.Pow(
+			float64(preset.thresholdLin/c.envelope),
+			1.0-1.0/float64(preset.ratio),
+		))
+	}
+	for i, s := range frame {
+		frame[i] = s * gain
+	}
+}
+
 // process applies compression in-place to a slice of int16 PCM samples.
 //
 // Algorithm:
@@ -131,5 +169,72 @@ func (c *inboundCompressor) process(samples []int16) {
 			v = -32768
 		}
 		samples[i] = int16(v)
+	}
+}
+
+// ── Playback compressor ────────────────────────────────────────────────────────
+
+// PlaybackCompressorSettings configures the playback-path dynamic range compressor.
+type PlaybackCompressorSettings struct {
+	Enabled     bool
+	ThresholdDB float32 // -30 to 0 dBFS; default -12
+	Ratio       float32 // 1.0–10.0; default 3.0
+}
+
+// SetDefaults applies sensible defaults to PlaybackCompressorSettings.
+func (s *PlaybackCompressorSettings) SetDefaults() {
+	s.Enabled = false
+	s.ThresholdDB = -12
+	s.Ratio = 3.0
+}
+
+// PlaybackCompressor implements a feed-forward dynamic range compressor for a
+// single audio channel operating on float32 samples. It satisfies the
+// AudioEffect interface.
+type PlaybackCompressor struct {
+	Settings  PlaybackCompressorSettings
+	envelope  float32
+	threshLin float32 // precomputed 10^(ThresholdDB/20)
+}
+
+// UpdateSettings recomputes threshLin from Settings.ThresholdDB.
+// Call whenever Settings changes.
+func (c *PlaybackCompressor) UpdateSettings() {
+	c.threshLin = float32(math.Pow(10, float64(c.Settings.ThresholdDB)/20.0))
+}
+
+// Apply implements AudioEffect. It applies compression in-place to a frame of
+// float32 samples. If Settings.Enabled is false the frame is passed through
+// unchanged.
+func (c *PlaybackCompressor) Apply(frame []float32) {
+	if !c.Settings.Enabled {
+		return
+	}
+	thresh := c.threshLin
+	ratio := c.Settings.Ratio
+	if ratio < 1.0 {
+		ratio = 1.0
+	}
+
+	for i, x := range frame {
+		abs := x
+		if abs < 0 {
+			abs = -abs
+		}
+		// Asymmetric attack/release envelope follower.
+		if abs > c.envelope {
+			c.envelope = compAttackCoef*c.envelope + (1-compAttackCoef)*abs
+		} else {
+			c.envelope = compReleaseCoef*c.envelope + (1-compReleaseCoef)*abs
+		}
+		// Gain reduction above threshold.
+		gain := float32(1.0)
+		if c.envelope > thresh {
+			gain = float32(math.Pow(
+				float64(thresh/c.envelope),
+				1.0-1.0/float64(ratio),
+			))
+		}
+		frame[i] = x * gain
 	}
 }

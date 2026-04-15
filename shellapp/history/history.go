@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func filePath() (string, error) {
+func nitoDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -20,17 +20,15 @@ func filePath() (string, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "history"), nil
+	return dir, nil
 }
 
-// Load reads command history from ~/.nito/history. Returns nil if the file
-// doesn't exist yet.
-func Load() []string {
-	path, err := filePath()
+func load(name string) []string {
+	dir, err := nitoDir()
 	if err != nil {
 		return nil
 	}
-	f, err := os.Open(path)
+	f, err := os.Open(filepath.Join(dir, name))
 	if err != nil {
 		return nil
 	}
@@ -47,13 +45,12 @@ func Load() []string {
 	return entries
 }
 
-// Save writes entries to ~/.nito/history, overwriting the file.
-func Save(entries []string) error {
-	path, err := filePath()
+func save(name string, entries []string) error {
+	dir, err := nitoDir()
 	if err != nil {
 		return err
 	}
-	f, err := os.Create(path)
+	f, err := os.Create(filepath.Join(dir, name))
 	if err != nil {
 		return err
 	}
@@ -67,3 +64,17 @@ func Save(entries []string) error {
 	}
 	return w.Flush()
 }
+
+// Load reads command history from ~/.nito/history. Returns nil if the file
+// doesn't exist yet.
+func Load() []string { return load("history") }
+
+// LoadChat reads chat/DM history from ~/.nito/chat_history. Returns nil if
+// the file doesn't exist yet.
+func LoadChat() []string { return load("chat_history") }
+
+// Save writes cmd entries to ~/.nito/history, overwriting the file.
+func Save(entries []string) error { return save("history", entries) }
+
+// SaveChat writes chat/DM entries to ~/.nito/chat_history, overwriting the file.
+func SaveChat(entries []string) error { return save("chat_history", entries) }

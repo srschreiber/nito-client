@@ -15,11 +15,14 @@ const toastDuration = 5 * time.Second
 // ShowToastMsg triggers a toast notification with the given message.
 type ShowToastMsg struct{ Text string }
 
-// PlayAudioMsg asks the main model to send a play_audio RPC on a specific track.
+// PlayAudioMsg asks the main model to play audio on a specific track.
 // Track -1 means "auto": pick the first idle track (0 if all are busy).
+// Broadcast=true sends a play_audio RPC to share with the voice room;
+// Broadcast=false (default) plays locally only regardless of voice state.
 type PlayAudioMsg struct {
-	URL   string
-	Track int
+	URL       string
+	Track     int
+	Broadcast bool
 }
 
 // StopAudioMsg cancels in-flight audio playback.
@@ -42,12 +45,13 @@ type AudioPlaybackErrorMsg struct {
 type AliasEntry struct{ Name string }
 
 // TrackStateMsg updates the status component with the current playback state of
-// all three audio tracks (true = playing, false = idle). InRoom indicates
-// whether the user is currently in a room (controls TRACKS section visibility).
+// all three audio tracks.
 type TrackStateMsg struct {
-	Playing [3]bool
-	InRoom  bool
-	Aliases []AliasEntry // up to 5, sorted by name
+	Playing   [3]bool
+	InRoom    bool         // kept for compatibility; TRACKS always renders now
+	Aliases   []AliasEntry // up to 5, sorted by name
+	StartedBy [3]string    // username who started each track; "" if idle
+	Broadcast [3]bool      // true if the track was network-broadcast to the room
 }
 
 // PreFillCommandMsg asks the command component to pre-fill its input with Text
