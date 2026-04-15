@@ -5,6 +5,7 @@ package components
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -31,6 +32,10 @@ const (
 // statusVoiceStatsTickMsg fires every second while a voice call is active.
 type statusVoiceStatsTickMsg struct{}
 
+// meterTickMsg fires every ~50 ms while at least one audio track is playing,
+// driving the animated level-meter display in the TRACKS section.
+type meterTickMsg struct{}
+
 type StatusComponent struct {
 	connected      bool
 	brokerURL      string
@@ -48,6 +53,8 @@ type StatusComponent struct {
 	voiceActive    bool
 	recvPktsPerSec float64
 	lossPercent    float64 // packet loss percentage over the last second
+	wobblePhase1   float64 // LFO phase for left-bar wobble (radians)
+	wobblePhase2   float64 // LFO phase for right-bar wobble (radians)
 }
 
 func NewStatusComponent(width, height int) *StatusComponent {
@@ -56,6 +63,71 @@ func NewStatusComponent(width, height int) *StatusComponent {
 
 func (s *StatusComponent) voiceStatsTick() tea.Cmd {
 	return tea.Tick(time.Second, func(time.Time) tea.Msg { return statusVoiceStatsTickMsg{} })
+}
+
+func (s *StatusComponent) meterTickCmd() tea.Cmd {
+	return tea.Tick(50*time.Millisecond, func(time.Time) tea.Msg { return meterTickMsg{} })
+}
+
+// trackMeterBars returns a 3-char plain-text level meter for a single track.
+// No ANSI codes are used so lipgloss's box width calculation is never thrown off.
+// The wobble phases are offset per track index so bars animate independently.
+func (s *StatusComponent) trackMeterBars(track int) string {
+	level := voice.GetTrackLevel(track)
+
+	// 8× pre-gain + sqrt perceptual curve so normal listening levels use the
+	// full block range (raw RMS at 100% vol is typically 0.03–0.15 out of 1.0).
+	boosted := level * 8.0
+	if boosted > 1 {
+		boosted = 1
+	}
+	display := float32(math.Sqrt(float64(boosted)))
+
+	// Per-track wobble: offset phases by track index so each meter moves differently.
+	wobble1 := float32(0.04 * math.Sin(s.wobblePhase1+float64(track)*1.2))
+	wobble2 := float32(0.04 * math.Sin(s.wobblePhase2+float64(track)*0.7))
+
+	const minH = 0.18
+	mid := clampMeter(display)
+	lft := clampMeter(display*0.35 + wobble1)
+	rgt := clampMeter(display*0.25 + wobble2)
+	if mid < minH {
+		mid = minH
+	}
+	if lft < minH {
+		lft = minH
+	}
+	if rgt < minH {
+		rgt = minH
+	}
+
+	// Return plain text only — no lipgloss/ANSI so the enclosing box can measure
+	// line widths correctly without the trailing-reset off-by-1 problem.
+	return string(meterBlock(lft)) + string(meterBlock(mid)) + string(meterBlock(rgt))
+}
+
+// meterBlock maps a level in [0,1] to a Unicode vertical-bar block character.
+func meterBlock(level float32) rune {
+	const chars = " ▁▂▃▄▅▆▇█"
+	runes := []rune(chars)
+	idx := int(level * float32(len(runes)-1))
+	if idx < 0 {
+		idx = 0
+	} else if idx >= len(runes) {
+		idx = len(runes) - 1
+	}
+	return runes[idx]
+}
+
+// clampMeter clamps v to [0, 1].
+func clampMeter(v float32) float32 {
+	if v < 0 {
+		return 0
+	}
+	if v > 1 {
+		return 1
+	}
+	return v
 }
 
 func (s *StatusComponent) SetSize(width, height int) {
@@ -77,11 +149,25 @@ func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
 		s.userID = m.UserID
 		s.latencyMs = m.LatencyMs
 	case TrackStateMsg:
+		wasAnyPlaying := s.trackPlaying[0] || s.trackPlaying[1] || s.trackPlaying[2]
 		s.trackPlaying = m.Playing
 		s.trackStartedBy = m.StartedBy
 		s.trackBroadcast = m.Broadcast
 		s.inRoom = m.InRoom
 		s.aliases = m.Aliases
+		// Start the meter tick when audio goes from silent to playing.
+		nowAnyPlaying := s.trackPlaying[0] || s.trackPlaying[1] || s.trackPlaying[2]
+		if nowAnyPlaying && !wasAnyPlaying {
+			return s.meterTickCmd()
+		}
+	case meterTickMsg:
+		// Advance LFO phases for side-bar wobble.
+		s.wobblePhase1 += 0.25
+		s.wobblePhase2 += 0.19
+		// Re-schedule as long as at least one track is playing.
+		if s.trackPlaying[0] || s.trackPlaying[1] || s.trackPlaying[2] {
+			return s.meterTickCmd()
+		}
 	case roomsVoiceResultMsg:
 		wasActive := s.voiceActive
 		if m.err == nil {
@@ -235,21 +321,34 @@ func (s *StatusComponent) Render() string {
 					Padding(0, 1).
 					Render("⏹")
 			}
-			// "Started by" info on the same line — no embedded newlines so the
-			// lipgloss box can measure line widths correctly.
+			// "Started by" and per-track level meter — both plain ASCII (zero ANSI)
+			// so lipgloss's box-fill width calculation is never thrown off by a
+			// trailing reset sequence inside a styled substring.
 			byLabel := ""
 			if s.trackStartedBy[i] != "" {
+				var raw string
 				if s.trackStartedBy[i] == s.userID {
 					if s.trackBroadcast[i] {
-						byLabel = d.Render("  You (broadcasting)")
+						raw = "  You (broadcasting)"
 					} else {
-						byLabel = d.Render("  You")
+						raw = "  You"
 					}
 				} else {
-					byLabel = d.Render("  by: " + s.trackStartedBy[i])
+					raw = "  by: " + s.trackStartedBy[i]
 				}
+				maxByW := s.width - 12 // leave room for cursor+icon+num+meter
+				if maxByW < 0 {
+					maxByW = 0
+				}
+				byLabel = truncate(raw, maxByW)
 			}
-			trackLines = append(trackLines, fmt.Sprintf("%s%s %d%s", cur, icon, i, byLabel))
+			// Inline level meter: 3 plain-text block chars to the right of the
+			// track number so each track shows its own live audio level.
+			meter := ""
+			if s.trackPlaying[i] {
+				meter = " " + s.trackMeterBars(i)
+			}
+			trackLines = append(trackLines, fmt.Sprintf("%s%s %d%s%s", cur, icon, i, meter, byLabel))
 		}
 		// Stop All button
 		stopAllCur := "  "

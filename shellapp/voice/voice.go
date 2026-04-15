@@ -223,6 +223,11 @@ var (
 	// Panner (balance + auto-pan)
 	pannerMu  sync.RWMutex
 	pannerCfg PannerSettings
+
+	// trackLevels stores the current smoothed RMS output level for each audio
+	// track (0–2). Written by eqReader (one goroutine per active track), read by
+	// the status-panel meter tick. Value is fixed-point: actual_level * 65535.
+	trackLevels [3]atomic.Uint32
 )
 
 const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
@@ -380,6 +385,29 @@ func SetPannerSettings(s PannerSettings) {
 	pannerCfg = s
 	pannerMu.Unlock()
 	playbackEQVersion.Add(1)
+}
+
+// GetTrackLevel returns the current smoothed RMS playback level for track i,
+// normalised to [0, 1]. Returns 0 for invalid indices or idle tracks.
+func GetTrackLevel(i int) float32 {
+	if i < 0 || i >= 3 {
+		return 0
+	}
+	return float32(trackLevels[i].Load()) / 65535.0
+}
+
+// SetTrackLevel stores the smoothed RMS level for track i (clamped to [0,1]).
+// Called from eqReader.Read(); also called with 0 when playback ends.
+func SetTrackLevel(i int, level float32) {
+	if i < 0 || i >= 3 {
+		return
+	}
+	if level < 0 {
+		level = 0
+	} else if level > 1 {
+		level = 1
+	}
+	trackLevels[i].Store(uint32(level * 65535))
 }
 
 // clampVol5 clamps v to [0, 100] rounding to the nearest multiple of 5.

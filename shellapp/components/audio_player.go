@@ -205,8 +205,9 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 		return audioPlaybackErr(track, "mp3 decode", err)
 	}
 
-	eq := newEQReader(dec, dec.SampleRate())
+	eq := newEQReader(dec, dec.SampleRate(), track)
 	defer eq.Close()
+	defer voice.SetTrackLevel(track, 0) // zero the meter when playback ends
 	player := otoCtx.NewPlayer(eq)
 	// Give the audio player a 1-second buffer. The shared oto context is
 	// initialised at 20ms for voice-call latency, but .play clips have no
@@ -278,6 +279,7 @@ func (c *channelEffects) buildPipeline() voice.EffectPipeline {
 }
 
 type eqReader struct {
+	track         int // audio track index (0–2); used to write level meter data
 	src           io.Reader
 	sampleRate    int
 	version       uint64
@@ -287,13 +289,14 @@ type eqReader struct {
 	preScale      float32
 	outputGain    float32
 	panPhase      float64 // LFO phase for auto-pan; preserved across settings rebuilds
+	levelSmooth   float32 // fast-attack/slow-release smoothed RMS level for the meter
 	// Pre-allocated work buffers reused each Read() call to avoid GC churn.
 	workLeft  []float32
 	workRight []float32
 }
 
-func newEQReader(src io.Reader, sampleRate int) *eqReader {
-	r := &eqReader{src: src, sampleRate: sampleRate}
+func newEQReader(src io.Reader, sampleRate, track int) *eqReader {
+	r := &eqReader{src: src, sampleRate: sampleRate, track: track}
 	r.left.pitch = voice.NewPlaybackPitchEffect(sampleRate)
 	r.right.pitch = voice.NewPlaybackPitchEffect(sampleRate)
 	r.rebuildEffects()
@@ -398,6 +401,7 @@ func (r *eqReader) Read(p []byte) (int, error) {
 		staticLeftGain := float32(math.Cos(staticAngle))
 		staticRightGain := float32(math.Sin(staticAngle))
 		phaseInc := 2 * math.Pi * float64(panS.AutoPanRate) / float64(r.sampleRate)
+		var sumSq float64
 		for i := 0; i < frames; i++ {
 			var lg, rg float32
 			if panS.AutoPanEnabled {
@@ -421,9 +425,21 @@ func (r *eqReader) Read(p []byte) (int, error) {
 			off := i * 4
 			lv := float32(math.Tanh(float64(left[i] * r.outputGain * lg)))
 			rv := float32(math.Tanh(float64(right[i] * r.outputGain * rg)))
+			sumSq += float64(lv)*float64(lv) + float64(rv)*float64(rv)
 			binary.LittleEndian.PutUint16(p[off:], uint16(int16(lv*32767)))
 			binary.LittleEndian.PutUint16(p[off+2:], uint16(int16(rv*32767)))
 		}
+		// Compute RMS of the output frame and update the smoothed level for the
+		// status-panel meter. Fast attack (snappy), slow release (natural decay).
+		rms := float32(math.Sqrt(sumSq / float64(frames*2)))
+		const attackAlpha = 0.4
+		const releaseAlpha = 0.06
+		if rms > r.levelSmooth {
+			r.levelSmooth = attackAlpha*rms + (1-attackAlpha)*r.levelSmooth
+		} else {
+			r.levelSmooth = releaseAlpha*rms + (1-releaseAlpha)*r.levelSmooth
+		}
+		voice.SetTrackLevel(r.track, r.levelSmooth)
 	}
 	return n, err
 }
