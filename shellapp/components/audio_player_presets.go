@@ -188,7 +188,8 @@ var audioPresetList = []audioPreset{
 		tagline: "Spacious & enveloping",
 		tags:    "EQ · Reverb · Chorus",
 		apply: func() {
-			del, _, _, pan := noFX()
+			del, _, _, _ := noFX()
+			pan := voice.PannerSettings{Balance: 0, AutoPanEnabled: true, AutoPanRate: 0.3, AutoPanDepth: 0.3}
 			rev := voice.ReverbSettings{
 				Enabled: true, Mix: 0.28, Size: 1.8, Decay: 0.72, Tone: 0.55,
 			}
@@ -285,13 +286,44 @@ var audioPresetList = []audioPreset{
 	},
 }
 
+// ── Display preset (built-in + custom unified) ────────────────────────────────
+
+type displayPreset struct {
+	name     string
+	tagline  string
+	tags     string
+	isCustom bool
+	apply    func()
+}
+
+func buildDisplayPresets(custom []voice.PlayerPreset) []displayPreset {
+	out := make([]displayPreset, 0, len(audioPresetList)+len(custom))
+	for _, p := range audioPresetList {
+		out = append(out, displayPreset{
+			name: p.name, tagline: p.tagline, tags: p.tags, apply: p.apply,
+		})
+	}
+	for _, cp := range custom {
+		cp := cp // capture
+		out = append(out, displayPreset{
+			name:     cp.Name,
+			tagline:  "Custom preset",
+			tags:     "Custom",
+			isCustom: true,
+			apply:    func() { cp.Apply() },
+		})
+	}
+	return out
+}
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 // AudioPlayerPresetsScreen is the full-screen preset selector.
 type AudioPlayerPresetsScreen struct {
 	width, height int
-	cursor        int // flat index into audioPresetList
+	cursor        int // flat index into all presets (built-in + custom)
 	scrollRow     int // index of first visible card row
+	customPresets []voice.PlayerPreset
 }
 
 func NewAudioPlayerPresetsScreen(termW, termH int) *AudioPlayerPresetsScreen {
@@ -301,6 +333,11 @@ func NewAudioPlayerPresetsScreen(termW, termH int) *AudioPlayerPresetsScreen {
 func (s *AudioPlayerPresetsScreen) SetSize(termW, termH int) {
 	s.width = termW
 	s.height = termH
+}
+
+// Refresh reloads custom presets from disk. Called whenever the screen is opened.
+func (s *AudioPlayerPresetsScreen) Refresh() {
+	s.customPresets, _ = voice.LoadCustomPresets()
 }
 
 func (s *AudioPlayerPresetsScreen) Init() tea.Cmd { return nil }
@@ -315,7 +352,14 @@ func (s *AudioPlayerPresetsScreen) Update(msg tea.Msg) tea.Cmd {
 const presetsNumCols = 3
 
 func (s *AudioPlayerPresetsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
-	n := len(audioPresetList)
+	all := buildDisplayPresets(s.customPresets)
+	n := len(all)
+	if n == 0 {
+		if msg.String() == "esc" {
+			return func() tea.Msg { return HideAudioPlayerPresetsMsg{} }
+		}
+		return nil
+	}
 	row := s.cursor / presetsNumCols
 	col := s.cursor % presetsNumCols
 
@@ -335,20 +379,40 @@ func (s *AudioPlayerPresetsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		if col > 0 {
 			s.cursor--
 		}
-	case "right", "d":
+	case "right":
 		// Stay within the same row.
 		next := s.cursor + 1
 		if next < n && next/presetsNumCols == row {
 			s.cursor = next
 		}
+	case "d":
+		// Delete if cursor is on a custom preset; otherwise move right.
+		if s.cursor < n && all[s.cursor].isCustom {
+			name := all[s.cursor].name
+			_ = voice.DeleteCustomPreset(name)
+			s.customPresets, _ = voice.LoadCustomPresets()
+			all = buildDisplayPresets(s.customPresets)
+			if s.cursor >= len(all) {
+				s.cursor = len(all) - 1
+			}
+			if s.cursor < 0 {
+				s.cursor = 0
+			}
+			deletedName := name
+			return func() tea.Msg { return ShowToastMsg{Text: "Deleted preset: " + deletedName} }
+		}
+		// Not on custom preset — treat as right arrow.
+		next := s.cursor + 1
+		if next < n && next/presetsNumCols == row {
+			s.cursor = next
+		}
 	case "tab":
-		// Right across columns; at end of row jump to first col of next row; wrap at last preset.
 		s.cursor = (s.cursor + 1) % n
 	case "shift+tab":
 		s.cursor = (s.cursor - 1 + n) % n
 	case "enter", " ":
 		if s.cursor >= 0 && s.cursor < n {
-			audioPresetList[s.cursor].apply()
+			all[s.cursor].apply()
 		}
 		return func() tea.Msg { return HideAudioPlayerPresetsMsg{} }
 	}
@@ -367,13 +431,27 @@ func (s *AudioPlayerPresetsScreen) Render() string {
 		innerH = 10
 	}
 
+	all := buildDisplayPresets(s.customPresets)
+	n := len(all)
+
 	dim := styles.DimText
 	activeName := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#c4b5fd")).
 		Bold(true).
 		Background(styles.ComponentBg)
+	customName := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#86efac")).
+		Bold(true).
+		Background(styles.ComponentBg)
+	activeCustomName := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#4ade80")).
+		Bold(true).
+		Background(styles.ComponentBg)
 	tagDim := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#555577")).
+		Background(styles.ComponentBg)
+	customTag := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#34d399")).
 		Background(styles.ComponentBg)
 
 	colW := innerW / presetsNumCols
@@ -381,8 +459,10 @@ func (s *AudioPlayerPresetsScreen) Render() string {
 		colW = 18
 	}
 
-	n := len(audioPresetList)
 	numRows := (n + presetsNumCols - 1) / presetsNumCols
+	if numRows == 0 {
+		numRows = 1
+	}
 
 	// Visible rows calculation.
 	const headerLines = 2 // badge + blank
@@ -419,7 +499,13 @@ func (s *AudioPlayerPresetsScreen) Render() string {
 	// ── Header ────────────────────────────────────────────────────────────────
 	var lines []string
 	badge := styles.AudioPlayerBadge.Render("PLAYER PRESETS")
-	hint := dim.Render("↑↓←→ wasd  navigate  •  enter  apply  •  esc  back")
+	var hintStr string
+	if s.cursor < n && all[s.cursor].isCustom {
+		hintStr = "↑↓←→  navigate  •  enter  apply  •  d  delete  •  esc  back"
+	} else {
+		hintStr = "↑↓←→ wasd  navigate  •  enter  apply  •  esc  back"
+	}
+	hint := dim.Render(hintStr)
 	gap := innerW - lipgloss.Width(badge) - lipgloss.Width(hint)
 	if gap < 1 {
 		gap = 1
@@ -432,7 +518,6 @@ func (s *AudioPlayerPresetsScreen) Render() string {
 		for colIdx := 0; colIdx < presetsNumCols; colIdx++ {
 			presetIdx := rowIdx*presetsNumCols + colIdx
 			if presetIdx >= n {
-				// Empty filler box, same size as a real card.
 				filler := lipgloss.NewStyle().
 					Width(colW).
 					Background(styles.ComponentBg).
@@ -441,7 +526,7 @@ func (s *AudioPlayerPresetsScreen) Render() string {
 				boxes = append(boxes, filler)
 				continue
 			}
-			p := audioPresetList[presetIdx]
+			p := all[presetIdx]
 			isActive := presetIdx == s.cursor
 
 			borderColor := styles.PanelBorderColor
@@ -450,17 +535,31 @@ func (s *AudioPlayerPresetsScreen) Render() string {
 			}
 
 			var prefix, namePart string
-			if isActive {
+			switch {
+			case isActive && p.isCustom:
+				prefix = styles.CursorStyle.Render("▶ ")
+				namePart = activeCustomName.Render(p.name)
+			case isActive:
 				prefix = styles.CursorStyle.Render("▶ ")
 				namePart = activeName.Render(p.name)
-			} else {
+			case p.isCustom:
+				prefix = dim.Render("  ")
+				namePart = customName.Render(p.name)
+			default:
 				prefix = dim.Render("  ")
 				namePart = dim.Render(p.name)
 			}
 
+			var tagsLine string
+			if p.isCustom {
+				tagsLine = customTag.Render("  ★ " + p.tags)
+			} else {
+				tagsLine = tagDim.Render("  " + p.tags)
+			}
+
 			content := prefix + namePart + "\n" +
 				dim.Render("  "+p.tagline) + "\n" +
-				tagDim.Render("  "+p.tags)
+				tagsLine
 
 			box := lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).

@@ -53,7 +53,8 @@ const (
 	apsPanDepth       = 28
 	apsVolume         = 29
 	apsReset          = 30
-	apsItemCount      = 31
+	apsSavePreset     = 31
+	apsItemCount      = 32
 )
 
 // apsSecDef describes one effect section in the 3-column layout.
@@ -65,7 +66,7 @@ type apsSecDef struct {
 
 // apsSectionList maps section index → cursor range.
 // Sections 0-9 fill the column grid; section 10 is the Reset row.
-var apsSectionList = [11]apsSecDef{
+var apsSectionList = [12]apsSecDef{
 	{name: "BASS", start: apsBassGain, end: apsBassFreq},
 	{name: "MID", start: apsMidGain, end: apsMidQ},
 	{name: "TREBLE", start: apsTrebGain, end: apsTrebFreq},
@@ -77,6 +78,7 @@ var apsSectionList = [11]apsSecDef{
 	{name: "PAN", start: apsBalance, end: apsPanDepth},
 	{name: "OUTPUT", start: apsVolume, end: apsVolume},
 	{name: "RESET", start: apsReset, end: apsReset},
+	{name: "SAVE", start: apsSavePreset, end: apsSavePreset},
 }
 
 // apsCursorSectionIdx returns the section index (0-9) for the given cursor position.
@@ -133,8 +135,10 @@ const (
 // AudioPlayerSettingsScreen is a full-screen multi-effect panel for .play audio clips.
 // Changes take effect immediately; every adjustment auto-saves.
 type AudioPlayerSettingsScreen struct {
-	width, height int
-	cursor        int
+	width, height     int
+	cursor            int
+	savePresetMode    bool   // true while the name-input prompt is active
+	savePresetNameBuf string // text typed so far
 }
 
 func NewAudioPlayerSettingsScreen(termW, termH int) *AudioPlayerSettingsScreen {
@@ -156,6 +160,38 @@ func (s *AudioPlayerSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (s *AudioPlayerSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
+	// Name-input mode: intercept all keys for the preset name prompt.
+	if s.savePresetMode {
+		switch msg.String() {
+		case "esc":
+			s.savePresetMode = false
+			s.savePresetNameBuf = ""
+		case "enter":
+			name := strings.TrimSpace(s.savePresetNameBuf)
+			s.savePresetMode = false
+			s.savePresetNameBuf = ""
+			if name == "" {
+				return nil
+			}
+			if err := voice.SaveCurrentAsPreset(name); err != nil {
+				errMsg := err.Error()
+				return func() tea.Msg { return ShowToastMsg{Text: "save preset: " + errMsg} }
+			}
+			savedName := name
+			return func() tea.Msg { return ShowToastMsg{Text: "Saved preset: " + savedName} }
+		case "backspace":
+			if len(s.savePresetNameBuf) > 0 {
+				runes := []rune(s.savePresetNameBuf)
+				s.savePresetNameBuf = string(runes[:len(runes)-1])
+			}
+		default:
+			if text := msg.Key().Text; text != "" && len([]rune(s.savePresetNameBuf)) < 32 {
+				s.savePresetNameBuf += text
+			}
+		}
+		return nil
+	}
+
 	switch msg.String() {
 	case "esc":
 		return func() tea.Msg { return HideAudioPlayerSettingsMsg{} }
@@ -184,6 +220,11 @@ func (s *AudioPlayerSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "right", "d":
 		s.adjust(+1)
 	case "enter", " ":
+		if s.cursor == apsSavePreset {
+			s.savePresetMode = true
+			s.savePresetNameBuf = ""
+			return nil
+		}
 		if s.cursor == apsReset {
 			var defEQ voice.EQSettings
 			defEQ.SetDefaults()
@@ -870,6 +911,20 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 		resetLine = dim.Render("  Reset to Defaults")
 	}
 
+	// ── Save Preset ───────────────────────────────────────────────────────────
+	savePresetStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#86efac")).Bold(true).Background(styles.ComponentBg)
+	var savePresetLine string
+	switch {
+	case s.savePresetMode:
+		cursor := lipgloss.NewStyle().Foreground(lipgloss.Color("#c4b5fd")).Background(styles.ComponentBg).Render("█")
+		savePresetLine = styles.CursorStyle.Render("▶ ") + activeTxt.Render("Name: ") + savePresetStyle.Render(s.savePresetNameBuf) + cursor +
+			dim.Render("  enter save  •  esc cancel")
+	case s.cursor == apsSavePreset:
+		savePresetLine = styles.CursorStyle.Render("▶ ") + savePresetStyle.Render("Save Preset")
+	default:
+		savePresetLine = dim.Render("  Save Preset")
+	}
+
 	// ── Assemble ──────────────────────────────────────────────────────────────
 	// padRow fills any cells to the right of JoinHorizontal boxes (where shorter
 	// columns leave uncoloured space) with ComponentBg so the terminal default
@@ -891,7 +946,7 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	for _, row := range strings.Split(row3, "\n") {
 		lines = append(lines, padRow(row))
 	}
-	lines = append(lines, "", resetLine)
+	lines = append(lines, "", resetLine, savePresetLine)
 
 	if len(lines) > innerH {
 		lines = lines[:innerH]

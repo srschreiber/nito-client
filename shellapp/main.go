@@ -644,6 +644,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case components.ShowAudioPlayerPresetsMsg:
 		m.showAudioPlayerPresets = true
+		m.audioPlayerPresets.Refresh()
 		return m, nil
 	case components.HideAudioPlayerPresetsMsg:
 		m.showAudioPlayerPresets = false
