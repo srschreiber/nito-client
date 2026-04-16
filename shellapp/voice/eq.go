@@ -79,6 +79,10 @@ type EQSettings struct {
 
 	TrebleGain float32
 	TrebleHz   float32 // high shelf corner frequency
+
+	PresenceGain float32
+	PresenceHz   float32 // peaking filter center frequency (2–5 kHz)
+	PresenceQ    float32 // bandwidth Q (same range as MidQ)
 }
 
 func (eq *EQSettings) SetDefaults() {
@@ -91,23 +95,29 @@ func (eq *EQSettings) SetDefaults() {
 
 	eq.TrebleGain = 0.0
 	eq.TrebleHz = 5000.0
+
+	eq.PresenceGain = 0.0
+	eq.PresenceHz = 3000.0
+	eq.PresenceQ = 1.0
 }
 
 type EQ struct {
 	Settings EQSettings
-	filters  [3]BiquadFilter
+	filters  [4]BiquadFilter
 }
 
 func (eq *EQ) UpdateFilters(sampleRate float32) {
 	eq.filters[0].SetLowShelf(sampleRate, eq.Settings.BassHz, eq.Settings.BassGain)
 	eq.filters[1].SetPeaking(sampleRate, eq.Settings.MidHz, eq.Settings.MidQ, eq.Settings.MidGain)
 	eq.filters[2].SetHighShelf(sampleRate, eq.Settings.TrebleHz, eq.Settings.TrebleGain)
+	eq.filters[3].SetPeaking(sampleRate, eq.Settings.PresenceHz, eq.Settings.PresenceQ, eq.Settings.PresenceGain)
 }
 
 func (eq *EQ) Apply(frame []float32) {
 	eq.filters[0].Apply(frame)
 	eq.filters[1].Apply(frame)
 	eq.filters[2].Apply(frame)
+	eq.filters[3].Apply(frame)
 }
 
 // BiquadFilter is a single second-order IIR section (Direct Form I).
@@ -140,13 +150,14 @@ func (bq *BiquadFilter) MagResponse(omega float64) float64 {
 	return numMag / denMag
 }
 
-// MagResponseDB returns the combined magnitude response in dB of all three EQ
+// MagResponseDB returns the combined magnitude response in dB of all four EQ
 // filters at freqHz, using the given sample rate. Call UpdateFilters before use.
 func (eq *EQ) MagResponseDB(freqHz, sampleRate float64) float64 {
 	omega := 2.0 * math.Pi * freqHz / sampleRate
 	mag := eq.filters[0].MagResponse(omega) *
 		eq.filters[1].MagResponse(omega) *
-		eq.filters[2].MagResponse(omega)
+		eq.filters[2].MagResponse(omega) *
+		eq.filters[3].MagResponse(omega)
 	if mag <= 0 {
 		return -96.0
 	}

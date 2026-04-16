@@ -11306,3 +11306,8 @@ Run 'room-invites' to list invitations, 'room-accept -r 49afa434-d931-46c1-814b-
 18:45:53 [INFO] reconnected to broker
 18:49:29 [INFO] connected to broker oregon.nito-broker.com as sammac
 18:49:29 [INFO] reconnected to broker
+06:55:56 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+07:04:02 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+08:37:05 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+08:42:58 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+08:52:12 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u

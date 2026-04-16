@@ -36,6 +36,7 @@ var (
 
 	CursorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#c084fc")).
+			Background(ComponentBg).
 			Bold(true)
 
 	SelectedStyle = DimText.
@@ -157,6 +158,7 @@ var (
 	// VoiceSettingsActiveSectionStyle highlights the active section header.
 	VoiceSettingsActiveSectionStyle = lipgloss.NewStyle().
 					Foreground(lipgloss.Color("213")).
+					Background(ComponentBg).
 					Bold(true)
 
 	// --- Shared border colors for rounded-border panels ---

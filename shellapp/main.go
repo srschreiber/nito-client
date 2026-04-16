@@ -111,6 +111,8 @@ type model struct {
 	showVoiceSettings       bool
 	audioPlayerSettings     *components.AudioPlayerSettingsScreen
 	showAudioPlayerSettings bool
+	audioPlayerPresets      *components.AudioPlayerPresetsScreen
+	showAudioPlayerPresets  bool
 	comps                   []components.Component
 	focusable               []int
 	focusedComponent        int
@@ -146,6 +148,7 @@ func initialModel() model {
 		toast:               toast,
 		voiceSettings:       components.NewVoiceSettingsScreen(termW, termH),
 		audioPlayerSettings: components.NewAudioPlayerSettingsScreen(termW, termH),
+		audioPlayerPresets:  components.NewAudioPlayerPresetsScreen(termW, termH),
 		comps:               []components.Component{history, status, command, hints},
 		focusable:           []int{0, 1, 2}, // status always navigable (TRACKS always visible)
 		focusedComponent:    2,              // index into focusable → comps[2] = command
@@ -168,6 +171,7 @@ func (m *model) relayout(termW, termH int) {
 	m.command.SetWidth(l.cmdW)
 	m.voiceSettings.SetSize(termW, termH)
 	m.audioPlayerSettings.SetSize(termW, termH)
+	m.audioPlayerPresets.SetSize(termW, termH)
 }
 
 // notificationMsg is delivered to the model when the readLoop routes a
@@ -631,12 +635,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case components.HideAudioPlayerSettingsMsg:
 		m.showAudioPlayerSettings = false
 		return m, nil
+	case components.ShowAudioPlayerPresetsMsg:
+		m.showAudioPlayerPresets = true
+		return m, nil
+	case components.HideAudioPlayerPresetsMsg:
+		m.showAudioPlayerPresets = false
+		return m, nil
 	case tea.MouseClickMsg:
 		if msg.Button == tea.MouseMiddle {
 			return m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 		}
 		return m, nil
 	case tea.KeyPressMsg:
+		if m.showAudioPlayerPresets {
+			if msg.String() == "ctrl+c" {
+				return m, tea.Quit
+			}
+			return m, m.audioPlayerPresets.Update(msg)
+		}
 		if m.showAudioPlayerSettings {
 			if msg.String() == "ctrl+c" {
 				return m, tea.Quit
@@ -796,6 +812,11 @@ func (m *model) trackStateCmd() tea.Cmd {
 }
 
 func (m model) View() tea.View {
+	if m.showAudioPlayerPresets {
+		v := tea.NewView(styles.AppStyle.Render(m.audioPlayerPresets.Render()))
+		v.AltScreen = true
+		return v
+	}
 	if m.showAudioPlayerSettings {
 		v := tea.NewView(styles.AppStyle.Render(m.audioPlayerSettings.Render()))
 		v.AltScreen = true

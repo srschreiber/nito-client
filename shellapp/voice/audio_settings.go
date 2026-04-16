@@ -33,6 +33,9 @@ type AudioSettings struct {
 	EQMidQ          float32 `yaml:"eq_mid_q"`
 	EQTrebGain      float32 `yaml:"eq_treble_gain"`
 	EQTrebHz        float32 `yaml:"eq_treble_hz"`
+	EQPresGain      float32 `yaml:"eq_pres_gain"`
+	EQPresHz        float32 `yaml:"eq_pres_hz"`
+	EQPresQ         float32 `yaml:"eq_pres_q"`
 	EQVolume        *int    `yaml:"eq_volume,omitempty"`
 	DelayEnabled    bool    `yaml:"delay_enabled"`
 	DelayDurationMs float32 `yaml:"delay_duration_ms"`
@@ -132,6 +135,14 @@ func LoadAudioSettings() {
 			BassGain: s.EQBassGain, BassHz: s.EQBassHz,
 			MidGain: s.EQMidGain, MidHz: s.EQMidHz, MidQ: s.EQMidQ,
 			TrebleGain: s.EQTrebGain, TrebleHz: s.EQTrebHz,
+			PresenceGain: s.EQPresGain,
+			PresenceHz:   s.EQPresHz,
+			PresenceQ:    s.EQPresQ,
+		}
+		// Upgrade path: older files have PresenceHz=0 — apply defaults.
+		if eq.PresenceHz == 0 {
+			eq.PresenceHz = 3000.0
+			eq.PresenceQ = 1.0
 		}
 		SetPlaybackEQSettings(eq)
 	}
@@ -218,6 +229,7 @@ func SaveAudioSettings() {
 		EQBassGain:        eq.BassGain, EQBassHz: eq.BassHz,
 		EQMidGain: eq.MidGain, EQMidHz: eq.MidHz, EQMidQ: eq.MidQ,
 		EQTrebGain: eq.TrebleGain, EQTrebHz: eq.TrebleHz,
+		EQPresGain: eq.PresenceGain, EQPresHz: eq.PresenceHz, EQPresQ: eq.PresenceQ,
 		EQVolume:                func() *int { v := GetPlaybackEQVolume(); return &v }(),
 		DelayEnabled:            func() bool { d := GetDelaySettings(); return d.Enabled }(),
 		DelayDurationMs:         func() float32 { d := GetDelaySettings(); return d.DelayMs }(),

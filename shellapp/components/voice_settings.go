@@ -416,7 +416,7 @@ func (s *VoiceSettingsScreen) Render() string {
 	if gap < 1 {
 		gap = 1
 	}
-	lines = append(lines, title+strings.Repeat(" ", gap)+escHint, "")
+	lines = append(lines, title+styles.DimText.Render(strings.Repeat(" ", gap))+escHint, "")
 
 	// ── Audio Input ─────────────────────────────────────────────────────────
 	lines = append(lines, s.sectionHeader("AUDIO INPUT", s.section == vsSectionInput, innerW))
@@ -425,7 +425,7 @@ func (s *VoiceSettingsScreen) Render() string {
 	} else {
 		sel := voice.SelectedInputDevice()
 		for i, dev := range s.inputDevices {
-			cursor := "  "
+			cursor := styles.DimText.Render("  ")
 			if s.section == vsSectionInput && s.inputCursor == i {
 				cursor = styles.CursorStyle.Render("▶ ")
 			}
@@ -442,7 +442,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			lines = append(lines, item)
 		}
 	}
-	lines = append(lines, "  "+styles.DimText.Render("Don't see your device? Plug it in before starting the app."))
+	lines = append(lines, styles.DimText.Render("  Don't see your device? Plug it in before starting the app."))
 	lines = append(lines, "")
 
 	// ── Audio Output ────────────────────────────────────────────────────────
@@ -453,7 +453,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			if inSection && s.outputCursor == idx {
 				return styles.CursorStyle.Render("▶ ")
 			}
-			return "  "
+			return styles.DimText.Render("  ")
 		}
 		focused := func(idx int) bool { return inSection && s.outputCursor == idx }
 
@@ -469,7 +469,7 @@ func (s *VoiceSettingsScreen) Render() string {
 		masterLabel := fmt.Sprintf("%s%s  %d%%", lblMaster, buildSlider(voice.MasterVolume()/5, 20), voice.MasterVolume())
 		if focused(0) {
 			lines = append(lines, cur(0)+styles.RoomBtnActiveStyle.Render(masterLabel))
-			lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  applies to all audio"))
+			lines = append(lines, styles.DimText.Render("  ◀/▶ adjust  •  applies to all audio"))
 		} else {
 			lines = append(lines, cur(0)+styles.ItemStyle.Render(masterLabel))
 		}
@@ -480,7 +480,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			chatSFXLabel := lblChatSFX + styles.DimText.Render("(master)")
 			if focused(1) {
 				lines = append(lines, cur(1)+styles.RoomBtnActiveStyle.Render(chatSFXLabel))
-				lines = append(lines, "  "+styles.DimText.Render("enter to set own volume"))
+				lines = append(lines, styles.DimText.Render("  enter to set own volume"))
 			} else {
 				lines = append(lines, cur(1)+styles.ItemStyle.Render(chatSFXLabel))
 			}
@@ -488,7 +488,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			chatSFXLabel := fmt.Sprintf("%s%s  %d%%", lblChatSFX, buildSlider(chatSFX/5, 20), chatSFX)
 			if focused(1) {
 				lines = append(lines, cur(1)+styles.RoomBtnActiveStyle.Render(chatSFXLabel))
-				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  enter to use master"))
+				lines = append(lines, styles.DimText.Render("  ◀/▶ adjust  •  enter to use master"))
 			} else {
 				lines = append(lines, cur(1)+styles.ItemStyle.Render(chatSFXLabel))
 			}
@@ -500,7 +500,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			pbLabel := lblPlayback + styles.DimText.Render("(master)")
 			if focused(2) {
 				lines = append(lines, cur(2)+styles.RoomBtnActiveStyle.Render(pbLabel))
-				lines = append(lines, "  "+styles.DimText.Render("enter to set own volume"))
+				lines = append(lines, styles.DimText.Render("  enter to set own volume"))
 			} else {
 				lines = append(lines, cur(2)+styles.ItemStyle.Render(pbLabel))
 			}
@@ -508,7 +508,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			pbLabel := fmt.Sprintf("%s%s  %d%%", lblPlayback, buildSlider(pbOverride/5, 20), pbOverride)
 			if focused(2) {
 				lines = append(lines, cur(2)+styles.RoomBtnActiveStyle.Render(pbLabel))
-				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  enter to use master"))
+				lines = append(lines, styles.DimText.Render("  ◀/▶ adjust  •  enter to use master"))
 			} else {
 				lines = append(lines, cur(2)+styles.ItemStyle.Render(pbLabel))
 			}
@@ -520,7 +520,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			vcLabel := lblVoiceChat + styles.DimText.Render("(master)")
 			if focused(3) {
 				lines = append(lines, cur(3)+styles.RoomBtnActiveStyle.Render(vcLabel))
-				lines = append(lines, "  "+styles.DimText.Render("enter to set own volume"))
+				lines = append(lines, styles.DimText.Render("  enter to set own volume"))
 			} else {
 				lines = append(lines, cur(3)+styles.ItemStyle.Render(vcLabel))
 			}
@@ -528,7 +528,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			vcLabel := fmt.Sprintf("%s%s  %d%%", lblVoiceChat, buildSlider(vcOverride/5, 20), vcOverride)
 			if focused(3) {
 				lines = append(lines, cur(3)+styles.RoomBtnActiveStyle.Render(vcLabel))
-				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  enter to use master"))
+				lines = append(lines, styles.DimText.Render("  ◀/▶ adjust  •  enter to use master"))
 			} else {
 				lines = append(lines, cur(3)+styles.ItemStyle.Render(vcLabel))
 			}
@@ -538,16 +538,16 @@ func (s *VoiceSettingsScreen) Render() string {
 
 	// ── Test Audio ──────────────────────────────────────────────────────────
 	lines = append(lines, s.sectionHeader("TEST VOICE", s.section == vsSectionTest, innerW))
-	cursor := "  "
+	cursor := styles.DimText.Render("  ")
 	if s.section == vsSectionTest {
 		cursor = styles.CursorStyle.Render("▶ ")
 	}
 	var testItem string
 	if s.voiceActive {
-		testItem = "  " + styles.DimText.Render("Start Test Audio (unavailable while in voice chat)")
+		testItem = styles.DimText.Render("  Start Test Audio (unavailable while in voice chat)")
 	} else if s.testAudioConnecting {
 		spinner := styles.DimText.Render(spinnerFrames[s.spinnerFrame])
-		testItem = "  " + spinner + " " + styles.DimText.Render("Connecting...")
+		testItem = styles.DimText.Render("  ") + spinner + styles.DimText.Render(" Connecting...")
 	} else if s.section == vsSectionTest {
 		if s.testAudioActive {
 			testItem = cursor + styles.VoiceLeaveFocusedStyle.Render("Stop Test Audio")
@@ -581,7 +581,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			if inSection && s.transformCursor == idx {
 				return styles.CursorStyle.Render("▶ ")
 			}
-			return "  "
+			return styles.DimText.Render("  ")
 		}
 		focused := func(idx int) bool { return inSection && s.transformCursor == idx }
 
@@ -589,7 +589,7 @@ func (s *VoiceSettingsScreen) Render() string {
 		if !voice.PitchEnabled() {
 			lines = append(lines, cur(0)+styles.ItemStyle.Render("Pitch "+styles.DimText.Render("off")))
 			if focused(0) {
-				lines = append(lines, "  "+styles.DimText.Render("enter to enable"))
+				lines = append(lines, styles.DimText.Render("  enter to enable"))
 			}
 		} else {
 			pos := voice.PitchPos()
@@ -601,7 +601,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			label := fmt.Sprintf("Pitch  %s  %s%d st", buildSlider(pos, 24), sign, semitones)
 			if focused(0) {
 				lines = append(lines, cur(0)+styles.RoomBtnActiveStyle.Render(label))
-				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  •  enter to disable"))
+				lines = append(lines, styles.DimText.Render("  ◀/▶ adjust  •  enter to disable"))
 			} else {
 				lines = append(lines, cur(0)+styles.ItemStyle.Render(label))
 			}
@@ -615,7 +615,7 @@ func (s *VoiceSettingsScreen) Render() string {
 		vibratoLabel := "Vibrato " + vibratoState
 		if focused(1) {
 			lines = append(lines, cur(1)+styles.RoomBtnActiveStyle.Render(vibratoLabel))
-			lines = append(lines, "  "+styles.DimText.Render("enter to toggle  •  ↑/↓ to edit settings"))
+			lines = append(lines, styles.DimText.Render("  enter to toggle  •  ↑/↓ to edit settings"))
 		} else {
 			lines = append(lines, cur(1)+styles.ItemStyle.Render(vibratoLabel))
 		}
@@ -625,7 +625,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			freqLabel := fmt.Sprintf("Freq  %s  %d Hz", buildSlider(voice.VibratoFreq()-1, 7), voice.VibratoFreq())
 			if focused(2) {
 				lines = append(lines, cur(2)+styles.RoomBtnActiveStyle.Render(freqLabel))
-				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  (1–8 Hz)"))
+				lines = append(lines, styles.DimText.Render("  ◀/▶ adjust  (1–8 Hz)"))
 			} else {
 				lines = append(lines, cur(2)+styles.ItemStyle.Render(freqLabel))
 			}
@@ -634,7 +634,7 @@ func (s *VoiceSettingsScreen) Render() string {
 			rangeLabel := fmt.Sprintf("Range %s  ±%.1f st", buildSlider(voice.VibratoRange()-1, 5), rangeSt)
 			if focused(3) {
 				lines = append(lines, cur(3)+styles.RoomBtnActiveStyle.Render(rangeLabel))
-				lines = append(lines, "  "+styles.DimText.Render("◀/▶ adjust  (±0.5–3.0 st)"))
+				lines = append(lines, styles.DimText.Render("  ◀/▶ adjust  (±0.5–3.0 st)"))
 			} else {
 				lines = append(lines, cur(3)+styles.ItemStyle.Render(rangeLabel))
 			}
@@ -655,7 +655,7 @@ func (s *VoiceSettingsScreen) Render() string {
 		{"Echo Cancellation (AEC)", voice.AECEnabled(), "WebRTC AEC3 removes speaker echo from your microphone signal."},
 	}
 	for i, item := range advItems {
-		cur := "  "
+		cur := styles.DimText.Render("  ")
 		if s.section == vsSectionAdvanced && s.advancedCursor == i {
 			cur = styles.CursorStyle.Render("▶ ")
 		}
@@ -666,7 +666,7 @@ func (s *VoiceSettingsScreen) Render() string {
 		label := item.label + " " + state
 		if s.section == vsSectionAdvanced && s.advancedCursor == i {
 			lines = append(lines, cur+styles.RoomBtnActiveStyle.Render(label))
-			lines = append(lines, "  "+styles.DimText.Render(item.hint))
+			lines = append(lines, styles.DimText.Render("  "+item.hint))
 		} else {
 			lines = append(lines, cur+styles.ItemStyle.Render(label))
 		}
@@ -676,6 +676,7 @@ func (s *VoiceSettingsScreen) Render() string {
 	panel := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(styles.PanelFocusedBorderColor).
+		Background(styles.ComponentBg).
 		Padding(0, 1).
 		Width(innerW).
 		Height(innerH).

@@ -29,28 +29,31 @@ const (
 	apsMidQ           = 4
 	apsTrebGain       = 5
 	apsTrebFreq       = 6
-	apsDelayEnabled   = 7
-	apsDelayDuration  = 8
-	apsDelayFeedback  = 9
-	apsReverbEnabled  = 10
-	apsReverbMix      = 11
-	apsReverbSize     = 12
-	apsReverbDecay    = 13
-	apsReverbTone     = 14
-	apsChorusEnabled  = 15
-	apsChorusDelay    = 16
-	apsChorusRate     = 17
-	apsChorusDepth    = 18
-	apsChorusMix      = 19
-	apsPitchEnabled   = 20
-	apsPitchSemitones = 21
-	apsBalance        = 22
-	apsPanEnabled     = 23
-	apsPanRate        = 24
-	apsPanDepth       = 25
-	apsVolume         = 26
-	apsReset          = 27
-	apsItemCount      = 28
+	apsPresGain       = 7 // Presence peaking filter (2–5 kHz)
+	apsPresHz         = 8
+	apsPresQ          = 9
+	apsDelayEnabled   = 10
+	apsDelayDuration  = 11
+	apsDelayFeedback  = 12
+	apsReverbEnabled  = 13
+	apsReverbMix      = 14
+	apsReverbSize     = 15
+	apsReverbDecay    = 16
+	apsReverbTone     = 17
+	apsChorusEnabled  = 18
+	apsChorusDelay    = 19
+	apsChorusRate     = 20
+	apsChorusDepth    = 21
+	apsChorusMix      = 22
+	apsPitchEnabled   = 23
+	apsPitchSemitones = 24
+	apsBalance        = 25
+	apsPanEnabled     = 26
+	apsPanRate        = 27
+	apsPanDepth       = 28
+	apsVolume         = 29
+	apsReset          = 30
+	apsItemCount      = 31
 )
 
 // apsSecDef describes one effect section in the 3-column layout.
@@ -61,11 +64,12 @@ type apsSecDef struct {
 }
 
 // apsSectionList maps section index → cursor range.
-// Sections 0-8 fill the 3×3 column grid; section 9 is the Reset row.
-var apsSectionList = [10]apsSecDef{
+// Sections 0-9 fill the column grid; section 10 is the Reset row.
+var apsSectionList = [11]apsSecDef{
 	{name: "BASS", start: apsBassGain, end: apsBassFreq},
 	{name: "MID", start: apsMidGain, end: apsMidQ},
 	{name: "TREBLE", start: apsTrebGain, end: apsTrebFreq},
+	{name: "PRESENCE", start: apsPresGain, end: apsPresQ},
 	{name: "DELAY", start: apsDelayEnabled, end: apsDelayFeedback},
 	{name: "REVERB", start: apsReverbEnabled, end: apsReverbTone},
 	{name: "CHORUS", start: apsChorusEnabled, end: apsChorusMix},
@@ -100,6 +104,12 @@ const (
 	midQMin, midQMax                       = float32(0.3), float32(6.0)
 	midQStep                               = float32(0.1)
 	trebFreqMin, trebFreqMax, trebFreqStep = 1000, 16000, 500
+
+	presGainMin                            = float32(-18)
+	presGainMax                            = float32(18)
+	presFreqMin, presFreqMax, presFreqStep = 2000, 5000, 100
+	presQMin, presQMax                     = float32(0.3), float32(6.0)
+	presQStep                              = float32(0.1)
 
 	volMin, volMax, volStep = 0, 800, 20 // output volume %
 
@@ -149,6 +159,8 @@ func (s *AudioPlayerSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	switch msg.String() {
 	case "esc":
 		return func() tea.Msg { return HideAudioPlayerSettingsMsg{} }
+	case "p":
+		return func() tea.Msg { return ShowAudioPlayerPresetsMsg{} }
 	case "tab":
 		secIdx := apsCursorSectionIdx(s.cursor)
 		next := (secIdx + 1) % len(apsSectionList)
@@ -211,7 +223,10 @@ func (s *AudioPlayerSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 func (s *AudioPlayerSettingsScreen) adjust(delta int) {
 	switch s.cursor {
 	// ── EQ ──────────────────────────────────────────────────────────────────────
-	case apsBassGain, apsBassFreq, apsMidGain, apsMidFreq, apsMidQ, apsTrebGain, apsTrebFreq:
+	case apsBassGain, apsBassFreq,
+		apsMidGain, apsMidFreq, apsMidQ,
+		apsTrebGain, apsTrebFreq,
+		apsPresGain, apsPresHz, apsPresQ:
 		eq := voice.GetPlaybackEQSettings()
 		switch s.cursor {
 		case apsBassGain:
@@ -228,6 +243,12 @@ func (s *AudioPlayerSettingsScreen) adjust(delta int) {
 			eq.TrebleGain = clampF32(eq.TrebleGain+float32(delta)*gainStepDB, trebGainMin, trebGainMax)
 		case apsTrebFreq:
 			eq.TrebleHz = clampF32(eq.TrebleHz+float32(delta*trebFreqStep), trebFreqMin, trebFreqMax)
+		case apsPresGain:
+			eq.PresenceGain = clampF32(eq.PresenceGain+float32(delta)*gainStepDB, presGainMin, presGainMax)
+		case apsPresHz:
+			eq.PresenceHz = clampF32(eq.PresenceHz+float32(delta*presFreqStep), presFreqMin, presFreqMax)
+		case apsPresQ:
+			eq.PresenceQ = clampF32(eq.PresenceQ+float32(delta)*presQStep, presQMin, presQMax)
 		}
 		voice.SetPlaybackEQSettings(eq)
 		voice.SaveAudioSettings()
@@ -689,12 +710,16 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	onStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#86efac")).Bold(true).Background(styles.ComponentBg)
 	offStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171")).Background(styles.ComponentBg)
 
-	// Column sizing: 3 equal columns across innerW.
-	// Minimum colW=28 → colInnerW=24, which comfortably fits
-	// "  " + label(9) + " " + value(9) = 21 chars with 3 chars to spare.
-	colW := innerW / 3
-	if colW < 28 {
-		colW = 28
+	// colW3 — width for 3-column rows (effects, pitch/pan/output).
+	// colW4 — width for the 4-column EQ row (bass/mid/treble/presence).
+	// Both minimums ensure content never overflows and triggers word-wrap.
+	colW3 := innerW / 3
+	if colW3 < 28 {
+		colW3 = 28
+	}
+	colW4 := innerW / 4
+	if colW4 < 22 {
+		colW4 = 22
 	}
 
 	// renderColItem returns 1 or 2 lines for a numeric/adjustable item.
@@ -730,8 +755,9 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	}
 
 	// buildBox wraps a section's item lines in a rounded border box.
+	// w is the outer rendered width (use colW4 for EQ row, colW3 for others).
 	// The border is highlighted when the cursor is inside that section.
-	buildBox := func(secIdx int, header string, itemLines []string) string {
+	buildBox := func(secIdx int, header string, itemLines []string, w int) string {
 		isActive := apsCursorSectionIdx(s.cursor) == secIdx
 		borderColor := styles.PanelBorderColor
 		if isActive {
@@ -749,14 +775,14 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 			BorderBackground(styles.ComponentBg).
 			Background(styles.ComponentBg).
 			Padding(0, 1).
-			Width(colW).
+			Width(w).
 			Render(content)
 	}
 
 	// ── Fixed header ──────────────────────────────────────────────────────────
 	var lines []string
 	title := styles.AudioPlayerBadge.Render("PLAYER EQ")
-	hint := dim.Render("tab section  •  ↑↓ item  •  ◀▶ adjust  •  ESC exit")
+	hint := dim.Render("tab section  •  ↑↓ item  •  ◀▶ adjust  •  p presets  •  ESC exit")
 	gap := innerW - lipgloss.Width(title) - lipgloss.Width(hint)
 	if gap < 1 {
 		gap = 1
@@ -774,8 +800,8 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	}
 	lines = append(lines, "")
 
-	// ── Row 1: Bass | Mid | Treble ────────────────────────────────────────────
-	var bassItems, midItems, trebItems []string
+	// ── Row 1: Bass | Mid | Treble | Presence (4-column EQ row) ─────────────
+	var bassItems, midItems, trebItems, presItems []string
 	bassItems = append(bassItems, renderColItem(apsBassGain, "Gain", gainLabel(eq.BassGain))...)
 	bassItems = append(bassItems, renderColItem(apsBassFreq, "Freq", fmt.Sprintf("%d Hz", int(eq.BassHz)))...)
 
@@ -786,10 +812,15 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	trebItems = append(trebItems, renderColItem(apsTrebGain, "Gain", gainLabel(eq.TrebleGain))...)
 	trebItems = append(trebItems, renderColItem(apsTrebFreq, "Freq", fmt.Sprintf("%d Hz", int(eq.TrebleHz)))...)
 
+	presItems = append(presItems, renderColItem(apsPresGain, "Gain", gainLabel(eq.PresenceGain))...)
+	presItems = append(presItems, renderColItem(apsPresHz, "Freq", fmt.Sprintf("%d Hz", int(eq.PresenceHz)))...)
+	presItems = append(presItems, renderColItem(apsPresQ, "Q", fmt.Sprintf("%.1f", eq.PresenceQ))...)
+
 	row1 := lipgloss.JoinHorizontal(lipgloss.Top,
-		buildBox(0, "BASS", bassItems),
-		buildBox(1, "MID", midItems),
-		buildBox(2, "TREBLE", trebItems),
+		buildBox(0, "BASS", bassItems, colW4),
+		buildBox(1, "MID", midItems, colW4),
+		buildBox(2, "TREBLE", trebItems, colW4),
+		buildBox(3, "PRESENCE", presItems, colW4),
 	)
 
 	// ── Row 2: Delay | Reverb | Chorus ───────────────────────────────────────
@@ -811,9 +842,9 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	choItems = append(choItems, renderColItem(apsChorusMix, "Mix", fmt.Sprintf("%.2f", cho.Mix))...)
 
 	row2 := lipgloss.JoinHorizontal(lipgloss.Top,
-		buildBox(3, "DELAY", delItems),
-		buildBox(4, "REVERB", revItems),
-		buildBox(5, "CHORUS", choItems),
+		buildBox(4, "DELAY", delItems, colW3),
+		buildBox(5, "REVERB", revItems, colW3),
+		buildBox(6, "CHORUS", choItems, colW3),
 	)
 
 	// ── Row 3: Pitch | Pan | Output ───────────────────────────────────────────
@@ -830,9 +861,9 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	outItems = append(outItems, dim.Render("  Limiter  ")+onStyle.Render("[ON]"))
 
 	row3 := lipgloss.JoinHorizontal(lipgloss.Top,
-		buildBox(6, "PITCH", pitchItems),
-		buildBox(7, "PAN", panItems),
-		buildBox(8, "OUTPUT", outItems),
+		buildBox(7, "PITCH", pitchItems, colW3),
+		buildBox(8, "PAN", panItems, colW3),
+		buildBox(9, "OUTPUT", outItems, colW3),
 	)
 
 	// ── Reset ─────────────────────────────────────────────────────────────────
