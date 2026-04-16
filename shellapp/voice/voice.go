@@ -299,6 +299,11 @@ var (
 	// trackBuffering flags whether a live track is still filling its initial
 	// oto buffer. Read by the status panel to show a pulsing spinner.
 	trackBuffering [3]atomic.Bool
+
+	// trackTitle stores the display title for each track (artist – title from
+	// ID3v2 tags, or the #EXTINF display name from an M3U playlist).
+	// Stores a string value; nil == empty.
+	trackTitle [3]atomic.Value
 )
 
 const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
@@ -511,6 +516,34 @@ func SetTrackBuffering(i int, v bool) {
 		return
 	}
 	trackBuffering[i].Store(v)
+}
+
+// GetTrackTitle returns the display title for track i, or "" if none is set.
+func GetTrackTitle(i int) string {
+	if i < 0 || i >= 3 {
+		return ""
+	}
+	v := trackTitle[i].Load()
+	if v == nil {
+		return ""
+	}
+	return v.(string)
+}
+
+// SetTrackTitle stores a display title for track i.
+func SetTrackTitle(i int, title string) {
+	if i < 0 || i >= 3 {
+		return
+	}
+	trackTitle[i].Store(title)
+}
+
+// ClearTrackTitle clears the display title for track i.
+func ClearTrackTitle(i int) {
+	if i < 0 || i >= 3 {
+		return
+	}
+	trackTitle[i].Store("")
 }
 
 // ClearTrackBandLevels zeros all frequency-band levels for track i.

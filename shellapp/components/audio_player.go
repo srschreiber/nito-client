@@ -5,6 +5,7 @@ package components
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -35,16 +36,16 @@ func PlayAudioFromURL(ctx context.Context, roomID, audioURL string, track int) t
 			return AudioTrackDoneMsg{Track: track}
 		}
 
-		urls, err := resolveAudioURLs(ctx, audioURL)
+		entries, err := resolveAudioURLs(ctx, audioURL)
 		if err != nil {
 			return audioPlaybackErr(track, "resolve", err)
 		}
 
-		for _, u := range urls {
+		for _, entry := range entries {
 			if ctx.Err() != nil {
 				return nil
 			}
-			if msg := playOne(ctx, roomID, u, track); msg != nil {
+			if msg := playOne(ctx, roomID, entry, track); msg != nil {
 				return msg
 			}
 			if ctx.Err() != nil {
@@ -71,6 +72,25 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) tea.Cmd {
 			return audioPlaybackErr(track, "open file", err)
 		}
 		defer f.Close()
+
+		// Peek at the first 64 KB for ID3v2 tag parsing, then seek back.
+		const id3PeekSize = 64 * 1024
+		peek := make([]byte, id3PeekSize)
+		n, _ := f.Read(peek)
+		peek = peek[:n]
+		title, artist := parseID3Title(peek)
+		if title != "" || artist != "" {
+			voice.SetTrackTitle(track, buildTrackDisplayTitle(artist, title))
+		} else {
+			// Fall back to the filename (without extension) so the status panel
+			// always shows something useful for local files.
+			base := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+			voice.SetTrackTitle(track, base)
+		}
+		defer voice.ClearTrackTitle(track)
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			return audioPlaybackErr(track, "seek", err)
+		}
 
 		dec, err := mp3.NewDecoder(f)
 		if err != nil {
@@ -110,14 +130,21 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) tea.Cmd {
 	}
 }
 
-// resolveAudioURLs fetches audioURL and returns a slice of MP3 URLs to play.
+// trackEntry pairs an MP3 URL with an optional display title sourced from
+// M3U #EXTINF metadata. The title is used as a hint if ID3v2 tags are absent.
+type trackEntry struct {
+	URL   string
+	Title string // from #EXTINF, empty for plain MP3 URLs
+}
+
+// resolveAudioURLs fetches audioURL and returns a slice of track entries.
 // For a plain MP3 URL it returns a single-element slice. For an M3U/M3U8
-// playlist it parses and returns all track URLs in order.
-func resolveAudioURLs(ctx context.Context, audioURL string) ([]string, error) {
+// playlist it parses and returns all track entries in order.
+func resolveAudioURLs(ctx context.Context, audioURL string) ([]trackEntry, error) {
 	if isM3U(audioURL) {
-		urls, err := fetchAndParseM3U(ctx, audioURL)
-		if err == nil && len(urls) > 0 {
-			return urls, nil
+		entries, err := fetchAndParseM3U(ctx, audioURL)
+		if err == nil && len(entries) > 0 {
+			return entries, nil
 		}
 		if err != nil && !strings.Contains(err.Error(), "no tracks found") {
 			// Real network or parse error — surface it.
@@ -127,7 +154,7 @@ func resolveAudioURLs(ctx context.Context, audioURL string) ([]string, error) {
 		// playlist contained no recognisable http(s) track lines. Fall back to
 		// treating the URL itself as the audio stream.
 		clientlog.Info("audio_player: m3u yielded no tracks, attempting direct stream of %s", audioURL)
-		return []string{audioURL}, nil
+		return []trackEntry{{URL: audioURL}}, nil
 	}
 	// Check Content-Type in case the URL has no recognisable extension.
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, audioURL, nil)
@@ -142,7 +169,7 @@ func resolveAudioURLs(ctx context.Context, audioURL string) ([]string, error) {
 			return fetchAndParseM3U(ctx, audioURL)
 		}
 	}
-	return []string{audioURL}, nil
+	return []trackEntry{{URL: audioURL}}, nil
 }
 
 // isM3U reports whether the URL path ends with a playlist extension.
@@ -155,10 +182,11 @@ func isM3U(u string) bool {
 	return strings.HasSuffix(lower, ".m3u") || strings.HasSuffix(lower, ".m3u8")
 }
 
-// fetchAndParseM3U downloads the playlist at url and returns all non-comment,
-// non-empty lines as track URLs. Relative URLs are not resolved (archive.org
-// and most public sources use absolute URLs).
-func fetchAndParseM3U(ctx context.Context, url string) ([]string, error) {
+// fetchAndParseM3U downloads the playlist at url and returns all track entries.
+// #EXTINF display titles are captured and stored in the corresponding entry.
+// Relative URLs are not resolved (archive.org and most public sources use
+// absolute URLs).
+func fetchAndParseM3U(ctx context.Context, url string) ([]trackEntry, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -169,28 +197,41 @@ func fetchAndParseM3U(ctx context.Context, url string) ([]string, error) {
 	}
 	defer resp.Body.Close()
 
-	var tracks []string
+	var entries []trackEntry
+	var pendingTitle string                                       // title from the preceding #EXTINF line, if any
 	scanner := bufio.NewScanner(io.LimitReader(resp.Body, 8<<10)) // 8 KB max — real playlists are tiny
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
+		if line == "" {
+			continue
+		}
+		// Capture #EXTINF display title: "#EXTINF:duration,Artist - Title"
+		if strings.HasPrefix(line, "#EXTINF:") {
+			if i := strings.Index(line, ","); i != -1 {
+				pendingTitle = strings.TrimSpace(line[i+1:])
+			}
+			continue
+		}
+		if strings.HasPrefix(line, "#") {
 			continue
 		}
 		// Skip binary/non-URL lines (e.g. ICY metadata or Shoutcast frames
 		// embedded in some M3U responses). Only http(s) absolute URLs are accepted.
 		if !strings.HasPrefix(line, "http://") && !strings.HasPrefix(line, "https://") {
+			pendingTitle = ""
 			continue
 		}
-		tracks = append(tracks, line)
+		entries = append(entries, trackEntry{URL: line, Title: pendingTitle})
+		pendingTitle = ""
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-	if len(tracks) == 0 {
+	if len(entries) == 0 {
 		return nil, fmt.Errorf("no tracks found in playlist")
 	}
-	clientlog.Info("audio_player: m3u resolved %d track(s) from %s", len(tracks), url)
-	return tracks, nil
+	clientlog.Info("audio_player: m3u resolved %d track(s) from %s", len(entries), url)
+	return entries, nil
 }
 
 // prefetchReader wraps an io.Reader with an asynchronous read-ahead goroutine.
@@ -256,16 +297,16 @@ func (r *prefetchReader) IsNearlyDrained() bool {
 	return len(r.ch) <= 1
 }
 
-// playOne streams and plays a single MP3 URL, reconnecting automatically when a
-// live stream catches up to the broadcast edge. For regular files it runs once.
+// playOne streams and plays a single MP3 entry, reconnecting automatically when
+// a live stream catches up to the broadcast edge. For regular files it runs once.
 // If roomID is voice.SelfRoomID the active-room guard is skipped so the user
 // can play audio locally without being in a voice call.
-func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
+func playOne(ctx context.Context, roomID string, entry trackEntry, track int) tea.Msg {
 	for {
 		if ctx.Err() != nil {
 			return nil
 		}
-		reconnect, msg := playOneAttempt(ctx, roomID, audioURL, track)
+		reconnect, msg := playOneAttempt(ctx, roomID, entry, track)
 		if msg != nil {
 			return msg
 		}
@@ -283,18 +324,18 @@ func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
 
 // liveEdgeDrainTicks is how many consecutive 20 ms polling ticks the prefetch
 // must be nearly empty (≤1 chunk) before we reconnect for the live edge.
-// 3 ticks × 20 ms = 60 ms debounce — aggressive but intentional per user preference.
-const liveEdgeDrainTicks = 3
+// 50 ticks × 20 ms = 1 s debounce — gives the stream buffer time to recover.
+const liveEdgeDrainTicks = 50
 
-// playOneAttempt makes a single HTTP streaming attempt for audioURL.
+// playOneAttempt makes a single HTTP streaming attempt for entry.URL.
 // Returns (reconnect, msg): reconnect=true means a live stream hit the live
 // edge and the caller should reopen the connection; msg is non-nil on error.
-func playOneAttempt(ctx context.Context, roomID, audioURL string, track int) (bool, tea.Msg) {
+func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track int) (bool, tea.Msg) {
 	if roomID != voice.SelfRoomID && voice.ActiveRoomID() != roomID {
 		return false, nil
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, audioURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, entry.URL, nil)
 	if err != nil {
 		return false, audioPlaybackErr(track, "build request", err)
 	}
@@ -328,7 +369,36 @@ func playOneAttempt(ctx context.Context, roomID, audioURL string, track int) (bo
 		}()
 	}
 
-	prefetch := newPrefetchReader(ctx, resp.Body)
+	// Set the track display title.
+	// For live streams use Icy-Name from the response headers (available
+	// immediately). For regular files peek the first 64 KB for ID3v2 tags and
+	// fall back to the #EXTINF hint from the playlist.
+	if isLive {
+		if icyName := resp.Header.Get("Icy-Name"); icyName != "" {
+			voice.SetTrackTitle(track, icyName)
+		} else if entry.Title != "" {
+			voice.SetTrackTitle(track, entry.Title)
+		}
+	}
+	defer voice.ClearTrackTitle(track)
+
+	// Peek the first 64 KB to parse ID3v2 tags (non-live only).
+	// The peeked bytes are prepended back via io.MultiReader so the MP3 decoder
+	// sees a complete stream.
+	const id3PeekSize = 64 * 1024
+	peek := make([]byte, id3PeekSize)
+	n, _ := io.ReadFull(resp.Body, peek)
+	peek = peek[:n]
+	if !isLive {
+		if title, artist := parseID3Title(peek); title != "" || artist != "" {
+			voice.SetTrackTitle(track, buildTrackDisplayTitle(artist, title))
+		} else if entry.Title != "" {
+			voice.SetTrackTitle(track, entry.Title)
+		}
+	}
+	bodyReader := io.MultiReader(bytes.NewReader(peek), resp.Body)
+
+	prefetch := newPrefetchReader(ctx, bodyReader)
 	dec, err := mp3.NewDecoder(prefetch)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -801,4 +871,174 @@ func audioPlaybackErr(track int, op string, err error) AudioPlaybackErrorMsg {
 	}
 	clientlog.Error("audio_player: %s: unknown error", op)
 	return AudioPlaybackErrorMsg{Track: track, Text: "audio: " + op + ": unknown error"}
+}
+
+// parseID3Title extracts the title (TIT2) and artist (TPE1) from an ID3v2 tag
+// at the start of data. Returns ("", "") if no ID3v2 tag is present or those
+// frames are absent. Supports ID3v2.2 (3-byte frame IDs), v2.3, and v2.4.
+// No external dependency — uses only stdlib encoding/bytes ops.
+func parseID3Title(data []byte) (title, artist string) {
+	if len(data) < 10 || data[0] != 'I' || data[1] != 'D' || data[2] != '3' {
+		return
+	}
+	majorVersion := data[3]
+	flags := data[5]
+	// Synchsafe integer: each byte contributes only 7 bits (mask 0x7f).
+	tagSize := int(data[6]&0x7f)<<21 | int(data[7]&0x7f)<<14 | int(data[8]&0x7f)<<7 | int(data[9]&0x7f)
+	end := 10 + tagSize
+	if end > len(data) {
+		end = len(data)
+	}
+	frames := data[10:end]
+
+	// Skip extended header if the flag bit is set (bit 6 of flags byte).
+	// Many taggers (e.g. iTunes) write an extended header; without skipping it
+	// the first bytes look like an unknown frame and parsing yields nothing.
+	if flags&0x40 != 0 {
+		if majorVersion >= 4 {
+			// ID3v2.4: extended header size is synchsafe and includes the 4-byte
+			// size field itself.
+			if len(frames) < 4 {
+				return
+			}
+			extSize := int(frames[0]&0x7f)<<21 | int(frames[1]&0x7f)<<14 |
+				int(frames[2]&0x7f)<<7 | int(frames[3]&0x7f)
+			if extSize > len(frames) {
+				return
+			}
+			frames = frames[extSize:]
+		} else {
+			// ID3v2.3: extended header size is a plain big-endian uint32 that
+			// does NOT count the 4-byte size field itself.
+			if len(frames) < 4 {
+				return
+			}
+			extSize := int(frames[0])<<24 | int(frames[1])<<16 | int(frames[2])<<8 | int(frames[3])
+			skip := 4 + extSize
+			if skip > len(frames) {
+				return
+			}
+			frames = frames[skip:]
+		}
+	}
+
+	for len(frames) > 0 {
+		var (
+			frameID   string
+			frameData []byte
+			step      int
+		)
+
+		if majorVersion == 2 {
+			// ID3v2.2: 3-char ID + 3-byte size (big-endian, not synchsafe)
+			if len(frames) < 6 {
+				break
+			}
+			frameID = string(frames[0:3])
+			if frameID[0] == 0 {
+				break // padding
+			}
+			sz := int(frames[3])<<16 | int(frames[4])<<8 | int(frames[5])
+			step = 6 + sz
+			if sz == 0 || step > len(frames) {
+				break
+			}
+			frameData = frames[6:step]
+		} else {
+			// ID3v2.3 and 2.4: 4-char ID + 4-byte size + 2-byte flags
+			if len(frames) < 10 {
+				break
+			}
+			frameID = string(frames[0:4])
+			if frameID[0] == 0 {
+				break // padding
+			}
+			var sz int
+			if majorVersion >= 4 {
+				// Synchsafe frame sizes in v2.4
+				sz = int(frames[4]&0x7f)<<21 | int(frames[5]&0x7f)<<14 |
+					int(frames[6]&0x7f)<<7 | int(frames[7]&0x7f)
+			} else {
+				sz = int(frames[4])<<24 | int(frames[5])<<16 | int(frames[6])<<8 | int(frames[7])
+			}
+			step = 10 + sz
+			if sz == 0 || step > len(frames) {
+				break
+			}
+			frameData = frames[10:step]
+		}
+		frames = frames[step:]
+
+		switch frameID {
+		case "TIT2", "TT2":
+			title = decodeID3Text(frameData)
+		case "TPE1", "TP1":
+			artist = decodeID3Text(frameData)
+		}
+		if title != "" && artist != "" {
+			return
+		}
+	}
+	return
+}
+
+// decodeID3Text decodes an ID3v2 text frame payload. The first byte is the
+// text encoding: 0=ISO-8859-1, 1=UTF-16 with BOM, 2=UTF-16BE, 3=UTF-8.
+func decodeID3Text(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+	enc := data[0]
+	text := data[1:]
+	switch enc {
+	case 0, 3: // ISO-8859-1 or UTF-8 — trim null terminators and return
+		for len(text) > 0 && text[len(text)-1] == 0 {
+			text = text[:len(text)-1]
+		}
+		return strings.TrimSpace(string(text))
+	case 1, 2: // UTF-16 with BOM (1) or UTF-16BE without BOM (2)
+		if len(text) < 2 {
+			return ""
+		}
+		bigEndian := enc == 2
+		start := 0
+		if text[0] == 0xFF && text[1] == 0xFE {
+			bigEndian = false
+			start = 2
+		} else if text[0] == 0xFE && text[1] == 0xFF {
+			bigEndian = true
+			start = 2
+		}
+		var b strings.Builder
+		for i := start; i+1 < len(text); i += 2 {
+			var cp uint16
+			if bigEndian {
+				cp = uint16(text[i])<<8 | uint16(text[i+1])
+			} else {
+				cp = uint16(text[i]) | uint16(text[i+1])<<8
+			}
+			if cp == 0 {
+				break
+			}
+			b.WriteRune(rune(cp))
+		}
+		return strings.TrimSpace(b.String())
+	}
+	return ""
+}
+
+// buildTrackDisplayTitle formats artist and title into a single display string.
+// If both are present it returns "Artist - Title"; if only one is available it
+// returns that field alone.
+func buildTrackDisplayTitle(artist, title string) string {
+	artist = strings.TrimSpace(artist)
+	title = strings.TrimSpace(title)
+	switch {
+	case artist != "" && title != "":
+		return artist + " - " + title
+	case title != "":
+		return title
+	default:
+		return artist
+	}
 }

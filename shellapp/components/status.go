@@ -398,13 +398,29 @@ func (s *StatusComponent) Render() string {
 				}
 			}
 
+			// Track title from ID3 tags or M3U #EXTINF, shown when playing.
+			titleLine := ""
+			if s.trackPlaying[i] {
+				if t := voice.GetTrackTitle(i); t != "" {
+					maxTitleW := s.width - 4 // 4 for indent
+					if maxTitleW < 4 {
+						maxTitleW = 4
+					}
+					titleLine = txt.Render("    " + truncate(t, maxTitleW))
+				}
+			}
+
 			// Digit and separator wrapped so no raw character has an unset background.
 			digit := txt.Render(fmt.Sprintf(" %d", i))
 			trackInfo := curStr + icon + digit + meter + liveBadge + byLabel
+			entry := trackInfo
+			if titleLine != "" {
+				entry += "\n" + titleLine
+			}
 			if topMeter != "" {
-				trackLines = append(trackLines, topMeter+"\n"+trackInfo)
+				trackLines = append(trackLines, topMeter+"\n"+entry)
 			} else {
-				trackLines = append(trackLines, trackInfo)
+				trackLines = append(trackLines, entry)
 			}
 		}
 

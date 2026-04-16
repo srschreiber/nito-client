@@ -65,7 +65,7 @@ var audioPresetList = []audioPreset{
 			applyPreset(voice.EQSettings{
 				BassGain: -2.0, BassHz: 120,
 				MidGain: -1.0, MidHz: 1000, MidQ: 1.0,
-				TrebleGain: 4.0, TrebleHz: 10000,
+				TrebleGain: 3.0, TrebleHz: 10000,
 				PresenceGain: 3.0, PresenceHz: 4500, PresenceQ: 0.9,
 			}, del, rev, cho, pan)
 		},
@@ -111,7 +111,7 @@ var audioPresetList = []audioPreset{
 		apply: func() {
 			del, rev, cho, pan := noFX()
 			applyPreset(voice.EQSettings{
-				BassGain: 7.0, BassHz: 80,
+				BassGain: 3.0, BassHz: 80,
 				MidGain: -1.0, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: 0.0, TrebleHz: 5000,
 				PresenceGain: 0.0, PresenceHz: 3000, PresenceQ: 1.0,
@@ -128,8 +128,8 @@ var audioPresetList = []audioPreset{
 			applyPreset(voice.EQSettings{
 				BassGain: -1.0, BassHz: 120,
 				MidGain: 0.0, MidHz: 1000, MidQ: 1.0,
-				TrebleGain: 5.0, TrebleHz: 9000,
-				PresenceGain: 3.5, PresenceHz: 4000, PresenceQ: 1.2,
+				TrebleGain: 3.0, TrebleHz: 9000,
+				PresenceGain: 3.0, PresenceHz: 4000, PresenceQ: 1.2,
 			}, del, rev, cho, pan)
 		},
 	},
@@ -216,7 +216,7 @@ var audioPresetList = []audioPreset{
 			applyPreset(voice.EQSettings{
 				BassGain: 2.0, BassHz: 110,
 				MidGain: -1.0, MidHz: 400, MidQ: 1.2,
-				TrebleGain: -4.0, TrebleHz: 8000,
+				TrebleGain: -3.0, TrebleHz: 8000,
 				PresenceGain: -3.0, PresenceHz: 3500, PresenceQ: 0.9,
 			}, del, rev, cho, pan)
 		},
@@ -229,7 +229,7 @@ var audioPresetList = []audioPreset{
 		apply: func() {
 			del, rev, cho, pan := noFX()
 			applyPreset(voice.EQSettings{
-				BassGain: 4.5, BassHz: 80,
+				BassGain: 3.0, BassHz: 80,
 				MidGain: 1.5, MidHz: 700, MidQ: 1.5,
 				TrebleGain: 2.0, TrebleHz: 5000,
 				PresenceGain: 2.5, PresenceHz: 3000, PresenceQ: 1.4,
@@ -247,9 +247,9 @@ var audioPresetList = []audioPreset{
 			cho := voice.ChorusSettings{Enabled: true, BaseDelayMs: 12, RateHz: 0.5, DepthMs: 2.0, Mix: 0.12}
 			pan := voice.PannerSettings{Balance: 0, AutoPanEnabled: true, AutoPanRate: 0.5, AutoPanDepth: 0.4}
 			applyPreset(voice.EQSettings{
-				BassGain: 4.0, BassHz: 80,
+				BassGain: 3.0, BassHz: 80,
 				MidGain: -3.0, MidHz: 500, MidQ: 1.2,
-				TrebleGain: 4.0, TrebleHz: 8000,
+				TrebleGain: 3.0, TrebleHz: 8000,
 				PresenceGain: 3.0, PresenceHz: 4000, PresenceQ: 1.0,
 			}, del, rev, cho, pan)
 		},
@@ -265,7 +265,7 @@ var audioPresetList = []audioPreset{
 				BassGain: -2.0, BassHz: 120,
 				MidGain: 2.5, MidHz: 800, MidQ: 0.8,
 				TrebleGain: 1.0, TrebleHz: 5000,
-				PresenceGain: 4.0, PresenceHz: 3000, PresenceQ: 1.2,
+				PresenceGain: 3.0, PresenceHz: 3000, PresenceQ: 1.2,
 			}, del, rev, cho, pan)
 		},
 	},
@@ -277,7 +277,7 @@ var audioPresetList = []audioPreset{
 		apply: func() {
 			del, rev, cho, pan := noFX()
 			applyPreset(voice.EQSettings{
-				BassGain: 3.5, BassHz: 110,
+				BassGain: 3.0, BassHz: 110,
 				MidGain: 1.0, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: -3.0, TrebleHz: 6000,
 				PresenceGain: -2.0, PresenceHz: 3000, PresenceQ: 1.0,
