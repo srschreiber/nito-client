@@ -517,16 +517,15 @@ func renderEQGraph(eq voice.EQSettings, graphW, graphH int, levels []float32) []
 	}
 
 	// Render rows with left-side dB labels (every other row to avoid crowding).
-	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#555577"))
-	curveAbove := lipgloss.NewStyle().Foreground(lipgloss.Color("#86efac")) // green for boost
-	curveBelow := lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171")) // red for cut
-	zeroStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#4a4a7a"))
+	bg := lipgloss.NewStyle().Background(styles.ComponentBg)
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#555577")).Background(styles.ComponentBg)
+	curveAbove := lipgloss.NewStyle().Foreground(lipgloss.Color("#86efac")).Background(styles.ComponentBg) // green for boost
+	curveBelow := lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171")).Background(styles.ComponentBg) // red for cut
+	zeroStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#4a4a7a")).Background(styles.ComponentBg)
 
-	// Bar overlay background colours — dark tinted backgrounds so the EQ curve
-	// remains readable on top. Gradient from bottom: green → orange → red.
-	barBgGreen := lipgloss.NewStyle().Background(lipgloss.Color("#0a1f0a"))
-	barBgOrange := lipgloss.NewStyle().Background(lipgloss.Color("#1f130a"))
-	barBgRed := lipgloss.NewStyle().Background(lipgloss.Color("#1f0a0a"))
+	// Bar overlay: faded grayish light green — a blend of the component background
+	// and a muted green, so it reads as "background with a subtle green wash".
+	barBg := lipgloss.NewStyle().Background(lipgloss.Color("#1a2e20"))
 	// Curve-on-bar styles: brighter so the dot stands out against the tint.
 	barCurveAbove := lipgloss.NewStyle().Foreground(lipgloss.Color("#4ade80")).Bold(true)
 	barCurveBelow := lipgloss.NewStyle().Foreground(lipgloss.Color("#fca5a5")).Bold(true)
@@ -553,21 +552,6 @@ func renderEQGraph(eq voice.EQSettings, graphW, graphH int, levels []float32) []
 			// Bar fills from the bottom: rows graphH-barH[c] … graphH-1 are in bar.
 			inBar := barH[c] > 0 && r >= graphH-barH[c]
 
-			// Pick bar background tint: gradient green (bottom) → orange → red (top).
-			// barFrac = 0 at bottom of bar, ≈1 at top of bar.
-			var barBg lipgloss.Style
-			if inBar && barH[c] > 0 {
-				barFrac := float64(graphH-1-r) / float64(barH[c])
-				switch {
-				case barFrac < 0.55:
-					barBg = barBgGreen // bottom of bar → green
-				case barFrac < 0.82:
-					barBg = barBgOrange
-				default:
-					barBg = barBgRed // top of bar → red
-				}
-			}
-
 			switch ch {
 			case '*':
 				if inBar {
@@ -593,7 +577,7 @@ func renderEQGraph(eq voice.EQSettings, graphW, graphH int, levels []float32) []
 				if inBar {
 					rowStr.WriteString(barBg.Render(" "))
 				} else {
-					rowStr.WriteByte(' ')
+					rowStr.WriteString(bg.Render(" "))
 				}
 			}
 		}
@@ -670,14 +654,13 @@ func interpolateBandLevel(freq float64, levels []float32) float32 {
 	return 0
 }
 
-// currentBandLevels returns the peak band level across all 3 audio tracks
-// for the current active band count.
+// currentBandLevels returns the peak EQ-graph band level across all 3 audio
+// tracks using the high-resolution 16-band store.
 func currentBandLevels() []float32 {
-	n := voice.NumBands()
-	out := make([]float32, n)
+	out := make([]float32, voice.NumEQBands)
 	for track := 0; track < 3; track++ {
-		for b := 0; b < n; b++ {
-			if l := voice.GetTrackBandLevel(track, b); l > out[b] {
+		for b := 0; b < voice.NumEQBands; b++ {
+			if l := voice.GetTrackEQBandLevel(track, b); l > out[b] {
 				out[b] = l
 			}
 		}
@@ -888,14 +871,25 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	}
 
 	// ── Assemble ──────────────────────────────────────────────────────────────
+	// padRow fills any cells to the right of JoinHorizontal boxes (where shorter
+	// columns leave uncoloured space) with ComponentBg so the terminal default
+	// never bleeds through.
+	bgFill := lipgloss.NewStyle().Background(styles.ComponentBg)
+	padRow := func(line string) string {
+		w := lipgloss.Width(line)
+		if w < innerW {
+			return line + bgFill.Render(strings.Repeat(" ", innerW-w))
+		}
+		return line
+	}
 	for _, row := range strings.Split(row1, "\n") {
-		lines = append(lines, row)
+		lines = append(lines, padRow(row))
 	}
 	for _, row := range strings.Split(row2, "\n") {
-		lines = append(lines, row)
+		lines = append(lines, padRow(row))
 	}
 	for _, row := range strings.Split(row3, "\n") {
-		lines = append(lines, row)
+		lines = append(lines, padRow(row))
 	}
 	lines = append(lines, "", resetLine)
 

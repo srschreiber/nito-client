@@ -51,6 +51,10 @@ import (
 // slots are written/read at runtime.
 const MaxBands = 32
 
+// NumEQBands is the fixed band count for the high-resolution EQ graph in
+// audio settings. Independent of NumBands() which drives the status-bar meter.
+const NumEQBands = 16
+
 // numActiveBands is the runtime band count, set from the UI on each resize.
 // Defaults to 6.
 var numActiveBands atomic.Int32
@@ -280,10 +284,13 @@ var (
 	pannerMu  sync.RWMutex
 	pannerCfg PannerSettings
 
-	// trackBandLevels stores per-frequency-band smoothed amplitude levels for
-	// each audio track (0–2). Sized to MaxBands; only the first NumBands()
-	// slots are written at runtime. Value is fixed-point: actual_level * 65535.
+	// trackBandLevels stores amplitude levels for the status-bar meter (4 bands,
+	// middle-out layout). Value is fixed-point: actual_level * 65535.
 	trackBandLevels [3][MaxBands]atomic.Uint32
+
+	// trackEQBandLevels stores high-resolution frequency-band levels for the
+	// audio settings EQ graph (NumEQBands bands). Fixed-point: level * 65535.
+	trackEQBandLevels [3][NumEQBands]atomic.Uint32
 
 	// trackLive flags whether a track is playing a live stream (detected via
 	// ICY response headers). Read by the status panel to show a LIVE badge.
@@ -514,6 +521,37 @@ func ClearTrackBandLevels(i int) {
 	}
 	for b := range trackBandLevels[i] {
 		trackBandLevels[i][b].Store(0)
+	}
+}
+
+// GetTrackEQBandLevel returns the EQ-graph level for band b of track i, [0,1].
+func GetTrackEQBandLevel(i, band int) float32 {
+	if i < 0 || i >= 3 || band < 0 || band >= NumEQBands {
+		return 0
+	}
+	return float32(trackEQBandLevels[i][band].Load()) / 65535.0
+}
+
+// SetTrackEQBandLevel stores the EQ-graph level for band b of track i (clamped to [0,1]).
+func SetTrackEQBandLevel(i, band int, level float32) {
+	if i < 0 || i >= 3 || band < 0 || band >= NumEQBands {
+		return
+	}
+	if level < 0 {
+		level = 0
+	} else if level > 1 {
+		level = 1
+	}
+	trackEQBandLevels[i][band].Store(uint32(level * 65535))
+}
+
+// ClearTrackEQBandLevels zeros all EQ-graph band levels for track i.
+func ClearTrackEQBandLevels(i int) {
+	if i < 0 || i >= 3 {
+		return
+	}
+	for b := range trackEQBandLevels[i] {
+		trackEQBandLevels[i][b].Store(0)
 	}
 }
 

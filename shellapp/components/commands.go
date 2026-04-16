@@ -122,6 +122,13 @@ func NewCommandComponent(width int) *CommandComponent {
 	}
 }
 
+// SaveHistory flushes both history slices to disk. Safe to call any time,
+// including on Ctrl+C / signal-triggered shutdown.
+func (l *CommandComponent) SaveHistory() {
+	_ = history.Save(l.cmdHistory)
+	_ = history.SaveChat(l.chatHistory)
+}
+
 func (c *CommandComponent) SetWidth(width int) {
 	c.width = width
 }
@@ -667,7 +674,13 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		playURL := url
 		playTrack := track
 		playBroadcast := broadcast
-		return func() tea.Msg { return PlayAudioMsg{URL: playURL, Track: playTrack, Broadcast: playBroadcast} }
+		playInput := input
+		return tea.Batch(
+			func() tea.Msg {
+				return AppendHistoryMsg{Entries: []historyEntry{{text: "> " + playInput}}, Tab: TabChat}
+			},
+			func() tea.Msg { return PlayAudioMsg{URL: playURL, Track: playTrack, Broadcast: playBroadcast} },
+		)
 	case ".image":
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
@@ -839,12 +852,14 @@ func (l *CommandComponent) handleEnter() tea.Cmd {
 			l.chatHistory = l.chatHistory[1:]
 		}
 		l.chatHistIdx = -1
+		_ = history.SaveChat(l.chatHistory)
 	} else {
 		l.cmdHistory = append(l.cmdHistory, input)
 		if len(l.cmdHistory) > maxCmdHistory {
 			l.cmdHistory = l.cmdHistory[1:]
 		}
 		l.cmdHistIdx = -1
+		_ = history.Save(l.cmdHistory)
 	}
 
 	// Mode-switch commands are intercepted before anything else.

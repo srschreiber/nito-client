@@ -85,6 +85,7 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) tea.Cmd {
 		eq := newEQReader(dec, dec.SampleRate(), track)
 		defer eq.Close()
 		defer voice.ClearTrackBandLevels(track)
+		defer voice.ClearTrackEQBandLevels(track)
 
 		player := otoCtx.NewPlayer(eq)
 		if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
@@ -343,7 +344,8 @@ func playOneAttempt(ctx context.Context, roomID, audioURL string, track int) (bo
 
 	eq := newEQReader(dec, dec.SampleRate(), track)
 	defer eq.Close()
-	defer voice.ClearTrackBandLevels(track) // zero the meter when playback ends
+	defer voice.ClearTrackBandLevels(track)   // zero the status-bar meter when playback ends
+	defer voice.ClearTrackEQBandLevels(track) // zero the EQ graph when playback ends
 	player := otoCtx.NewPlayer(eq)
 	if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
 		bufSize := dec.SampleRate() / 5 * 4 // ~200 ms
@@ -444,7 +446,7 @@ func (a *bandAnalyzer) process(mono float32) {
 		if amp < 0 {
 			amp = -amp
 		}
-		const attack, release = float32(0.4), float32(0.06)
+		const attack, release = float32(0.6), float32(0.2)
 		if amp > a.smooth[i] {
 			a.smooth[i] = attack*amp + (1-attack)*a.smooth[i]
 		} else {
@@ -546,15 +548,15 @@ type eqReader struct {
 	src           io.Reader
 	sampleRate    int
 	version       uint64
-	bandVersion   uint64 // mirrors voice.BandCountVersion(); triggers filter bank rebuild
 	left, right   channelEffects
 	leftPipeline  voice.EffectPipeline
 	rightPipeline voice.EffectPipeline
 	preScale      float32
 	outputGain    float32
 	panPhase      float64       // LFO phase for auto-pan; preserved across settings rebuilds
-	bands         bandAnalyzer  // per-frequency-band spectrum analyser for the meter
-	meterBuf      meterDelayBuf // ring buffer that delays the analyser feed by meterDelay
+	eqBands       bandAnalyzer  // 16-band analyser → audio settings EQ graph
+	meterBuf      meterDelayBuf // ring buffer delays both analysers by meterDelay
+	meterSmooth   [4]float32    // per-frame EMA for the status-bar slots (extra smoothing)
 	// Pre-allocated work buffers reused each Read() call to avoid GC churn.
 	workLeft  []float32
 	workRight []float32
@@ -570,8 +572,7 @@ func newEQReader(src io.Reader, sampleRate, track int) *eqReader {
 	r := &eqReader{src: src, sampleRate: sampleRate, track: track, meterBuf: newMeterDelayBuf(sampleRate)}
 	r.left.pitch = voice.NewPlaybackPitchEffect(sampleRate)
 	r.right.pitch = voice.NewPlaybackPitchEffect(sampleRate)
-	r.bands.init(float32(sampleRate), voice.NumBands())
-	r.bandVersion = voice.BandCountVersion()
+	r.eqBands.init(float32(sampleRate), voice.NumEQBands)
 	r.rebuildEffects()
 	return r
 }
@@ -684,10 +685,6 @@ func (r *eqReader) Read(p []byte) (int, error) {
 	if voice.PlaybackEQVersion() != r.version {
 		r.rebuildEffects()
 	}
-	if voice.BandCountVersion() != r.bandVersion {
-		r.bands.init(float32(r.sampleRate), voice.NumBands())
-		r.bandVersion = voice.BandCountVersion()
-	}
 	n, err := r.src.Read(p)
 	// Process only complete stereo frames (4 bytes = L int16 + R int16).
 	frames := n / 4
@@ -744,12 +741,44 @@ func (r *eqReader) Read(p []byte) (int, error) {
 			rv := float32(math.Tanh(float64(right[i] * r.outputGain * rg)))
 			binary.LittleEndian.PutUint16(p[off:], uint16(int16(lv*32767)))
 			binary.LittleEndian.PutUint16(p[off+2:], uint16(int16(rv*32767)))
-			// Push mono mix through the delay ring; process the sample from
-			// meterDelay ago so the analyser tracks what is actually being heard.
-			r.bands.process(r.meterBuf.push((lv + rv) * 0.5))
+			// Push mono mix through the delay ring; feed the delayed sample to
+			// both analysers so both track what is actually being heard.
+			delayed := r.meterBuf.push((lv + rv) * 0.5)
+			r.eqBands.process(delayed)
 		}
-		for b, level := range r.bands.smooth {
-			voice.SetTrackBandLevel(r.track, b, level)
+		// Publish 16-band EQ levels for the audio settings graph.
+		for b := range r.eqBands.smooth {
+			voice.SetTrackEQBandLevel(r.track, b, r.eqBands.smooth[b])
+		}
+		// Map to 4 status-bar slots in a middle-out pattern.
+		// Inner bars (1,2) use different frequency buckets so they animate
+		// independently. Outer bars (0,3) are the overflow of their inner
+		// neighbour, appearing above a low threshold.
+		// Scale up by 3× — bass bands are low amplitude relative to full range.
+		const meterScale = float32(3.0)
+		const overflowThresh = float32(0.12)
+		clamp := func(v float32) float32 {
+			if v > 1 {
+				return 1
+			}
+			return v
+		}
+		overflow := func(v float32) float32 {
+			if v <= overflowThresh {
+				return 0
+			}
+			return (v - overflowThresh) / (1 - overflowThresh)
+		}
+		// Inner left = sub-bass (bands 0–2: ~20–100 Hz)
+		inner1 := clamp((r.eqBands.smooth[0] + r.eqBands.smooth[1] + r.eqBands.smooth[2]) / 3 * meterScale)
+		// Inner right = mid-bass (bands 3–5: ~100–400 Hz)
+		inner2 := clamp((r.eqBands.smooth[3] + r.eqBands.smooth[4] + r.eqBands.smooth[5]) / 3 * meterScale)
+		// Apply per-frame EMA so the status-bar bars glide smoothly.
+		const meterAlpha = float32(0.12)
+		targets := [4]float32{overflow(inner1), inner1, inner2, overflow(inner2)}
+		for i, t := range targets {
+			r.meterSmooth[i] = meterAlpha*t + (1-meterAlpha)*r.meterSmooth[i]
+			voice.SetTrackBandLevel(r.track, i, r.meterSmooth[i])
 		}
 		// Update EMA of DSP wall-clock time so the settings screen can display it.
 		dspUs := time.Since(dspStart).Microseconds()

@@ -343,7 +343,7 @@ func (m model) Init() tea.Cmd {
 	if cmd := m.toast.Init(); cmd != nil {
 		cmds = append(cmds, cmd)
 	}
-	cmds = append(cmds, waitNotification(), waitEcho(), waitRoomMessages(), waitDM(), waitPingTick(), doPing())
+	cmds = append(cmds, waitNotification(), waitEcho(), waitRoomMessages(), waitDM(), waitPingTick(), doPing(), m.trackStateCmd())
 	if startupSuccessMsg != "" {
 		msg := startupSuccessMsg
 		cmds = append(cmds, func() tea.Msg { return components.NewResponseAppendMsg(msg) })
@@ -656,24 +656,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		if m.showAudioPlayerPresets {
 			if msg.String() == "ctrl+c" {
+				m.command.SaveHistory()
 				return m, tea.Quit
 			}
 			return m, m.audioPlayerPresets.Update(msg)
 		}
 		if m.showAudioPlayerSettings {
 			if msg.String() == "ctrl+c" {
+				m.command.SaveHistory()
 				return m, tea.Quit
 			}
 			return m, m.audioPlayerSettings.Update(msg)
 		}
 		if m.showVoiceSettings {
 			if msg.String() == "ctrl+c" {
+				m.command.SaveHistory()
 				return m, tea.Quit
 			}
 			return m, m.voiceSettings.Update(msg)
 		}
 		switch msg.String() {
 		case "ctrl+c":
+			m.command.SaveHistory()
 			return m, tea.Quit
 		case "/":
 			// Always focus the command component on /; don't type the character.

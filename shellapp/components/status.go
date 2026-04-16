@@ -116,15 +116,7 @@ func (s *StatusComponent) trackMeterBarsBoth(track int) (topRow, bottomRow strin
 		}
 		topTicks := totalTicks - botTicks
 
-		var hex string
-		switch {
-		case display < 0.65:
-			hex = "#4ade80"
-		case display < 0.88:
-			hex = "#f97316"
-		default:
-			hex = "#f87171"
-		}
+		hex := "#4ade80"
 		// Explicit bg prevents terminal-default bleed between/around bar chars.
 		style := lipgloss.NewStyle().Foreground(lipgloss.Color(hex)).Background(bg)
 		topSB.WriteString(style.Render(string(meterBlock(topTicks))))
