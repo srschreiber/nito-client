@@ -53,6 +53,38 @@ const (
 	apsItemCount      = 28
 )
 
+// apsSecDef describes one effect section in the 3-column layout.
+type apsSecDef struct {
+	name  string
+	start int // first cursor index in this section
+	end   int // last cursor index in this section (inclusive)
+}
+
+// apsSectionList maps section index → cursor range.
+// Sections 0-8 fill the 3×3 column grid; section 9 is the Reset row.
+var apsSectionList = [10]apsSecDef{
+	{name: "BASS", start: apsBassGain, end: apsBassFreq},
+	{name: "MID", start: apsMidGain, end: apsMidQ},
+	{name: "TREBLE", start: apsTrebGain, end: apsTrebFreq},
+	{name: "DELAY", start: apsDelayEnabled, end: apsDelayFeedback},
+	{name: "REVERB", start: apsReverbEnabled, end: apsReverbTone},
+	{name: "CHORUS", start: apsChorusEnabled, end: apsChorusMix},
+	{name: "PITCH", start: apsPitchEnabled, end: apsPitchSemitones},
+	{name: "PAN", start: apsBalance, end: apsPanDepth},
+	{name: "OUTPUT", start: apsVolume, end: apsVolume},
+	{name: "RESET", start: apsReset, end: apsReset},
+}
+
+// apsCursorSectionIdx returns the section index (0-9) for the given cursor position.
+func apsCursorSectionIdx(cursor int) int {
+	for i, s := range apsSectionList {
+		if cursor >= s.start && cursor <= s.end {
+			return i
+		}
+	}
+	return 0
+}
+
 // Per-band gain limits (dB) and shared step size.
 const (
 	bassGainMin = float32(-18)
@@ -93,7 +125,6 @@ const (
 type AudioPlayerSettingsScreen struct {
 	width, height int
 	cursor        int
-	scrollOffset  int
 }
 
 func NewAudioPlayerSettingsScreen(termW, termH int) *AudioPlayerSettingsScreen {
@@ -114,86 +145,28 @@ func (s *AudioPlayerSettingsScreen) Update(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-// innerH computes the available line count below the fixed header (title +
-// blank + graph + blank) for use in scroll calculations.
-func (s *AudioPlayerSettingsScreen) innerH() int {
-	h := s.height - 6 // border padding
-	if h < 12 {
-		h = 12
-	}
-	// The fixed section: title(1) + blank(1) + graphH(9) + axisLine(1) + freqLabel(1) + blank(1) = 14
-	const fixedLines = 14
-	avail := h - fixedLines
-	if avail < 4 {
-		avail = 4
-	}
-	return avail
-}
-
-// clampScroll adjusts scrollOffset so the active cursor item remains visible.
-func (s *AudioPlayerSettingsScreen) clampScroll(availLines int) {
-	// Estimate the line index of each cursor item among all item lines.
-	// Section headers + items are listed in order; we approximate line counts.
-	// Items that are selected show two lines (content + hint), others show one.
-	// We compute the start line of cursor item conservatively (assume all
-	// non-selected items take 1 line and selected items take 2).
-	// For scrolling purposes we just estimate 2 lines per item on average.
-	type sectionEntry struct {
-		headerLines int // lines for the section header (including trailing blank)
-		items       []int
-	}
-	sections := []sectionEntry{
-		{2, []int{apsBassGain, apsBassFreq}},
-		{2, []int{apsMidGain, apsMidFreq, apsMidQ}},
-		{2, []int{apsTrebGain, apsTrebFreq}},
-		{2, []int{apsDelayEnabled, apsDelayDuration, apsDelayFeedback}},
-		{2, []int{apsReverbEnabled, apsReverbMix, apsReverbSize, apsReverbDecay, apsReverbTone}},
-		{2, []int{apsChorusEnabled, apsChorusDelay, apsChorusRate, apsChorusDepth, apsChorusMix}},
-		{2, []int{apsPitchEnabled, apsPitchSemitones}},
-		{2, []int{apsBalance, apsPanEnabled, apsPanRate, apsPanDepth}},
-		{2, []int{apsVolume}},
-		{0, []int{apsReset}},
-	}
-
-	// Walk sections to find the approximate start line of cursor's item.
-	line := 0
-	cursorLine := 0
-	for _, sec := range sections {
-		line += sec.headerLines
-		for _, idx := range sec.items {
-			if idx == s.cursor {
-				cursorLine = line
-			}
-			line += 2 // content line + hint line (conservative; non-selected shows 1 but ok to over-estimate)
-		}
-	}
-
-	// Keep cursor item in view.
-	if cursorLine < s.scrollOffset {
-		s.scrollOffset = cursorLine
-	}
-	if cursorLine >= s.scrollOffset+availLines {
-		s.scrollOffset = cursorLine - availLines + 2
-	}
-	if s.scrollOffset < 0 {
-		s.scrollOffset = 0
-	}
-}
-
 func (s *AudioPlayerSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 	switch msg.String() {
 	case "esc":
 		return func() tea.Msg { return HideAudioPlayerSettingsMsg{} }
+	case "tab":
+		secIdx := apsCursorSectionIdx(s.cursor)
+		next := (secIdx + 1) % len(apsSectionList)
+		s.cursor = apsSectionList[next].start
+	case "shift+tab":
+		secIdx := apsCursorSectionIdx(s.cursor)
+		prev := (secIdx - 1 + len(apsSectionList)) % len(apsSectionList)
+		s.cursor = apsSectionList[prev].start
 	case "up", "ctrl+p", "w":
-		if s.cursor > 0 {
+		sec := apsSectionList[apsCursorSectionIdx(s.cursor)]
+		if s.cursor > sec.start {
 			s.cursor--
 		}
-		s.clampScroll(s.innerH())
 	case "down", "ctrl+n", "s":
-		if s.cursor < apsItemCount-1 {
+		sec := apsSectionList[apsCursorSectionIdx(s.cursor)]
+		if s.cursor < sec.end {
 			s.cursor++
 		}
-		s.clampScroll(s.innerH())
 	case "left", "a":
 		s.adjust(-1)
 	case "right", "d":
@@ -227,17 +200,8 @@ func (s *AudioPlayerSettingsScreen) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 
 			voice.SaveAudioSettings()
 		}
-		// Toggle boolean items on enter/space too.
 		switch s.cursor {
-		case apsDelayEnabled:
-			s.adjust(1)
-		case apsReverbEnabled:
-			s.adjust(1)
-		case apsChorusEnabled:
-			s.adjust(1)
-		case apsPitchEnabled:
-			s.adjust(1)
-		case apsPanEnabled:
+		case apsDelayEnabled, apsReverbEnabled, apsChorusEnabled, apsPitchEnabled, apsPanEnabled:
 			s.adjust(1)
 		}
 	}
@@ -705,11 +669,11 @@ func currentBandLevels() []float32 {
 func (s *AudioPlayerSettingsScreen) Render() string {
 	innerW := s.width - 8
 	innerH := s.height - 6
-	if innerW < 30 {
-		innerW = 30
+	if innerW < 60 {
+		innerW = 60
 	}
-	if innerH < 12 {
-		innerH = 12
+	if innerH < 20 {
+		innerH = 20
 	}
 
 	eq := voice.GetPlaybackEQSettings()
@@ -717,246 +681,192 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	rev := voice.GetReverbSettings()
 	cho := voice.GetChorusSettings()
 	pitch := voice.GetPlaybackPitchSettings()
+	pan := voice.GetPannerSettings()
 	vol := voice.GetPlaybackEQVolume()
 
 	dim := styles.DimText
-	active := lipgloss.NewStyle().Foreground(lipgloss.Color("#c4b5fd")).Bold(true)
-	onStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#86efac")).Bold(true)
-	offStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171"))
+	activeTxt := lipgloss.NewStyle().Foreground(lipgloss.Color("#c4b5fd")).Bold(true).Background(styles.ComponentBg)
+	onStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#86efac")).Bold(true).Background(styles.ComponentBg)
+	offStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171")).Background(styles.ComponentBg)
 
-	// ── Fixed header ───────────────────────────────────────────────────────────
-	var headerLines []string
+	// Column sizing: 3 equal columns across innerW.
+	// Minimum colW=28 → colInnerW=24, which comfortably fits
+	// "  " + label(9) + " " + value(9) = 21 chars with 3 chars to spare.
+	colW := innerW / 3
+	if colW < 28 {
+		colW = 28
+	}
 
+	// renderColItem returns 1 or 2 lines for a numeric/adjustable item.
+	// Both label and value are padded to fixed widths so the line width never
+	// varies as the value changes — prevents lipgloss word-wrap artifacts.
+	renderColItem := func(idx int, label, value string) []string {
+		content := fmt.Sprintf("%-9s %-9s", label, value)
+		if s.cursor == idx {
+			return []string{
+				styles.CursorStyle.Render("▶ ") + activeTxt.Render(content),
+				dim.Render("  ◀▶ adjust"),
+			}
+		}
+		return []string{dim.Render("  " + content)}
+	}
+
+	// renderColBool returns 1 or 2 lines for a boolean toggle item.
+	renderColBool := func(idx int, label string, enabled bool) []string {
+		lbl := fmt.Sprintf("%-9s", label)
+		var val string
+		if enabled {
+			val = onStyle.Render("[ON] ")
+		} else {
+			val = offStyle.Render("[OFF]")
+		}
+		if s.cursor == idx {
+			return []string{
+				styles.CursorStyle.Render("▶ ") + activeTxt.Render(lbl) + dim.Render(" ") + val,
+				dim.Render("  enter toggle"),
+			}
+		}
+		return []string{dim.Render("  "+lbl+" ") + val}
+	}
+
+	// buildBox wraps a section's item lines in a rounded border box.
+	// The border is highlighted when the cursor is inside that section.
+	buildBox := func(secIdx int, header string, itemLines []string) string {
+		isActive := apsCursorSectionIdx(s.cursor) == secIdx
+		borderColor := styles.PanelBorderColor
+		if isActive {
+			borderColor = styles.PanelFocusedBorderColor
+		}
+		hdr := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#c4b5fd")).
+			Bold(true).
+			Background(styles.ComponentBg).
+			Render(header)
+		content := hdr + "\n" + strings.Join(itemLines, "\n")
+		return lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(borderColor).
+			BorderBackground(styles.ComponentBg).
+			Background(styles.ComponentBg).
+			Padding(0, 1).
+			Width(colW).
+			Render(content)
+	}
+
+	// ── Fixed header ──────────────────────────────────────────────────────────
+	var lines []string
 	title := styles.AudioPlayerBadge.Render("PLAYER EQ")
-	escHint := dim.Render("ESC to exit")
-	gap := innerW - lipgloss.Width(title) - lipgloss.Width(escHint)
+	hint := dim.Render("tab section  •  ↑↓ item  •  ◀▶ adjust  •  ESC exit")
+	gap := innerW - lipgloss.Width(title) - lipgloss.Width(hint)
 	if gap < 1 {
 		gap = 1
 	}
-	headerLines = append(headerLines, title+strings.Repeat(" ", gap)+escHint, "")
+	lines = append(lines, title+strings.Repeat(" ", gap)+hint, "")
 
-	// ── EQ Frequency Response Graph ─────────────────────────────────────────
 	const graphH = 9
-	graphW := innerW - 8 // 8 = len("      │") label column
+	graphW := innerW - 8
 	if graphW < 10 {
 		graphW = 10
 	}
 	levels := currentBandLevels()
 	for _, row := range renderEQGraph(eq, graphW, graphH, levels) {
-		headerLines = append(headerLines, row)
+		lines = append(lines, row)
 	}
-	headerLines = append(headerLines, "")
+	lines = append(lines, "")
 
-	// ── Build scrollable item lines ────────────────────────────────────────────
-	var itemLines []string
-	// cursorLineOf maps cursor index → first line index in itemLines
-	cursorLineOf := make(map[int]int)
+	// ── Row 1: Bass | Mid | Treble ────────────────────────────────────────────
+	var bassItems, midItems, trebItems []string
+	bassItems = append(bassItems, renderColItem(apsBassGain, "Gain", gainLabel(eq.BassGain))...)
+	bassItems = append(bassItems, renderColItem(apsBassFreq, "Freq", fmt.Sprintf("%d Hz", int(eq.BassHz)))...)
 
-	renderItem := func(idx int, label, slider, value, hint string) {
-		const lblW = 13
-		paddedLbl := fmt.Sprintf("%-*s", lblW, label)
-		content := paddedLbl + slider + "  " + value
+	midItems = append(midItems, renderColItem(apsMidGain, "Gain", gainLabel(eq.MidGain))...)
+	midItems = append(midItems, renderColItem(apsMidFreq, "Freq", fmt.Sprintf("%d Hz", int(eq.MidHz)))...)
+	midItems = append(midItems, renderColItem(apsMidQ, "Q", fmt.Sprintf("%.1f", eq.MidQ))...)
 
-		cursorLineOf[idx] = len(itemLines)
-		if s.cursor == idx {
-			prefix := styles.CursorStyle.Render("▶ ")
-			itemLines = append(itemLines, prefix+active.Render(content))
-			itemLines = append(itemLines, "  "+dim.Render("  ◀▶/ad "+hint))
-		} else {
-			itemLines = append(itemLines, "  "+dim.Render(content))
-		}
-	}
+	trebItems = append(trebItems, renderColItem(apsTrebGain, "Gain", gainLabel(eq.TrebleGain))...)
+	trebItems = append(trebItems, renderColItem(apsTrebFreq, "Freq", fmt.Sprintf("%d Hz", int(eq.TrebleHz)))...)
 
-	renderBool := func(idx int, label string, enabled bool, hint string) {
-		const lblW = 13
-		paddedLbl := fmt.Sprintf("%-*s", lblW, label)
+	row1 := lipgloss.JoinHorizontal(lipgloss.Top,
+		buildBox(0, "BASS", bassItems),
+		buildBox(1, "MID", midItems),
+		buildBox(2, "TREBLE", trebItems),
+	)
 
-		cursorLineOf[idx] = len(itemLines)
-		var valueStr string
-		if enabled {
-			valueStr = onStyle.Render("[ON] ")
-		} else {
-			valueStr = offStyle.Render("[OFF]")
-		}
-		content := paddedLbl + "              " + valueStr
-		if s.cursor == idx {
-			prefix := styles.CursorStyle.Render("▶ ")
-			itemLines = append(itemLines, prefix+active.Render(paddedLbl)+"              "+valueStr)
-			itemLines = append(itemLines, "  "+dim.Render("  ◀▶/ad "+hint))
-		} else {
-			_ = content
-			itemLines = append(itemLines, "  "+dim.Render(paddedLbl)+"              "+valueStr)
-		}
-	}
+	// ── Row 2: Delay | Reverb | Chorus ───────────────────────────────────────
+	var delItems, revItems, choItems []string
+	delItems = append(delItems, renderColBool(apsDelayEnabled, "Enabled", del.Enabled)...)
+	delItems = append(delItems, renderColItem(apsDelayDuration, "Delay", fmt.Sprintf("%.0f ms", del.DelayMs))...)
+	delItems = append(delItems, renderColItem(apsDelayFeedback, "Feedback", fmt.Sprintf("%.2f", del.Feedback))...)
 
-	// ── Bass ──────────────────────────────────────────────────────────────────
-	itemLines = append(itemLines, apsHeader("BASS  ±18 dB", innerW))
-	renderItem(apsBassGain, "Bass Gain",
-		gainSliderAPS(eq.BassGain, bassGainMin, bassGainMax),
-		gainLabel(eq.BassGain), "adjust  •  ±18 dB max")
-	renderItem(apsBassFreq, "Bass Freq",
-		freqSliderAPS(eq.BassHz, bassFreqMin, bassFreqMax, bassFreqStep),
-		fmt.Sprintf("%d Hz", int(eq.BassHz)), "shelf corner frequency")
-	itemLines = append(itemLines, "")
+	revItems = append(revItems, renderColBool(apsReverbEnabled, "Enabled", rev.Enabled)...)
+	revItems = append(revItems, renderColItem(apsReverbMix, "Mix", fmt.Sprintf("%.2f", rev.Mix))...)
+	revItems = append(revItems, renderColItem(apsReverbSize, "Size", fmt.Sprintf("%.1f", rev.Size))...)
+	revItems = append(revItems, renderColItem(apsReverbDecay, "Decay", fmt.Sprintf("%.2f", rev.Decay))...)
+	revItems = append(revItems, renderColItem(apsReverbTone, "Tone", fmt.Sprintf("%.2f", rev.Tone))...)
 
-	// ── Mid ───────────────────────────────────────────────────────────────────
-	itemLines = append(itemLines, apsHeader("MID  ±18 dB", innerW))
-	renderItem(apsMidGain, "Mid Gain",
-		gainSliderAPS(eq.MidGain, midGainMin, midGainMax),
-		gainLabel(eq.MidGain), "adjust  •  ±18 dB max")
-	renderItem(apsMidFreq, "Mid Freq",
-		freqSliderAPS(eq.MidHz, midFreqMin, midFreqMax, midFreqStep),
-		fmt.Sprintf("%d Hz", int(eq.MidHz)), "peak center frequency")
-	renderItem(apsMidQ, "Mid Q",
-		qSliderAPS(eq.MidQ),
-		fmt.Sprintf("%.1f", eq.MidQ), "bandwidth  •  higher = narrower peak")
-	itemLines = append(itemLines, "")
+	choItems = append(choItems, renderColBool(apsChorusEnabled, "Enabled", cho.Enabled)...)
+	choItems = append(choItems, renderColItem(apsChorusDelay, "Delay", fmt.Sprintf("%.0f ms", cho.BaseDelayMs))...)
+	choItems = append(choItems, renderColItem(apsChorusRate, "Rate", fmt.Sprintf("%.1f Hz", cho.RateHz))...)
+	choItems = append(choItems, renderColItem(apsChorusDepth, "Depth", fmt.Sprintf("%.1f ms", cho.DepthMs))...)
+	choItems = append(choItems, renderColItem(apsChorusMix, "Mix", fmt.Sprintf("%.2f", cho.Mix))...)
 
-	// ── Treble ────────────────────────────────────────────────────────────────
-	itemLines = append(itemLines, apsHeader("TREBLE  ±18 dB", innerW))
-	renderItem(apsTrebGain, "Treble Gain",
-		gainSliderAPS(eq.TrebleGain, trebGainMin, trebGainMax),
-		gainLabel(eq.TrebleGain), "adjust  •  ±18 dB max")
-	renderItem(apsTrebFreq, "Treble Freq",
-		freqSliderAPS(eq.TrebleHz, trebFreqMin, trebFreqMax, trebFreqStep),
-		fmt.Sprintf("%d Hz", int(eq.TrebleHz)), "shelf corner frequency")
-	itemLines = append(itemLines, "")
+	row2 := lipgloss.JoinHorizontal(lipgloss.Top,
+		buildBox(3, "DELAY", delItems),
+		buildBox(4, "REVERB", revItems),
+		buildBox(5, "CHORUS", choItems),
+	)
 
-	// ── Delay ─────────────────────────────────────────────────────────────────
-	itemLines = append(itemLines, apsHeader("DELAY", innerW))
-	renderBool(apsDelayEnabled, "Enabled", del.Enabled, "toggle on/off")
-	renderItem(apsDelayDuration, "Delay",
-		f32SliderAPS(del.DelayMs, delayDurMin, delayDurMax, delayDurStep),
-		fmt.Sprintf("%.0f ms", del.DelayMs), "echo spacing (1–500 ms)")
-	renderItem(apsDelayFeedback, "Feedback",
-		f32SliderAPS(del.Feedback, delayFeedbackMin, delayFeedbackMax, delayFeedbackStep),
-		fmt.Sprintf("%.2f", del.Feedback), "echo decay  •  0=none  0.95=long tail")
-	itemLines = append(itemLines, "")
+	// ── Row 3: Pitch | Pan | Output ───────────────────────────────────────────
+	var pitchItems, panItems, outItems []string
+	pitchItems = append(pitchItems, renderColBool(apsPitchEnabled, "Enabled", pitch.Enabled)...)
+	pitchItems = append(pitchItems, renderColItem(apsPitchSemitones, "Semitones", fmt.Sprintf("%+.1f st", pitch.Semitones))...)
 
-	// ── Reverb ────────────────────────────────────────────────────────────────
-	itemLines = append(itemLines, apsHeader("REVERB", innerW))
-	renderBool(apsReverbEnabled, "Enabled", rev.Enabled, "toggle on/off")
-	renderItem(apsReverbMix, "Mix",
-		f32SliderAPS(rev.Mix, reverbMixMin, reverbMixMax, reverbMixStep),
-		fmt.Sprintf("%.2f", rev.Mix), "wet/dry blend (0=dry  1=wet)")
-	renderItem(apsReverbSize, "Size",
-		f32SliderAPS(rev.Size, reverbSizeMin, reverbSizeMax, reverbSizeStep),
-		fmt.Sprintf("%.1f", rev.Size), "room size  •  0.5=small  2.0=large")
-	renderItem(apsReverbDecay, "Decay",
-		f32SliderAPS(rev.Decay, reverbDecayMin, reverbDecayMax, reverbDecayStep),
-		fmt.Sprintf("%.2f", rev.Decay), "tail length  •  0=short  1.0=long")
-	renderItem(apsReverbTone, "Tone",
-		f32SliderAPS(rev.Tone, reverbToneMin, reverbToneMax, reverbToneStep),
-		fmt.Sprintf("%.2f", rev.Tone), "brightness  •  0=dark  1.0=bright")
-	itemLines = append(itemLines, "")
+	panItems = append(panItems, renderColItem(apsBalance, "Balance", balanceLabel(pan.Balance))...)
+	panItems = append(panItems, renderColBool(apsPanEnabled, "Auto Pan", pan.AutoPanEnabled)...)
+	panItems = append(panItems, renderColItem(apsPanRate, "Rate", fmt.Sprintf("%.2f Hz", pan.AutoPanRate))...)
+	panItems = append(panItems, renderColItem(apsPanDepth, "Depth", fmt.Sprintf("%.0f%%", pan.AutoPanDepth*100))...)
 
-	// ── Chorus ────────────────────────────────────────────────────────────────
-	itemLines = append(itemLines, apsHeader("CHORUS", innerW))
-	renderBool(apsChorusEnabled, "Enabled", cho.Enabled, "toggle on/off")
-	renderItem(apsChorusDelay, "Base Delay",
-		f32SliderAPS(cho.BaseDelayMs, chorusDelayMin, chorusDelayMax, chorusDelayStep),
-		fmt.Sprintf("%.0f ms", cho.BaseDelayMs), "center of modulated delay (5–30 ms)")
-	renderItem(apsChorusRate, "LFO Rate",
-		f32SliderAPS(cho.RateHz, chorusRateMin, chorusRateMax, chorusRateStep),
-		fmt.Sprintf("%.1f Hz", cho.RateHz), "LFO speed (0.1–5.0 Hz)")
-	renderItem(apsChorusDepth, "Depth",
-		f32SliderAPS(cho.DepthMs, chorusDepthMin, chorusDepthMax, chorusDepthStep),
-		fmt.Sprintf("%.1f ms", cho.DepthMs), "delay modulation range (0–15 ms)")
-	renderItem(apsChorusMix, "Mix",
-		f32SliderAPS(cho.Mix, chorusMixMin, chorusMixMax, chorusMixStep),
-		fmt.Sprintf("%.2f", cho.Mix), "wet/dry blend (0=dry  1=wet)")
-	itemLines = append(itemLines, "")
+	outItems = append(outItems, renderColItem(apsVolume, "Volume", fmt.Sprintf("%d%%", vol))...)
+	outItems = append(outItems, dim.Render("  Limiter  ")+onStyle.Render("[ON]"))
 
-	// ── Pitch ─────────────────────────────────────────────────────────────────
-	itemLines = append(itemLines, apsHeader("PITCH", innerW))
-	renderBool(apsPitchEnabled, "Enabled", pitch.Enabled, "toggle on/off")
-	renderItem(apsPitchSemitones, "Semitones",
-		f32SliderAPS(pitch.Semitones, pitchMin, pitchMax, pitchStep),
-		fmt.Sprintf("%+.1f st", pitch.Semitones), "pitch shift (-12 to +12 semitones)")
-	itemLines = append(itemLines, "")
-
-	// ── Balance / Auto Pan ────────────────────────────────────────────────────
-	pan := voice.GetPannerSettings()
-	itemLines = append(itemLines, apsHeader("PAN", innerW))
-	renderItem(apsBalance, "Balance",
-		f32SliderAPS(pan.Balance, balanceMin, balanceMax, balanceStep),
-		balanceLabel(pan.Balance), "L/R balance  •  L 100% … center … R 100%")
-	renderBool(apsPanEnabled, "Auto Pan", pan.AutoPanEnabled, "LFO panning — wobbles balance over time")
-	renderItem(apsPanRate, "Rate",
-		f32SliderAPS(pan.AutoPanRate, panRateMin, panRateMax, panRateStep),
-		fmt.Sprintf("%.2f Hz", pan.AutoPanRate), "LFO speed (0.05–5.0 Hz)")
-	renderItem(apsPanDepth, "Depth",
-		f32SliderAPS(pan.AutoPanDepth, panDepthMin, panDepthMax, panDepthStep),
-		fmt.Sprintf("%.0f%%", pan.AutoPanDepth*100), "sweep range (0=off  100%=full L↔R)")
-	itemLines = append(itemLines, "")
-
-	// ── Output Volume ─────────────────────────────────────────────────────────
-	itemLines = append(itemLines, apsHeader("OUTPUT", innerW))
-	renderItem(apsVolume, "Volume",
-		volSliderAPS(vol),
-		fmt.Sprintf("%d%%", vol), "output level  •  0–800%  (raise to compensate for EQ boost)")
-	// Limiter is always-on; show it as a read-only status line.
-	itemLines = append(itemLines, "  "+dim.Render(fmt.Sprintf("%-13s              ", "Limiter"))+
-		lipgloss.NewStyle().Foreground(lipgloss.Color("#86efac")).Bold(true).Render("[ON] ")+
-		dim.Render("peak limiter + tanh  •  always active"))
-	itemLines = append(itemLines, "")
+	row3 := lipgloss.JoinHorizontal(lipgloss.Top,
+		buildBox(6, "PITCH", pitchItems),
+		buildBox(7, "PAN", panItems),
+		buildBox(8, "OUTPUT", outItems),
+	)
 
 	// ── Reset ─────────────────────────────────────────────────────────────────
-	cursorLineOf[apsReset] = len(itemLines)
+	var resetLine string
 	if s.cursor == apsReset {
-		itemLines = append(itemLines, styles.CursorStyle.Render("▶ ")+
-			lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171")).Bold(true).Render("Reset to Defaults"))
+		resetLine = styles.CursorStyle.Render("▶ ") +
+			lipgloss.NewStyle().Foreground(lipgloss.Color("#f87171")).Bold(true).Background(styles.ComponentBg).Render("Reset to Defaults")
 	} else {
-		itemLines = append(itemLines, "  "+dim.Render("Reset to Defaults"))
-	}
-
-	// ── Scroll ────────────────────────────────────────────────────────────────
-	// Compute available lines for the scrollable section.
-	availLines := innerH - len(headerLines)
-	if availLines < 4 {
-		availLines = 4
-	}
-
-	// Ensure cursor line is visible (exact lookup now available).
-	// Scroll one extra line upward so the section header immediately above a
-	// first-in-section item is never clipped.
-	if cl, ok := cursorLineOf[s.cursor]; ok {
-		show := cl - 1 // include the line above (section header or prev item)
-		if show < 0 {
-			show = 0
-		}
-		if show < s.scrollOffset {
-			s.scrollOffset = show
-		}
-		if cl+1 >= s.scrollOffset+availLines {
-			s.scrollOffset = cl + 2 - availLines
-		}
-		if s.scrollOffset < 0 {
-			s.scrollOffset = 0
-		}
-	}
-
-	// Slice visible item lines.
-	visible := itemLines
-	if s.scrollOffset > 0 {
-		if s.scrollOffset >= len(visible) {
-			s.scrollOffset = len(visible) - 1
-		}
-		visible = visible[s.scrollOffset:]
-	}
-	if len(visible) > availLines {
-		visible = visible[:availLines]
+		resetLine = dim.Render("  Reset to Defaults")
 	}
 
 	// ── Assemble ──────────────────────────────────────────────────────────────
-	allLines := append(headerLines, visible...)
-	// Clip to available height (belt-and-suspenders).
-	if len(allLines) > innerH {
-		allLines = allLines[:innerH]
+	for _, row := range strings.Split(row1, "\n") {
+		lines = append(lines, row)
 	}
-	body := strings.Join(allLines, "\n")
+	for _, row := range strings.Split(row2, "\n") {
+		lines = append(lines, row)
+	}
+	for _, row := range strings.Split(row3, "\n") {
+		lines = append(lines, row)
+	}
+	lines = append(lines, "", resetLine)
 
-	_ = onOffLabel // used via renderBool directly; keep compiler happy
+	if len(lines) > innerH {
+		lines = lines[:innerH]
+	}
+	body := strings.Join(lines, "\n")
+
+	_ = onOffLabel    // package-level helper kept for potential future use
+	_ = gainSliderAPS // slider helpers kept for potential future use
+	_ = freqSliderAPS //
+	_ = qSliderAPS    //
+	_ = volSliderAPS  //
+	_ = f32SliderAPS  //
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(styles.PanelBorderColor).
@@ -966,14 +876,4 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 		Width(s.width).
 		Height(s.height).
 		Render(body)
-}
-
-func apsHeader(label string, innerW int) string {
-	text := styles.VoiceSettingsActiveSectionStyle.Render(label)
-	used := lipgloss.Width(text) + 1
-	fill := innerW - used
-	if fill < 0 {
-		fill = 0
-	}
-	return text + styles.DimText.Render(" "+strings.Repeat("─", fill))
 }
