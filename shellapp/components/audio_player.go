@@ -150,6 +150,7 @@ const (
 	prefetchChunks    = 8         // 128 KB read-ahead — enough to smooth network jitter
 )
 
+// newPrefetchReader creates a prefetchReader with an asynchronous read-ahead buffer to optimize streaming I/O operations.
 func newPrefetchReader(ctx context.Context, src io.Reader) *prefetchReader {
 	ch := make(chan []byte, prefetchChunks)
 	go func() {
