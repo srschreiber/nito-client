@@ -189,7 +189,16 @@ func showVoiceSettingsPopup(w fyne.Window) {
 		pitchLabel.Refresh()
 	}
 
+	testBtn := widget.NewButton("Test Voice", func() {
+		showToast(w, "testing voice...", toastInfo)
+	})
+	testBtn.Importance = widget.LowImportance
+
+	minWidth := canvas.NewRectangle(colTransparent)
+	minWidth.SetMinSize(fyne.NewSize(340, 0))
+
 	body := container.NewVBox(
+		minWidth,
 		monoTxt("Input device", colDimMid), inputSel, vspace(4),
 		monoTxt("Output device", colDimMid), outputSel, vspace(4),
 		hline(), vspace(4),
@@ -197,6 +206,8 @@ func showVoiceSettingsPopup(w fyne.Window) {
 		hline(), vspace(4),
 		monoTxt("Pitch shift", colDimMid),
 		container.NewHBox(pitchSlider, pitchLabel),
+		vspace(4), hline(), vspace(4),
+		testBtn,
 	)
 	showNitoPopup("VOICE SETTINGS", body, w)
 }

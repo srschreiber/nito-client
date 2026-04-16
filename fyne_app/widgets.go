@@ -283,7 +283,7 @@ func (c *CollapseSection) CreateRenderer() fyne.WidgetRenderer {
 // clicks outside it (uses widget.PopUp, not a modal dialog).
 func showNitoPopup(title string, body fyne.CanvasObject, w fyne.Window) *widget.PopUp {
 	bg := canvas.NewRectangle(colSurface)
-	bg.CornerRadius = 10
+	bg.CornerRadius = 16
 	bg.StrokeColor = colBorderFocus
 	bg.StrokeWidth = 1.5
 
@@ -292,7 +292,8 @@ func showNitoPopup(title string, body fyne.CanvasObject, w fyne.Window) *widget.
 		vspace(8),
 		body,
 	)
-	card := container.NewStack(bg, container.NewPadded(container.NewPadded(content)))
+	inner := container.NewPadded(container.NewPadded(container.NewPadded(content)))
+	card := container.NewStack(bg, inner)
 
 	pop := widget.NewPopUp(card, w.Canvas())
 	pop.Show()
