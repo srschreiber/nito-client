@@ -105,7 +105,7 @@ func (m *RoomMembersComponent) Render() string {
 			if m.voiceUsers[member.Username] {
 				label += " " + styles.DimText.Render("🔊")
 			}
-			body += styles.ItemStyle.Render(dot+" "+label) + "\n"
+			body += styles.DimText.PaddingLeft(2).Render(dot+" "+label) + "\n"
 		}
 	}
 

@@ -1040,7 +1040,11 @@ func (l *CommandComponent) completionTemplate() string {
 }
 
 func (l *CommandComponent) Render() string {
-	prompt := styles.PromptStyle.Render("> ")
+	txt := styles.DimText
+	if l.focused {
+		txt = styles.DimTextFocused
+	}
+	prompt := styles.PromptStyle.Background(styles.ComponentBg).Render("> ")
 	runes := []rune(l.textFieldValue)
 	if l.passwordMode {
 		runes = []rune(strings.Repeat("*", len(runes)))
@@ -1057,27 +1061,25 @@ func (l *CommandComponent) Render() string {
 			// Use the first ghost char as the cursor highlight so the ghost
 			// text never shifts when the cursor blinks.
 			gr := []rune(ghost)
-			render = prompt + before + styles.CursorHighlightStyle.Render(string(gr[0])) + styles.DimText.Render(string(gr[1:]))
+			render = prompt + before + styles.CursorHighlightStyle.Render(string(gr[0])) + txt.Render(string(gr[1:]))
 		} else if len(runes) > 0 {
-			render = prompt + before + styles.CursorHighlightStyle.Render(" ")
+			render = prompt + txt.Render(before) + styles.CursorHighlightStyle.Render(" ")
 		} else {
 			// Empty input — highlight the first char of the placeholder in place
 			pr := []rune(l.Placeholder)
-			render = prompt + styles.CursorHighlightStyle.Render(string(pr[0])) + styles.DimText.Render(string(pr[1:]))
+			render = prompt + styles.CursorHighlightStyle.Render(string(pr[0])) + txt.Render(string(pr[1:]))
 		}
 	} else {
 		if len(runes) > 0 {
-			render = prompt + string(runes) + styles.DimText.Render(ghost)
+			render = prompt + txt.Render(string(runes)) + txt.Render(ghost)
 		} else {
-			render = prompt + styles.DimText.Render(l.Placeholder)
+			render = prompt + txt.Render(l.Placeholder)
 		}
 	}
 
 	style := styles.UnfocusedBorderStyle
 	if l.focused {
-		style = styles.FocusedBorderStyle.
-			Background(styles.ComponentFocusedBg).
-			BorderBackground(styles.ComponentFocusedBg)
+		style = styles.FocusedBorderStyle
 	}
 	if l.width > 0 {
 		style = style.Width(l.width + 3) // +3: left border (1) + padding(0,1) (2)

@@ -810,8 +810,10 @@ func (m model) View() tea.View {
 	rightCol := lipgloss.JoinHorizontal(lipgloss.Top, m.status.Render() /*, m.hints.Render()*/)
 	// Force history to exactly histBoxW columns so JoinVertical trailing-space padding
 	// (from a narrower active-tab content block) does not create a visual gap before rightCol.
-	histStr := lipgloss.NewStyle().Width(m.histBoxW).Render(m.history.Render())
-	topRow := lipgloss.JoinHorizontal(lipgloss.Top, histStr, rightCol)
+	// Explicit ComponentBg prevents ANSI bleed from the focused history panel spilling into
+	// the padding cells and then into the status panel to its right.
+	histStr := lipgloss.NewStyle().Width(m.histBoxW).Background(styles.ComponentBg).Render(m.history.Render())
+	topRow := lipgloss.JoinHorizontal(lipgloss.Left, histStr, rightCol)
 	s := topRow + "\n" + m.command.Render()
 
 	helpText := styles.HelpStyle.Render(
@@ -826,7 +828,7 @@ func (m model) View() tea.View {
 		if padW < 1 {
 			padW = 1
 		}
-		pad := lipgloss.NewStyle().Width(padW).Render("")
+		pad := styles.DimText.Width(padW).Render("")
 		s += "\n" + lipgloss.JoinHorizontal(lipgloss.Top, helpText, pad, toastStr)
 	} else {
 		s += "\n" + helpText

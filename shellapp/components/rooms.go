@@ -115,11 +115,11 @@ func (r *RoomsComponent) Update(msg tea.Msg) tea.Cmd {
 
 func (r *RoomsComponent) updateList(msg tea.KeyPressMsg) tea.Cmd {
 	switch msg.String() {
-	case "up", "ctrl+p":
+	case "up", "w", "ctrl+p":
 		if r.cursor > 0 {
 			r.cursor--
 		}
-	case "down", "ctrl+n":
+	case "down", "s", "ctrl+n":
 		if r.cursor < len(r.rooms)-1 {
 			r.cursor++
 		}
@@ -149,12 +149,18 @@ func (r *RoomsComponent) listHeight() int {
 }
 
 func (r *RoomsComponent) Render() string {
+	txt := styles.DimText
+	if r.focused {
+		txt = styles.DimTextFocused
+	}
+	item := txt.PaddingLeft(2)
+
 	title := styles.RoomsBadge.Render("ROOMS")
 
 	listH := r.listHeight()
 	var listLines []string
 	if len(r.rooms) == 0 {
-		listLines = append(listLines, styles.DimText.Render("  no rooms"))
+		listLines = append(listLines, txt.Render("  no rooms"))
 	} else {
 		// cursor=2, selected indicator " ◆"=2, plus 2 safety margin for
 		// ambiguous-width glyphs that some terminals render at double-width.
@@ -176,7 +182,7 @@ func (r *RoomsComponent) Render() string {
 			if len(indices) == 0 {
 				return
 			}
-			listLines = append(listLines, styles.DimText.Render(label))
+			listLines = append(listLines, txt.Render(label))
 			for _, i := range indices {
 				room := r.rooms[i]
 				isSelected := room.ID == utils.DerefOrZero(r.selected)
@@ -186,9 +192,9 @@ func (r *RoomsComponent) Render() string {
 					name = fmt.Sprintf("%s %s", name, styles.SelectedStyle.Render("◆"))
 				}
 				if i == r.cursor && r.focused {
-					cursor = styles.CursorStyle.Render("▶ ")
+					cursor = styles.CursorStyle.Render("> ")
 				}
-				listLines = append(listLines, styles.ItemStyle.Render(cursor+name))
+				listLines = append(listLines, item.Render(cursor+name))
 			}
 		}
 
@@ -205,7 +211,7 @@ func (r *RoomsComponent) Render() string {
 		listLines = append(listLines, "")
 	}
 
-	body := title + "\n" + strings.Join(listLines, "\n")
+	body := title + "\n" + txt.Render(strings.Join(listLines, "\n"))
 
 	borderColor := styles.PanelBorderColor
 	bg := styles.ComponentBg

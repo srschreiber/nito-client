@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 	"github.com/srschreiber/nito-client/shellapp/clientlog"
+	"github.com/srschreiber/nito-client/shellapp/styles"
 	"github.com/srschreiber/nito-client/shellapp/types"
 )
 
@@ -311,9 +312,11 @@ func (t *ConversationTabs) renderTabBar() string {
 	highlight := lipgloss.Color("213")
 	dim := lipgloss.Color("241")
 
-	inactiveStyle := lipgloss.NewStyle().
+	inactiveStyle := styles.DimText.
 		Border(tabsInactiveTabBorder, true).
 		BorderForeground(dim).
+		BorderBackground(styles.ComponentBg).
+		Background(styles.ComponentBg).
 		Padding(0, 1)
 	activeStyle := inactiveStyle.
 		Border(tabsActiveTabBorder, true).
@@ -344,7 +347,10 @@ func (t *ConversationTabs) renderTabBar() string {
 	if gapContentWidth < 0 {
 		gapContentWidth = 0
 	}
-	gap := gapStyle.Render(strings.Repeat(" ", gapContentWidth))
+	// Height(tabBarLines) ensures the gap spans all 3 rows of the tab bar so the
+	// top row (above the bottom border) has ComponentBg background instead of
+	// the terminal default, which would appear as a colour bleed artifact.
+	gap := gapStyle.Height(tabBarLines).Render(strings.Repeat(" ", gapContentWidth))
 	return lipgloss.JoinHorizontal(lipgloss.Bottom, row, gap)
 }
 

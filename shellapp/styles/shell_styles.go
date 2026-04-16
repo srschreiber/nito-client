@@ -9,35 +9,38 @@ import lipgloss "charm.land/lipgloss/v2"
 var (
 	// Background fills used inside component boxes.
 	ComponentBg        = lipgloss.Color("#0d0f1a")
-	ComponentFocusedBg = lipgloss.Color("#161928")
-	PanelBg            = lipgloss.Color("#111320")
+	ComponentFocusedBg = lipgloss.Color("#0d0f1a")
 
-	AppStyle = lipgloss.NewStyle().
-			Padding(1, 2)
+	// DimText is the universal body-text style. Every non-badge text string in
+	// the app uses this (or DimTextFocused) so the background is always uniform.
+	// Focused components use DimTextFocused; unfocused (or focus-unaware) use DimText.
+	DimText        = lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8")).Background(ComponentBg)
+	DimTextFocused = lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8")).Background(ComponentFocusedBg)
 
-	TitleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#c084fc"))
+	// LightText is used in contexts where no background should be set (e.g. the
+	// startup/login dialog, which renders over the terminal default background).
+	LightText = lipgloss.NewStyle().Foreground(lipgloss.Color("#d8d8e8"))
+
+	// Aliases — all former text variants collapse to DimText.
+	DefaultText = DimText
+	SentStyle   = DimText
+	LineStyle   = DimText
+	HelpStyle   = DimText.MarginTop(1)
+	ItemStyle   = DimText.PaddingLeft(2)
+
+	DefaultStyle = lipgloss.NewStyle().Background(ComponentBg)
+
+	AppStyle = DimText.
+			Padding(1, 2).
+			Background(ComponentBg)
 
 	CursorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#c084fc")).
 			Bold(true)
 
-	ItemStyle = lipgloss.NewStyle().
-			PaddingLeft(2)
-
-	SelectedStyle = lipgloss.NewStyle().
+	SelectedStyle = DimText.
 			Foreground(lipgloss.Color("#4ade80")).
 			Bold(true)
-
-	HelpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#3a3a5a")).
-			MarginTop(1)
-
-	BoxStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#5b21b6")).
-			Padding(1, 2)
 
 	FocusedBorderStyle = lipgloss.NewStyle().
 				Border(lipgloss.ThickBorder(), false, false, false, true).
@@ -53,55 +56,41 @@ var (
 				Background(ComponentBg).
 				Padding(0, 1)
 
-	PromptStyle = lipgloss.NewStyle().
+	PromptStyle = DimText.
 			Foreground(lipgloss.Color("#818cf8")).
 			Bold(true)
-
-	// DimText is the standard dim label style — used for hints, descriptions,
-	// form labels, placeholder text, and secondary info throughout the UI.
-	// Background is explicitly cleared so it never inherits from a parent container.
-	DimText = lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8")).Background(lipgloss.NoColor{})
-
-	ResponseStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#c8c8e8"))
-
-	// SentStyle is used for outgoing message lines ("[you]: …") in chat history.
-	SentStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#9090c8"))
-
-	LineStyle = DimText
 
 	CursorHighlightStyle = lipgloss.NewStyle().
 				Background(lipgloss.Color("#a855f7")).
 				Foreground(lipgloss.Color("#ffffff"))
 
-	StatusConnectedStyle = lipgloss.NewStyle().
+	StatusConnectedStyle = DefaultStyle.
 				Foreground(lipgloss.Color("#4ade80")).
 				Bold(true)
 
-	StatusDisconnectedStyle = lipgloss.NewStyle().
+	StatusDisconnectedStyle = DefaultStyle.
 				Foreground(lipgloss.Color("#f87171")).
 				Bold(true)
 
 	// SectionTitleStyle kept for any callsites not yet migrated.
-	SectionTitleStyle = lipgloss.NewStyle().
+	SectionTitleStyle = DefaultStyle.
 				Foreground(lipgloss.Color("#c084fc")).
 				Bold(true)
 
 	// Per-section colored badge labels.
-	RoomsBadge = lipgloss.NewStyle().
+	RoomsBadge = DefaultStyle.
 			Background(lipgloss.Color("#5b21b6")).
 			Foreground(lipgloss.Color("#e9d5ff")).
 			Bold(true).
 			Padding(0, 1)
 
-	MembersBadge = lipgloss.NewStyle().
+	MembersBadge = DefaultStyle.
 			Background(lipgloss.Color("#1e3a8a")).
 			Foreground(lipgloss.Color("#bfdbfe")).
 			Bold(true).
 			Padding(0, 1)
 
-	DMsBadge = lipgloss.NewStyle().
+	DMsBadge = DefaultStyle.
 			Background(lipgloss.Color("#14532d")).
 			Foreground(lipgloss.Color("#86efac")).
 			Bold(true).
@@ -134,12 +123,6 @@ var (
 	StatusBadge = lipgloss.NewStyle().
 			Background(lipgloss.Color("#064e3b")).
 			Foreground(lipgloss.Color("#6ee7b7")).
-			Bold(true).
-			Padding(0, 1)
-
-	InvitesBadge = lipgloss.NewStyle().
-			Background(lipgloss.Color("#831843")).
-			Foreground(lipgloss.Color("#fbcfe8")).
 			Bold(true).
 			Padding(0, 1)
 
@@ -189,9 +172,6 @@ var (
 
 	// --- List selection ---
 
-	// SelectionRowStyle is a subtle background highlight for the focused row in any list.
-	SelectionRowStyle = lipgloss.NewStyle().Background(lipgloss.Color("#1e2235"))
-
 	// InviteAcceptBtnStyle is the "Accept" button in the invites pane.
 	InviteAcceptBtnStyle = lipgloss.NewStyle().
 				Background(lipgloss.Color("#5b21b6")).
@@ -219,20 +199,6 @@ var (
 				Foreground(lipgloss.Color("0")).
 				Bold(true)
 
-	// RoomBtnStyle is a room action button without keyboard focus.
-	RoomBtnStyle = lipgloss.NewStyle().
-			Padding(0, 1).
-			MarginRight(1).
-			Background(lipgloss.Color("238")).
-			Foreground(lipgloss.Color("250"))
-
-	// BtnDisabledStyle is a disabled action button.
-	BtnDisabledStyle = lipgloss.NewStyle().
-				Padding(0, 1).
-				MarginRight(1).
-				Background(lipgloss.Color("236")).
-				Foreground(lipgloss.Color("240"))
-
 	// VoiceLeaveFocusedStyle is the "Leave Voice / Stop Test Audio" button when focused.
 	VoiceLeaveFocusedStyle = lipgloss.NewStyle().
 				Padding(0, 1).
@@ -246,14 +212,6 @@ var (
 			PaddingLeft(1).
 			Background(lipgloss.Color("#450a0a")).
 			Foreground(lipgloss.Color("#f87171"))
-
-	// --- Inline form fields ---
-
-	// FormCursorStyle highlights the character under the cursor in inline form fields.
-	FormCursorStyle = lipgloss.NewStyle().Background(lipgloss.Color("213"))
-
-	// FormErrorStyle renders inline form validation errors.
-	FormErrorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
 
 	// --- Room members ---
 

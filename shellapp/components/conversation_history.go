@@ -152,7 +152,7 @@ func (h *ConversationHistory) SetFocused(focused bool) {
 // Returns true if already focused (e.g. after a resize) or if there is
 // overflow content the user can scroll through.
 func (h *ConversationHistory) CanFocus() bool {
-	return h.focused || len(h.allLines()) > h.contentBudget()
+	return h.focused || len(h.allLines(false)) > h.contentBudget()
 }
 
 // textWidth is the usable text column width inside the border and padding.
@@ -192,17 +192,19 @@ func wrapEntry(e historyEntry, tw int) []string {
 
 // allLines expands all entries into a flat, styled slice of display strings.
 // Always derived from raw entries so terminal resize is handled automatically.
-func (h *ConversationHistory) allLines() []string {
+func (h *ConversationHistory) allLines(focused bool) []string {
+	txt := styles.DimText
+	if focused {
+		txt = styles.DimTextFocused
+	}
 	tw := h.textWidth()
 	var lines []string
 	for _, e := range h.entries {
 		for _, l := range wrapEntry(e, tw) {
 			if e.isRaw {
 				lines = append(lines, l)
-			} else if e.isResponse {
-				lines = append(lines, styles.ResponseStyle.Render(l))
 			} else {
-				lines = append(lines, styles.SentStyle.Render(l))
+				lines = append(lines, txt.Render(l))
 			}
 		}
 	}
@@ -247,7 +249,7 @@ func (h *ConversationHistory) Update(msg tea.Msg) tea.Cmd {
 	case ModeChangedMsg:
 		h.chatMode = msg.ChatMode
 	case JumpScrollMsg:
-		lines := h.allLines()
+		lines := h.allLines(h.focused)
 		total := len(lines)
 		budget := h.contentBudget()
 		maxScroll := total - budget
@@ -272,7 +274,7 @@ func (h *ConversationHistory) Update(msg tea.Msg) tea.Cmd {
 		if !h.focused {
 			return nil
 		}
-		lines := h.allLines()
+		lines := h.allLines(h.focused)
 		h.clampScroll(len(lines))
 		budget := h.contentBudget()
 		maxScroll := len(lines) - budget
@@ -280,11 +282,11 @@ func (h *ConversationHistory) Update(msg tea.Msg) tea.Cmd {
 			maxScroll = 0
 		}
 		switch msg.String() {
-		case "up", "ctrl+p":
+		case "up", "w", "ctrl+p":
 			if h.scroll < maxScroll {
 				h.scroll++
 			}
-		case "down", "ctrl+n":
+		case "down", "s", "ctrl+n":
 			if h.scroll > 0 {
 				h.scroll--
 			}
@@ -294,12 +296,17 @@ func (h *ConversationHistory) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (h *ConversationHistory) Render() string {
+	txt := styles.DimText
+	if h.focused {
+		txt = styles.DimTextFocused
+	}
+
 	rows := []string{}
 
 	if len(h.entries) == 0 {
-		rows = append(rows, styles.DimText.Render("No messages yet."))
+		rows = append(rows, txt.Render("No messages yet."))
 	} else {
-		lines := h.allLines()
+		lines := h.allLines(h.focused)
 		total := len(lines)
 		h.clampScroll(total)
 
@@ -338,15 +345,15 @@ func (h *ConversationHistory) Render() string {
 		}
 
 		if showAbove {
-			rows = append(rows, styles.DimText.Render("↑ more"))
+			rows = append(rows, txt.Render("↑ more"))
 		}
 		rows = append(rows, lines[start:end]...)
 		if showBelow {
-			rows = append(rows, styles.DimText.Render("↓ more"))
+			rows = append(rows, txt.Render("↓ more"))
 		}
 
 		// Fixed last row: position indicator.
-		rows = append(rows, styles.LineStyle.Render(fmt.Sprintf("L%d/%d  (.jump <n> to navigate)", end, total)))
+		rows = append(rows, txt.Render(fmt.Sprintf("L%d/%d  (.jump <n> to navigate)", end, total)))
 	}
 
 	borderColor := styles.PanelBorderColor
@@ -355,13 +362,13 @@ func (h *ConversationHistory) Render() string {
 		borderColor = styles.PanelFocusedBorderColor
 		bg = styles.ComponentFocusedBg
 	}
-	style := lipgloss.NewStyle().
+	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).
 		BorderBackground(bg).
 		Background(bg).
 		Padding(0, 1).
 		Width(h.width + 4).
-		Height(h.height)
-	return style.Render(strings.Join(rows, "\n"))
+		Height(h.height).
+		Render(strings.Join(rows, "\n"))
 }

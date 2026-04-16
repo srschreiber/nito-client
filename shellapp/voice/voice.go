@@ -283,6 +283,14 @@ var (
 	// each audio track (0–2). Sized to MaxBands; only the first NumBands()
 	// slots are written at runtime. Value is fixed-point: actual_level * 65535.
 	trackBandLevels [3][MaxBands]atomic.Uint32
+
+	// trackLive flags whether a track is playing a live stream (detected via
+	// ICY response headers). Read by the status panel to show a LIVE badge.
+	trackLive [3]atomic.Bool
+
+	// trackBuffering flags whether a live track is still filling its initial
+	// oto buffer. Read by the status panel to show a pulsing spinner.
+	trackBuffering [3]atomic.Bool
 )
 
 const maxLoopbackPending = 200 // stop recording send times if this many are unmatched
@@ -463,6 +471,38 @@ func SetTrackBandLevel(i, band int, level float32) {
 		level = 1
 	}
 	trackBandLevels[i][band].Store(uint32(level * 65535))
+}
+
+// IsTrackLive reports whether track i is playing a live stream.
+func IsTrackLive(i int) bool {
+	if i < 0 || i >= 3 {
+		return false
+	}
+	return trackLive[i].Load()
+}
+
+// SetTrackLive marks or clears the live-stream flag for track i.
+func SetTrackLive(i int, live bool) {
+	if i < 0 || i >= 3 {
+		return
+	}
+	trackLive[i].Store(live)
+}
+
+// IsTrackBuffering reports whether track i is filling its initial live buffer.
+func IsTrackBuffering(i int) bool {
+	if i < 0 || i >= 3 {
+		return false
+	}
+	return trackBuffering[i].Load()
+}
+
+// SetTrackBuffering marks or clears the initial-buffering flag for track i.
+func SetTrackBuffering(i int, v bool) {
+	if i < 0 || i >= 3 {
+		return
+	}
+	trackBuffering[i].Store(v)
 }
 
 // ClearTrackBandLevels zeros all frequency-band levels for track i.

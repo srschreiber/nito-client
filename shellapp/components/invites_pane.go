@@ -122,16 +122,21 @@ func (p *InvitesPane) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (p *InvitesPane) Render() string {
+	txt := styles.DimText
+	if p.focused {
+		txt = styles.DimTextFocused
+	}
+
 	var lines []string
 
 	if len(p.invites) == 0 {
-		lines = append(lines, styles.DimText.Render("  no pending invites"))
+		lines = append(lines, txt.Render("  no pending invites"))
 	} else {
 		acceptBtn := styles.InviteAcceptBtnStyle.Render("Accept")
 
 		for i, inv := range p.invites {
 			cursor := "  "
-			nameStyle := styles.DimText
+			nameStyle := txt
 			selected := i == p.cursor && p.focused
 			if selected {
 				cursor = styles.CursorStyle.Render("› ")
@@ -159,7 +164,7 @@ func (p *InvitesPane) Render() string {
 
 	body := strings.Join(lines, "\n")
 	if p.status != "" {
-		body += "\n\n" + styles.DimText.Render(p.status)
+		body += "\n\n" + txt.Render(p.status)
 	}
 
 	borderColor := styles.PanelBorderColor

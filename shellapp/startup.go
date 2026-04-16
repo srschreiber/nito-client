@@ -16,6 +16,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 	"github.com/srschreiber/nito-client/shellapp/commands"
+	"github.com/srschreiber/nito-client/shellapp/styles"
 	"gopkg.in/yaml.v3"
 )
 
@@ -144,12 +145,9 @@ var (
 			Bold(true).
 			MarginBottom(1)
 
-	sSubtitleStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#888B7E")).
-			MarginBottom(1)
+	sSubtitleStyle = styles.LightText.MarginBottom(1)
 
-	sLabelStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#AAAAAA"))
+	sLabelStyle = styles.LightText
 
 	sFieldStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -174,13 +172,9 @@ var (
 			Foreground(lipgloss.Color("#FF5F87")).
 			MarginTop(1)
 
-	sNoteStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#888B7E")).
-			Italic(true).
-			MarginTop(1)
+	sNoteStyle = styles.LightText.Italic(true).MarginTop(1)
 
-	sHintStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#555"))
+	sHintStyle = styles.LightText
 )
 
 // ── Init / Update / View ──────────────────────────────────────────────────────
@@ -503,8 +497,7 @@ func (m startupModel) renderSelect() string {
 	dialog := sDialogStyle.Render(body)
 
 	dialogW := lipgloss.Width(dialog)
-	version := lipgloss.NewStyle().Width(dialogW).Align(lipgloss.Right).
-		Foreground(lipgloss.Color("#444")).
+	version := styles.LightText.Width(dialogW).Align(lipgloss.Right).
 		Render(strings.TrimSpace(appVersion))
 
 	return lipgloss.JoinVertical(lipgloss.Left, dialog, version)

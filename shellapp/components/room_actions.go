@@ -116,11 +116,11 @@ func (a *RoomActionsComponent) Update(msg tea.Msg) tea.Cmd {
 
 func (a *RoomActionsComponent) updateNav(msg tea.KeyPressMsg) tea.Cmd {
 	switch msg.String() {
-	case "up", "ctrl+p":
+	case "up", "w", "ctrl+p":
 		if a.cursor > 0 {
 			a.cursor--
 		}
-	case "down", "ctrl+n":
+	case "down", "s", "ctrl+n":
 		if a.cursor < roomActionCount-1 {
 			a.cursor++
 		}
@@ -196,16 +196,22 @@ func (a *RoomActionsComponent) Render() string {
 		false,
 		false,
 	}
+	txt := styles.DimText
+	if a.focused {
+		txt = styles.DimTextFocused
+	}
+	item := txt.PaddingLeft(2)
+
 	lines := make([]string, roomActionCount)
 	for i, lbl := range items {
 		sel := a.focused && a.cursor == i
 		cur := "  "
 		if sel {
-			cur = styles.CursorStyle.Render("▶ ")
+			cur = styles.CursorStyle.Render("> ")
 		}
 		var itemStr string
 		if disabled[i] {
-			itemStr = styles.ItemStyle.Render(cur + styles.DimText.Render(lbl))
+			itemStr = item.Render(cur + lbl)
 		} else if sel {
 			var rendered string
 			if i == roomActionVoice && voiceActive {
@@ -219,7 +225,7 @@ func (a *RoomActionsComponent) Render() string {
 			if i == roomActionVoice && voiceActive {
 				rendered = styles.VoiceLeaveStyle.Render(lbl)
 			} else {
-				rendered = styles.ItemStyle.Render(lbl)
+				rendered = item.Render(lbl)
 			}
 			itemStr = cur + rendered
 		}

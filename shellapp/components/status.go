@@ -55,6 +55,7 @@ type StatusComponent struct {
 	lossPercent    float64 // packet loss percentage over the last second
 	wobblePhase1   float64 // LFO phase for left-bar wobble (radians)
 	wobblePhase2   float64 // LFO phase for right-bar wobble (radians)
+	spinnerPhase   int     // incremented every meterTick (50 ms); drives the live-buffer spinner
 }
 
 func NewStatusComponent(width, height int) *StatusComponent {
@@ -69,33 +70,30 @@ func (s *StatusComponent) meterTickCmd() tea.Cmd {
 	return tea.Tick(50*time.Millisecond, func(time.Time) tea.Msg { return meterTickMsg{} })
 }
 
-// trackMeterBars returns a 6-cell braille spectrum bar graph for a single
-// track. Each cell corresponds to a frequency band (sub-bass → air) and fills
-// vertically in whole rows of 2 dots based on that band's energy.
-// Braille chars are EAW="Neutral" (always 1 terminal column) so the enclosing
-// box width calculation is never thrown off.
-func (s *StatusComponent) trackMeterBars(track int) string {
+// trackMeterBarsBoth returns a top-row and bottom-row block-char string for a
+// two-row tall spectrum meter. Each band uses two stacked eighth-block chars
+// (▁▂▃▄▅▆▇█) giving 16 effective fill levels with solid fill and no gaps.
+// The bottom row sits inline with the track number; the top row is rendered on
+// the line immediately above to give bars room to grow.
+func (s *StatusComponent) trackMeterBarsBoth(track int) (topRow, bottomRow string) {
+	bg := styles.ComponentBg
+	if s.focused {
+		bg = styles.ComponentFocusedBg
+	}
+
 	t := float64(track)
 	n := voice.NumBands()
 
-	// Small per-band wobble: subtle independent animation per band even during
-	// spectrally-flat passages. Generated for any band count via a simple formula
-	// so it works regardless of how many bands the terminal currently requests.
 	wobbles := make([]float32, n)
 	for i := range wobbles {
 		phase := float64(i) / float64(max(n-1, 1)) * math.Pi
-		amp := 0.02 + 0.02*math.Sin(phase) // 0.02–0.04 range
+		amp := 0.02 + 0.02*math.Sin(phase)
 		wobbles[i] = float32(amp * math.Sin(s.wobblePhase1+t+phase) * math.Cos(s.wobblePhase2+phase))
 	}
 
-	// Color thresholds: green → orange → red as level rises.
-	// Each braille cell is rendered individually so the color follows the level.
-	var sb strings.Builder
+	var topSB, botSB strings.Builder
 	for band := 0; band < n; band++ {
 		raw := voice.GetTrackBandLevel(track, band)
-		// 8× pre-gain + sqrt perceptual curve: bandpass output amplitude is
-		// typically 0.01–0.10 at normal listening volumes; this maps it to a
-		// visible fraction of the bar range.
 		boosted := raw * 5.0
 		if boosted > 1 {
 			boosted = 1
@@ -106,38 +104,46 @@ func (s *StatusComponent) trackMeterBars(track int) string {
 		} else if display > 1 {
 			display = 1
 		}
-		cell := meterCell(display)
+
+		// 16 ticks total split across two rows of 8 — bottom fills first.
+		totalTicks := int(display * 16)
+		if totalTicks > 16 {
+			totalTicks = 16
+		}
+		botTicks := totalTicks
+		if botTicks > 8 {
+			botTicks = 8
+		}
+		topTicks := totalTicks - botTicks
+
 		var hex string
 		switch {
 		case display < 0.65:
-			hex = "#4ade80" // green — low level
+			hex = "#4ade80"
 		case display < 0.88:
-			hex = "#f97316" // orange — medium level
+			hex = "#f97316"
 		default:
-			hex = "#f87171" // red — high level
+			hex = "#f87171"
 		}
-		sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color(hex)).Render(string(cell)))
+		// Explicit bg prevents terminal-default bleed between/around bar chars.
+		style := lipgloss.NewStyle().Foreground(lipgloss.Color(hex)).Background(bg)
+		topSB.WriteString(style.Render(string(meterBlock(topTicks))))
+		botSB.WriteString(style.Render(string(meterBlock(botTicks))))
 	}
-	return sb.String()
+	return topSB.String(), botSB.String()
 }
 
-// meterCell maps a level in [0,1] to a braille pattern that fills from the
-// bottom up in complete rows of 2 dots. 5 states (0–4 rows filled):
-//
-//	⠀ U+2800  0 rows — silent
-//	⣀ U+28C0  1 row  — dots 7,8   (bottom row)
-//	⣤ U+28E4  2 rows — dots 7,8 + 3,6
-//	⣶ U+28F6  3 rows — dots 7,8 + 3,6 + 2,5
-//	⣿ U+28FF  4 rows — all dots
-func meterCell(level float32) rune {
-	cells := [5]rune{'\u2800', '\u28C0', '\u28E4', '\u28F6', '\u28FF'}
-	idx := int(level * 5)
-	if idx < 0 {
-		idx = 0
-	} else if idx >= 5 {
-		idx = 4
+// meterBlock maps 0–8 ticks to a solid eighth-block character (▁▂▃▄▅▆▇█).
+// 0 → space (silent), 8 → █ (full). Chars fill solid from the bottom up with
+// no gaps, unlike braille dots.
+func meterBlock(ticks int) rune {
+	blocks := [9]rune{' ', '▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'}
+	if ticks < 0 {
+		ticks = 0
+	} else if ticks > 8 {
+		ticks = 8
 	}
-	return cells[idx]
+	return blocks[ticks]
 }
 
 func (s *StatusComponent) SetSize(width, height int) {
@@ -150,6 +156,8 @@ func (s *StatusComponent) SetSize(width, height int) {
 	n := width*3/4 - 4
 	if n < 4 {
 		n = 4
+	} else if n > 6 {
+		n = 6
 	}
 	voice.SetNumBands(n)
 }
@@ -180,9 +188,10 @@ func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
 			return s.meterTickCmd()
 		}
 	case meterTickMsg:
-		// Advance LFO phases for side-bar wobble.
+		// Advance LFO phases for side-bar wobble and spinner animation.
 		s.wobblePhase1 += 0.25
 		s.wobblePhase2 += 0.19
+		s.spinnerPhase++
 		// Re-schedule as long as at least one track is playing.
 		if s.trackPlaying[0] || s.trackPlaying[1] || s.trackPlaying[2] {
 			return s.meterTickCmd()
@@ -221,14 +230,14 @@ func (s *StatusComponent) Update(msg tea.Msg) tea.Cmd {
 		}
 		maxCursor := cursorDelSoundAlias
 		switch m.String() {
-		case "up", "k":
+		case "up", "w", "k", "ctrl+p":
 			for next := s.trackCursor - 1; next >= 0; next-- {
 				if !s.isEmptyAlias(next) {
 					s.trackCursor = next
 					break
 				}
 			}
-		case "down", "j":
+		case "down", "s", "j", "ctrl+n":
 			for next := s.trackCursor + 1; next <= maxCursor; next++ {
 				if !s.isEmptyAlias(next) {
 					s.trackCursor = next
@@ -289,62 +298,77 @@ func (s *StatusComponent) activate() tea.Cmd {
 }
 
 func (s *StatusComponent) Render() string {
-	c := styles.CursorStyle
-	k := styles.HintKeyStyle
-	d := lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8"))
+	borderColor := styles.PanelBorderColor
+	bg := styles.ComponentBg
+	if s.focused {
+		borderColor = styles.PanelFocusedBorderColor
+		bg = styles.ComponentFocusedBg
+	}
+
+	// Every inner style carries bg so no character bleeds through to the
+	// terminal's own background color between/after ANSI reset sequences.
+	txt := styles.DimText
+	if s.focused {
+		txt = styles.DimTextFocused
+	}
+	lbl := lipgloss.NewStyle().Background(bg).Foreground(lipgloss.Color("#7dd3fc"))
+	cur := styles.CursorStyle.Background(bg)
+	hint := styles.HintKeyStyle.Background(bg)
+	red := lipgloss.NewStyle().Background(bg).Foreground(lipgloss.Color("#f87171"))
+	conn := styles.StatusConnectedStyle.Background(bg)
+	disconn := styles.StatusDisconnectedStyle.Background(bg)
 
 	// STATUS section
 	label := styles.StatusBadge.Render("STATUS")
 	var statusLine string
 	if s.connected {
-		latency := fmt.Sprintf("%dms", s.latencyMs)
-		dimVal := lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8"))
-		lbl := lipgloss.NewStyle().Foreground(lipgloss.Color("#7dd3fc"))
 		brokerDisplay := strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(s.brokerURL, "https://"), "http://"), "www.")
-		// "● online" = 8 visible chars; pad 4 so ping value starts at col 12, same as broker/user values.
-		statusLine = styles.StatusConnectedStyle.Render("● online") +
-			dimVal.Render("    "+latency) +
-			"\n" + lbl.Render("⌁ "+fmt.Sprintf("%-9s", "broker")) + dimVal.Render(" "+brokerDisplay) +
-			"\n" + lbl.Render("◉ "+fmt.Sprintf("%-9s", "user")) + dimVal.Render(" "+s.userID)
+		statusLine = conn.Render("● online") +
+			txt.Render(fmt.Sprintf("    %dms", s.latencyMs)) +
+			"\n" + lbl.Render("⌁ "+fmt.Sprintf("%-9s", "broker")) + txt.Render(" "+brokerDisplay) +
+			"\n" + lbl.Render("◉ "+fmt.Sprintf("%-9s", "user")) + txt.Render(" "+s.userID)
 	} else {
-		statusLine = styles.StatusDisconnectedStyle.Render("● offline")
+		statusLine = disconn.Render("● offline")
 	}
-
 	body := label + "\n" + statusLine
 
 	if s.voiceActive {
-		// VOICE section — live packet loss rate
 		voiceLabel := styles.VoiceBadge.Render("VOICE")
-		dimVal := lipgloss.NewStyle().Foreground(lipgloss.Color("#8888b8"))
 		lossStr := fmt.Sprintf("%.1f%%", s.lossPercent)
-		voiceLine := dimVal.Render(fmt.Sprintf("  %.0f pkt/s  loss %s", s.recvPktsPerSec, lossStr))
+		voiceLine := txt.Render(fmt.Sprintf("  %.0f pkt/s  loss %s", s.recvPktsPerSec, lossStr))
 		body += "\n\n" + voiceLabel + "\n" + voiceLine
 	}
 
-	// TRACKS section — always visible so local audio is always accessible.
+	// TRACKS section
 	{
 		tracksLabel := styles.TracksBadge.Render("TRACKS")
 		var trackLines []string
 		for i := 0; i < 3; i++ {
-			cur := "  "
+			curStr := txt.Render("  ")
 			if s.focused && i == s.trackCursor {
-				cur = c.Render("> ")
+				curStr = cur.Render("> ")
 			}
+
 			var icon string
 			if s.trackPlaying[i] {
 				// "♪ " = 2 terminal cols (narrow Unicode note + space).
-				// Using a plain emoji like 🔊 is EAW="Wide" (2 terminal cols) but
-				// lipgloss counts it as 1, causing the box border to overflow.
-				icon = k.Render("♪ ")
+				icon = hint.Render("♪ ")
 			} else {
 				// "• " = bullet + space = 2 terminal cols, always narrow.
-				icon = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#f87171")).
-					Render("• ")
+				icon = red.Render("• ")
 			}
-			// "Started by" and per-track level meter — both plain ASCII (zero ANSI)
-			// so lipgloss's box-fill width calculation is never thrown off by a
-			// trailing reset sequence inside a styled substring.
+
+			liveBadge := ""
+			liveBadgeW := 0
+			if s.trackPlaying[i] && voice.IsTrackLive(i) {
+				liveBadge = txt.Render(" ") + lipgloss.NewStyle().
+					Background(lipgloss.Color("#7f1d1d")).
+					Foreground(lipgloss.Color("#fca5a5")).
+					Bold(true).
+					Render("LIVE")
+				liveBadgeW = 5 // " LIVE" = 1 space + 4 chars
+			}
+
 			byLabel := ""
 			if s.trackStartedBy[i] != "" {
 				var raw string
@@ -357,24 +381,44 @@ func (s *StatusComponent) Render() string {
 				} else {
 					raw = "  by: " + s.trackStartedBy[i]
 				}
-				maxByW := s.width - 7 - voice.NumBands() - 2 // cur(2)+icon(2)+space+digit+space+N_bars+2_buf
+				// cur(2)+icon(2)+digit+space+N_bars+liveBadge+2_buf
+				maxByW := s.width - 7 - voice.NumBands() - liveBadgeW - 2
 				if maxByW < 0 {
 					maxByW = 0
 				}
-				byLabel = truncate(raw, maxByW)
+				byLabel = txt.Render(truncate(raw, maxByW))
 			}
-			// Inline level meter: 6 braille bars to the right of the track number,
-			// each reflecting the live audio level of that track's stream.
+
+			// Two-row spectrum meter — all segments carry explicit bg.
+			topMeter := ""
 			meter := ""
 			if s.trackPlaying[i] {
-				meter = " " + s.trackMeterBars(i)
+				if voice.IsTrackBuffering(i) {
+					spinners := []rune{'◐', '◓', '◑', '◒'}
+					frame := (s.spinnerPhase / 5) % len(spinners)
+					spin := lipgloss.NewStyle().Foreground(lipgloss.Color("#f97316")).Background(bg).Render(string(spinners[frame]))
+					meter = txt.Render(" ") + spin
+				} else if !voice.IsTrackLive(i) {
+					top, bot := s.trackMeterBarsBoth(i)
+					// 7-space indent: cur(2)+icon(2)+space(1)+digit(1)+space(1)
+					topMeter = txt.Render("       ") + top
+					meter = txt.Render(" ") + bot
+				}
 			}
-			trackLines = append(trackLines, fmt.Sprintf("%s%s %d%s%s", cur, icon, i, meter, byLabel))
+
+			// Digit and separator wrapped so no raw character has an unset background.
+			digit := txt.Render(fmt.Sprintf(" %d", i))
+			trackInfo := curStr + icon + digit + meter + liveBadge + byLabel
+			if topMeter != "" {
+				trackLines = append(trackLines, topMeter+"\n"+trackInfo)
+			} else {
+				trackLines = append(trackLines, trackInfo)
+			}
 		}
-		// Stop All button
-		stopAllCur := "  "
+
+		stopAllCur := txt.Render("  ")
 		if s.focused && s.trackCursor == cursorStopAll {
-			stopAllCur = c.Render("> ")
+			stopAllCur = cur.Render("> ")
 		}
 		stopAllBtn := stopAllCur + styles.VoiceLeaveStyle.Render("⏹ Stop All") +
 			lipgloss.NewStyle().Background(lipgloss.Color("#450a0a")).Render(" ")
@@ -384,26 +428,26 @@ func (s *StatusComponent) Render() string {
 		aliasesLabel := styles.PlayAliasesBadge.Render("PLAY ALIASES")
 		var aliasLines []string
 		for i, a := range s.aliases {
-			cur := "  "
+			alCur := txt.Render("  ")
 			if s.focused && s.trackCursor == cursorAliasBase+i {
-				cur = c.Render("> ")
+				alCur = cur.Render("> ")
 			}
-			var label string
+			var alLabel string
 			if a.Name == "" {
-				label = d.Render("- <empty>")
+				alLabel = txt.Render("- <empty>")
 			} else {
 				maxNameW := s.width - 2 // 2 for cursor
 				if maxNameW < 3 {
 					maxNameW = 3
 				}
-				label = d.Render(truncate(a.Name, maxNameW))
+				alLabel = txt.Render(truncate(a.Name, maxNameW))
 			}
-			aliasLines = append(aliasLines, cur+label)
+			aliasLines = append(aliasLines, alCur+alLabel)
 		}
-		// Sound Alias button
-		soundAliasCur := "  "
+
+		soundAliasCur := txt.Render("  ")
 		if s.focused && s.trackCursor == cursorSoundAlias {
-			soundAliasCur = c.Render("> ")
+			soundAliasCur = cur.Render("> ")
 		}
 		soundAliasBtn := lipgloss.NewStyle().
 			Background(lipgloss.Color("54")).
@@ -413,10 +457,9 @@ func (s *StatusComponent) Render() string {
 			lipgloss.NewStyle().Background(lipgloss.Color("54")).Render(" ")
 		aliasLines = append(aliasLines, "\n"+soundAliasCur+soundAliasBtn)
 
-		// Del Sound Alias button
-		delSoundAliasCur := "  "
+		delSoundAliasCur := txt.Render("  ")
 		if s.focused && s.trackCursor == cursorDelSoundAlias {
-			delSoundAliasCur = c.Render("> ")
+			delSoundAliasCur = cur.Render("> ")
 		}
 		delSoundAliasBtn := styles.VoiceLeaveStyle.Render("- Sound Alias") +
 			lipgloss.NewStyle().Background(lipgloss.Color("#450a0a")).Render(" ")
@@ -435,12 +478,6 @@ func (s *StatusComponent) Render() string {
 	}
 	body = strings.Join(bodyLines, "\n")
 
-	borderColor := styles.PanelBorderColor
-	bg := styles.ComponentBg
-	if s.focused {
-		borderColor = styles.PanelFocusedBorderColor
-		bg = styles.ComponentFocusedBg
-	}
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(borderColor).

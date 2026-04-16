@@ -57,7 +57,19 @@ func PlayAudioFromURL(ctx context.Context, roomID, audioURL string, track int) t
 // playlist it parses and returns all track URLs in order.
 func resolveAudioURLs(ctx context.Context, audioURL string) ([]string, error) {
 	if isM3U(audioURL) {
-		return fetchAndParseM3U(ctx, audioURL)
+		urls, err := fetchAndParseM3U(ctx, audioURL)
+		if err == nil && len(urls) > 0 {
+			return urls, nil
+		}
+		if err != nil && !strings.Contains(err.Error(), "no tracks found") {
+			// Real network or parse error — surface it.
+			return nil, err
+		}
+		// The server either streamed audio directly from the .m3u URL or the
+		// playlist contained no recognisable http(s) track lines. Fall back to
+		// treating the URL itself as the audio stream.
+		clientlog.Info("audio_player: m3u yielded no tracks, attempting direct stream of %s", audioURL)
+		return []string{audioURL}, nil
 	}
 	// Check Content-Type in case the URL has no recognisable extension.
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, audioURL, nil)
@@ -100,10 +112,15 @@ func fetchAndParseM3U(ctx context.Context, url string) ([]string, error) {
 	defer resp.Body.Close()
 
 	var tracks []string
-	scanner := bufio.NewScanner(io.LimitReader(resp.Body, 1<<20)) // 1 MB max for playlist
+	scanner := bufio.NewScanner(io.LimitReader(resp.Body, 8<<10)) // 8 KB max — real playlists are tiny
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		// Skip binary/non-URL lines (e.g. ICY metadata or Shoutcast frames
+		// embedded in some M3U responses). Only http(s) absolute URLs are accepted.
+		if !strings.HasPrefix(line, "http://") && !strings.HasPrefix(line, "https://") {
 			continue
 		}
 		tracks = append(tracks, line)
@@ -130,7 +147,7 @@ type prefetchReader struct {
 
 const (
 	prefetchChunkSize = 16 * 1024 // 16 KB per chunk
-	prefetchChunks    = 64        // up to 1 MB of compressed MP3 ahead of the decoder
+	prefetchChunks    = 8         // 128 KB read-ahead — enough to smooth network jitter
 )
 
 func newPrefetchReader(ctx context.Context, src io.Reader) *prefetchReader {
@@ -168,70 +185,143 @@ func (r *prefetchReader) Read(p []byte) (int, error) {
 	return n, nil
 }
 
-// playOne streams and plays a single MP3 URL. The HTTP response body is piped
-// through a prefetch buffer to the MP3 decoder — the prefetch goroutine reads
-// ahead so network jitter never causes a playback underrun. Returns a non-nil
-// tea.Msg on error, nil on clean finish or context cancellation.
+// IsDrained reports whether all prefetched data has been consumed.
+func (r *prefetchReader) IsDrained() bool {
+	return len(r.ch) == 0 && len(r.tail) == 0
+}
+
+// IsNearlyDrained reports whether the prefetch buffer is critically low
+// (≤1 chunk buffered). For live streams this means we are close to the
+// broadcast edge and should reconnect before audio glitches.
+func (r *prefetchReader) IsNearlyDrained() bool {
+	return len(r.ch) <= 1
+}
+
+// playOne streams and plays a single MP3 URL, reconnecting automatically when a
+// live stream catches up to the broadcast edge. For regular files it runs once.
 // If roomID is voice.SelfRoomID the active-room guard is skipped so the user
 // can play audio locally without being in a voice call.
 func playOne(ctx context.Context, roomID, audioURL string, track int) tea.Msg {
+	for {
+		if ctx.Err() != nil {
+			return nil
+		}
+		reconnect, msg := playOneAttempt(ctx, roomID, audioURL, track)
+		if msg != nil {
+			return msg
+		}
+		if !reconnect {
+			return nil
+		}
+		clientlog.Info("audio_player: live edge reached on track %d — reconnecting", track)
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+}
+
+// liveEdgeDrainTicks is how many consecutive 20 ms polling ticks the prefetch
+// must be nearly empty (≤1 chunk) before we reconnect for the live edge.
+// 3 ticks × 20 ms = 60 ms debounce — aggressive but intentional per user preference.
+const liveEdgeDrainTicks = 3
+
+// playOneAttempt makes a single HTTP streaming attempt for audioURL.
+// Returns (reconnect, msg): reconnect=true means a live stream hit the live
+// edge and the caller should reopen the connection; msg is non-nil on error.
+func playOneAttempt(ctx context.Context, roomID, audioURL string, track int) (bool, tea.Msg) {
 	if roomID != voice.SelfRoomID && voice.ActiveRoomID() != roomID {
-		return nil
+		return false, nil
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, audioURL, nil)
 	if err != nil {
-		return audioPlaybackErr(track, "build request", err)
+		return false, audioPlaybackErr(track, "build request", err)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil
+			return false, nil
 		}
-		return audioPlaybackErr(track, "fetch", err)
+		return false, audioPlaybackErr(track, "fetch", err)
 	}
 	defer resp.Body.Close()
 
-	otoCtx, err := voice.GetMusicOtoCtx()
-	if err != nil {
-		return audioPlaybackErr(track, "oto init", err)
+	// Detect Icecast/Shoutcast live streams via ICY response headers.
+	isLive := resp.Header.Get("Icy-Metaint") != "" ||
+		resp.Header.Get("Icy-Name") != "" ||
+		resp.Header.Get("Icy-Url") != ""
+	voice.SetTrackLive(track, isLive)
+	defer voice.SetTrackLive(track, false)
+	// Show a pulsing spinner while the 5 s live buffer fills.
+	if isLive {
+		voice.SetTrackBuffering(track, true)
+		defer voice.SetTrackBuffering(track, false)
+		go func() {
+			timer := time.NewTimer(5 * time.Second)
+			defer timer.Stop()
+			select {
+			case <-ctx.Done():
+			case <-timer.C:
+				voice.SetTrackBuffering(track, false)
+			}
+		}()
 	}
 
-	dec, err := mp3.NewDecoder(newPrefetchReader(ctx, resp.Body))
+	otoCtx, err := voice.GetMusicOtoCtx()
+	if err != nil {
+		return false, audioPlaybackErr(track, "oto init", err)
+	}
+
+	prefetch := newPrefetchReader(ctx, resp.Body)
+	dec, err := mp3.NewDecoder(prefetch)
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil
+			return false, nil
 		}
-		return audioPlaybackErr(track, "mp3 decode", err)
+		return false, audioPlaybackErr(track, "mp3 decode", err)
 	}
 
 	eq := newEQReader(dec, dec.SampleRate(), track)
 	defer eq.Close()
 	defer voice.ClearTrackBandLevels(track) // zero the meter when playback ends
 	player := otoCtx.NewPlayer(eq)
-	// Give the audio player a 1-second buffer. The shared oto context is
-	// initialised at 20ms for voice-call latency, but .play clips have no
-	// latency requirement so a larger per-player buffer prevents underruns
-	// when the goroutine scheduler doesn't call Read() in time.
 	if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
-		// ~200 ms buffer: sampleRate × 4 bytes/frame ÷ 5.
-		// Smaller than the old 1 s buffer so the spectrum meter stays
-		// in sync with what you hear (lag ≈ 200 ms instead of 1 s).
-		bss.SetBufferSize((dec.SampleRate() / 5) * 4)
+		bufSize := dec.SampleRate() / 5 * 4 // ~200 ms for files
+		if isLive {
+			bufSize = dec.SampleRate() * 4 * 5 // ~5 s for live streams — reduces reconnect frequency
+		}
+		bss.SetBufferSize(bufSize)
 	}
 	player.SetVolume(voice.EffectivePlaybackVolume())
 	defer player.Close()
 	player.Play()
 
+	drainCount := 0
+	bufferWasFull := false // guard: only detect live edge after buffer has been full at least once
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return false, nil
 		default:
 			if !player.IsPlaying() {
-				return nil
+				return false, nil
 			}
 			player.SetVolume(voice.EffectivePlaybackVolume())
+			if isLive {
+				if len(prefetch.ch) >= prefetchChunks/2 {
+					bufferWasFull = true
+				}
+				if bufferWasFull && prefetch.IsNearlyDrained() {
+					drainCount++
+					if drainCount >= liveEdgeDrainTicks {
+						return true, nil // live edge — reconnect
+					}
+				} else {
+					drainCount = 0
+				}
+			}
 			time.Sleep(20 * time.Millisecond)
 		}
 	}
@@ -349,6 +439,19 @@ func (c *channelEffects) buildPipeline() voice.EffectPipeline {
 	return append(p, &c.lim)
 }
 
+// bandSnapshot is a timestamped copy of the per-band amplitude envelope used
+// to delay the spectrum meter display so it aligns with what the speaker emits
+// rather than what the decoder has computed ahead of time.
+type bandSnapshot struct {
+	levels     []float32
+	capturedAt time.Time
+}
+
+// meterSnapDelay is how far the level meter display lags behind the decode
+// position. It matches the oto playback buffer for file streams so the visual
+// bars align with the audio being heard. Live stream bars are hidden entirely.
+const meterSnapDelay = 200 * time.Millisecond
+
 type eqReader struct {
 	track         int // audio track index (0–2); used to write level meter data
 	src           io.Reader
@@ -360,8 +463,9 @@ type eqReader struct {
 	rightPipeline voice.EffectPipeline
 	preScale      float32
 	outputGain    float32
-	panPhase      float64      // LFO phase for auto-pan; preserved across settings rebuilds
-	bands         bandAnalyzer // per-frequency-band spectrum analyser for the meter
+	panPhase      float64        // LFO phase for auto-pan; preserved across settings rebuilds
+	bands         bandAnalyzer   // per-frequency-band spectrum analyser for the meter
+	snapshots     []bandSnapshot // delayed publish queue — keeps visual in sync with audio
 	// Pre-allocated work buffers reused each Read() call to avoid GC churn.
 	workLeft  []float32
 	workRight []float32
@@ -507,10 +611,28 @@ func (r *eqReader) Read(p []byte) (int, error) {
 			// Feed mono mix into the band analyser for the spectrum meter.
 			r.bands.process((lv + rv) * 0.5)
 		}
-		// Publish smoothed per-band levels to the voice package so the
-		// status-panel meter tick can read them without locking.
-		for b := range r.bands.smooth {
-			voice.SetTrackBandLevel(r.track, b, r.bands.smooth[b])
+		// Enqueue the current band levels with a timestamp, then publish the
+		// snapshot that is meterSnapDelay old. This delays the visual display
+		// to match the oto playback buffer, keeping bars in sync with audio.
+		now := time.Now()
+		snap := make([]float32, len(r.bands.smooth))
+		copy(snap, r.bands.smooth)
+		r.snapshots = append(r.snapshots, bandSnapshot{levels: snap, capturedAt: now})
+		target := now.Add(-meterSnapDelay)
+		publishIdx := -1
+		for i := range r.snapshots {
+			if !r.snapshots[i].capturedAt.After(target) {
+				publishIdx = i
+			} else {
+				break
+			}
+		}
+		if publishIdx >= 0 {
+			pub := r.snapshots[publishIdx]
+			r.snapshots = r.snapshots[publishIdx+1:]
+			for b, level := range pub.levels {
+				voice.SetTrackBandLevel(r.track, b, level)
+			}
 		}
 	}
 	return n, err

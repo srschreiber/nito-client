@@ -175,10 +175,8 @@ func renderAbout(cursor, scroll, focus, termW, termH int) string {
 			if maxScroll > 0 {
 				pct = scroll * 100 / maxScroll
 			}
-			indicatorLine = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("#555")).
-				Render(strings.Repeat(" ", rightInnerW-6) +
-					lipgloss.NewStyle().Foreground(lipgloss.Color("#666")).Render("↕ "+itoa(pct)+"%"))
+			indicatorLine = styles.DimText.
+				Render(strings.Repeat(" ", rightInnerW-6) + "↕ " + itoa(pct) + "%")
 		}
 	}
 	// Pad content lines to maxContent, then append the indicator slot.

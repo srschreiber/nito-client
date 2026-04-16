@@ -189,16 +189,21 @@ func (p *DMPane) renderUserList() string {
 	var rows []string
 	rows = append(rows, title)
 
+	txt := styles.DimText
+	if p.focused && !p.historyFocused {
+		txt = styles.DimTextFocused
+	}
+
 	if len(p.users) == 0 {
-		rows = append(rows, styles.DimText.Render("No conversations."))
-		rows = append(rows, styles.DimText.Render(".dm <user> to start"))
+		rows = append(rows, txt.Render("No conversations."))
+		rows = append(rows, txt.Render(".dm <user> to start"))
 	} else {
 		for i, user := range p.users {
 			var line string
 			if i == p.cursor {
 				line = styles.DMSelectedUserStyle.Render(fmt.Sprintf("> %s", user))
 			} else {
-				line = styles.DimText.Render(fmt.Sprintf("  %s", user))
+				line = txt.Render(fmt.Sprintf("  %s", user))
 			}
 			rows = append(rows, line)
 		}
@@ -224,29 +229,29 @@ func (p *DMPane) renderHistory() string {
 
 	if p.cursor < 0 || len(p.users) == 0 {
 		hint := styles.DimText.Render("Use .dm <username> or dm -u <username> to start a conversation.")
-		style := lipgloss.NewStyle().
+		return lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(styles.PanelBorderColor).
 			BorderBackground(styles.ComponentBg).
 			Background(styles.ComponentBg).
 			Padding(0, 1).
 			Width(histW + 4).
-			Height(p.height)
-		return style.Render(hint)
+			Height(p.height).
+			Render(hint)
 	}
 
 	user := p.users[p.cursor]
 	h := p.histories[user]
 	if h == nil {
-		style := lipgloss.NewStyle().
+		return lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(styles.PanelBorderColor).
 			BorderBackground(styles.ComponentBg).
 			Background(styles.ComponentBg).
 			Padding(0, 1).
 			Width(histW + 4).
-			Height(p.height)
-		return style.Render(styles.DimText.Render("(loading)"))
+			Height(p.height).
+			Render(styles.DimText.Render("(loading)"))
 	}
 	return h.Render()
 }
