@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -489,13 +490,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			extraCmds = append(extraCmds, m.trackStateCmd())
 		} else {
 			// Local play only (default): play directly without any broker RPC.
-			localRoom := roomID
-			if localRoom == "" {
-				localRoom = voice.SelfRoomID
-			}
 			m.audioTrackStartedBy[track] = connection.GetSessionUserID()
 			m.audioTrackBroadcast[track] = false
-			extraCmds = append(extraCmds, m.trackStateCmd(), components.PlayAudioFromURL(ctx, localRoom, url, track))
+			var playCmd tea.Cmd
+			if isLocalAudioPath(url) {
+				playCmd = components.PlayAudioFromFile(ctx, url, track)
+			} else {
+				localRoom := roomID
+				if localRoom == "" {
+					localRoom = voice.SelfRoomID
+				}
+				playCmd = components.PlayAudioFromURL(ctx, localRoom, url, track)
+			}
+			extraCmds = append(extraCmds, m.trackStateCmd(), playCmd)
 		}
 		return m, tea.Batch(extraCmds...)
 	case types.ConnectedMsg:
@@ -737,6 +744,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, tea.Batch(cmds...)
 	}
+}
+
+// isLocalAudioPath reports whether url is an absolute or home-relative file
+// path rather than an http(s) URL (e.g. "/home/user/song.mp3" or "~/music.mp3").
+func isLocalAudioPath(url string) bool {
+	return strings.HasPrefix(url, "/") || strings.HasPrefix(url, "~/")
 }
 
 // resolveTrack returns the track to use for playback. hint -1 means auto: pick

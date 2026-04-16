@@ -44,7 +44,7 @@ var chatOps = []chatOpDef{
 	{name: ".delplayalias", argHint: "<name>"},
 	{name: ".image", argHint: "<filename> [-h <height>]"},
 	{name: ".jump", argHint: "<line>"},
-	{name: ".play", argHint: "--mp3-or-m3u-or-alias <url|alias> [--track <0-2>]"},
+	{name: ".play", argHint: "<url|alias|/path/to/file.mp3> [--track <0-2>]"},
 	{name: ".stoptrack", argHint: "<track 0-2>"},
 	{name: ".stopall", argHint: ""},
 }
@@ -618,7 +618,7 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
 			return func() tea.Msg {
 				return AppendHistoryMsg{Entries: []historyEntry{
-					{text: ".play: usage: .play --mp3-or-m3u-or-alias <url|alias> [--track <0-2>] [--broadcast true|false]", isResponse: true},
+					{text: ".play: usage: .play <url|alias|/path/to/file.mp3> [--track <0-2>] [--broadcast true|false]", isResponse: true},
 				}, Tab: TabChat}
 			}
 		}
@@ -659,6 +659,10 @@ func (l *CommandComponent) handleChatOp(input string) tea.Cmd {
 		url := arg
 		if resolved, ok := voice.LookupAudioAlias(arg); ok {
 			url = resolved
+		}
+		// Local file paths cannot be broadcast; override regardless of flag.
+		if strings.HasPrefix(url, "/") || strings.HasPrefix(url, "~/") {
+			broadcast = false
 		}
 		playURL := url
 		playTrack := track

@@ -11,7 +11,10 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -49,6 +52,60 @@ func PlayAudioFromURL(ctx context.Context, roomID, audioURL string, track int) t
 			}
 		}
 		return AudioTrackDoneMsg{Track: track}
+	}
+}
+
+// PlayAudioFromFile returns a tea.Cmd that plays a local MP3 file on the given
+// track slot. It never broadcasts and does not require an active voice call.
+// Supports absolute paths and paths beginning with ~/ (expanded to home dir).
+func PlayAudioFromFile(ctx context.Context, path string, track int) tea.Cmd {
+	return func() tea.Msg {
+		if strings.HasPrefix(path, "~/") {
+			if home, err := os.UserHomeDir(); err == nil {
+				path = filepath.Join(home, path[2:])
+			}
+		}
+
+		f, err := os.Open(path)
+		if err != nil {
+			return audioPlaybackErr(track, "open file", err)
+		}
+		defer f.Close()
+
+		dec, err := mp3.NewDecoder(f)
+		if err != nil {
+			return audioPlaybackErr(track, "mp3 decode", err)
+		}
+
+		otoCtx, err := voice.GetMusicOtoCtx(dec.SampleRate())
+		if err != nil {
+			return audioPlaybackErr(track, "oto init", err)
+		}
+
+		eq := newEQReader(dec, dec.SampleRate(), track)
+		defer eq.Close()
+		defer voice.ClearTrackBandLevels(track)
+
+		player := otoCtx.NewPlayer(eq)
+		if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
+			bss.SetBufferSize(dec.SampleRate() / 5 * 4) // ~200 ms
+		}
+		player.SetVolume(voice.EffectivePlaybackVolume())
+		defer player.Close()
+		player.Play()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				if !player.IsPlaying() {
+					return AudioTrackDoneMsg{Track: track}
+				}
+				player.SetVolume(voice.EffectivePlaybackVolume())
+				time.Sleep(20 * time.Millisecond)
+			}
+		}
 	}
 }
 
@@ -289,9 +346,9 @@ func playOneAttempt(ctx context.Context, roomID, audioURL string, track int) (bo
 	defer voice.ClearTrackBandLevels(track) // zero the meter when playback ends
 	player := otoCtx.NewPlayer(eq)
 	if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
-		bufSize := dec.SampleRate() / 5 * 4 // ~200 ms for files
+		bufSize := dec.SampleRate() / 5 * 4 // ~200 ms
 		if isLive {
-			bufSize = dec.SampleRate() * 4 * 5 // ~5 s for live streams — reduces reconnect frequency
+			bufSize = dec.SampleRate() * 4 * 5 // ~5 s for live streams
 		}
 		bss.SetBufferSize(bufSize)
 	}
@@ -396,6 +453,15 @@ func (a *bandAnalyzer) process(mono float32) {
 	}
 }
 
+// playbackProcessEMAus holds the EMA of the DSP processing time per eqReader.Read()
+// call, in microseconds. Updated by every read; read by the settings screen.
+var playbackProcessEMAus atomic.Int64
+
+// playbackJitterEMAus and playbackJitterPeakUs track the inter-call scheduling
+// jitter of eqReader.Read() (|actual_interval - expected_interval|, µs).
+var playbackJitterEMAus atomic.Int64
+var playbackJitterPeakUs atomic.Int64
+
 // eqReader wraps an io.Reader (typically an mp3.Decoder) and applies the global
 // playback effect chain to each decoded stereo int16-LE frame. Left and right
 // channels are processed through independent effect chains so state stays
@@ -440,18 +506,40 @@ func (c *channelEffects) buildPipeline() voice.EffectPipeline {
 	return append(p, &c.lim)
 }
 
-// bandSnapshot is a timestamped copy of the per-band amplitude envelope used
-// to delay the spectrum meter display so it aligns with what the speaker emits
-// rather than what the decoder has computed ahead of time.
-type bandSnapshot struct {
-	levels     []float32
-	capturedAt time.Time
+// meterDelay is the fixed render delay applied to the EQ bar chart so the
+// visuals roughly align with the audio being heard. Tune by feel — raise it
+// if bars look early, lower it if they look late.
+const meterDelay = 500 * time.Millisecond
+
+// meterDelayBuf is a fixed-size ring buffer of mono mix samples used to delay
+// the band analyser feed by meterDelay. On each push the overwritten slot holds
+// the sample from exactly len(buf) samples ago — no timestamps or allocations.
+type meterDelayBuf struct {
+	buf  []float32
+	pos  int
+	full bool
 }
 
-// meterSnapDelay is how far the level meter display lags behind the decode
-// position. It matches the oto playback buffer for file streams so the visual
-// bars align with the audio being heard. Live stream bars are hidden entirely.
-const meterSnapDelay = 200 * time.Millisecond
+func newMeterDelayBuf(sampleRate int) meterDelayBuf {
+	n := int(float64(sampleRate) * meterDelay.Seconds())
+	return meterDelayBuf{buf: make([]float32, n)}
+}
+
+// push writes v into the ring and returns the sample from meterDelay ago (0
+// until the buffer has filled for the first time).
+func (b *meterDelayBuf) push(v float32) float32 {
+	old := b.buf[b.pos]
+	b.buf[b.pos] = v
+	b.pos++
+	if b.pos >= len(b.buf) {
+		b.pos = 0
+		b.full = true
+	}
+	if !b.full {
+		return 0
+	}
+	return old
+}
 
 type eqReader struct {
 	track         int // audio track index (0–2); used to write level meter data
@@ -464,16 +552,22 @@ type eqReader struct {
 	rightPipeline voice.EffectPipeline
 	preScale      float32
 	outputGain    float32
-	panPhase      float64        // LFO phase for auto-pan; preserved across settings rebuilds
-	bands         bandAnalyzer   // per-frequency-band spectrum analyser for the meter
-	snapshots     []bandSnapshot // delayed publish queue — keeps visual in sync with audio
+	panPhase      float64       // LFO phase for auto-pan; preserved across settings rebuilds
+	bands         bandAnalyzer  // per-frequency-band spectrum analyser for the meter
+	meterBuf      meterDelayBuf // ring buffer that delays the analyser feed by meterDelay
 	// Pre-allocated work buffers reused each Read() call to avoid GC churn.
 	workLeft  []float32
 	workRight []float32
+	// Inter-call jitter tracking.
+	prevReadTime  time.Time
+	prevFrames    int
+	jitterBuf     [256]int64 // ring buffer of recent jitter samples (µs)
+	jitterBufIdx  int        // next write position
+	jitterBufFull bool       // true once the buffer has wrapped at least once
 }
 
 func newEQReader(src io.Reader, sampleRate, track int) *eqReader {
-	r := &eqReader{src: src, sampleRate: sampleRate, track: track}
+	r := &eqReader{src: src, sampleRate: sampleRate, track: track, meterBuf: newMeterDelayBuf(sampleRate)}
 	r.left.pitch = voice.NewPlaybackPitchEffect(sampleRate)
 	r.right.pitch = voice.NewPlaybackPitchEffect(sampleRate)
 	r.bands.init(float32(sampleRate), voice.NumBands())
@@ -547,6 +641,46 @@ func (r *eqReader) rebuildEffects() {
 }
 
 func (r *eqReader) Read(p []byte) (int, error) {
+	// Measure inter-call jitter: |actual_interval - expected_interval|.
+	// Skip the first two calls (no baseline yet) and any gap > 2 s (stale/paused).
+	now := time.Now()
+	if !r.prevReadTime.IsZero() && r.prevFrames > 0 {
+		actual := now.Sub(r.prevReadTime)
+		if actual < 2*time.Second {
+			expected := time.Duration(float64(r.prevFrames) / float64(r.sampleRate) * float64(time.Second))
+			jitter := actual - expected
+			if jitter < 0 {
+				jitter = -jitter
+			}
+			jitterUs := jitter.Microseconds()
+			prev := playbackJitterEMAus.Load()
+			ema := jitterUs
+			if prev != 0 {
+				ema = int64(0.9*float64(prev) + 0.1*float64(jitterUs))
+			}
+			playbackJitterEMAus.Store(ema)
+			// Windowed peak: write into ring buffer, then scan for max.
+			r.jitterBuf[r.jitterBufIdx] = jitterUs
+			r.jitterBufIdx++
+			if r.jitterBufIdx >= len(r.jitterBuf) {
+				r.jitterBufIdx = 0
+				r.jitterBufFull = true
+			}
+			n := r.jitterBufIdx
+			if r.jitterBufFull {
+				n = len(r.jitterBuf)
+			}
+			var windowPeak int64
+			for i := 0; i < n; i++ {
+				if r.jitterBuf[i] > windowPeak {
+					windowPeak = r.jitterBuf[i]
+				}
+			}
+			playbackJitterPeakUs.Store(windowPeak)
+		}
+	}
+	r.prevReadTime = now
+
 	if voice.PlaybackEQVersion() != r.version {
 		r.rebuildEffects()
 	}
@@ -558,6 +692,7 @@ func (r *eqReader) Read(p []byte) (int, error) {
 	// Process only complete stereo frames (4 bytes = L int16 + R int16).
 	frames := n / 4
 	if frames > 0 {
+		dspStart := time.Now()
 		// Grow pre-allocated work buffers only when necessary (typically never
 		// after the first call, eliminating per-Read heap allocation and GC churn).
 		if len(r.workLeft) < frames {
@@ -609,32 +744,23 @@ func (r *eqReader) Read(p []byte) (int, error) {
 			rv := float32(math.Tanh(float64(right[i] * r.outputGain * rg)))
 			binary.LittleEndian.PutUint16(p[off:], uint16(int16(lv*32767)))
 			binary.LittleEndian.PutUint16(p[off+2:], uint16(int16(rv*32767)))
-			// Feed mono mix into the band analyser for the spectrum meter.
-			r.bands.process((lv + rv) * 0.5)
+			// Push mono mix through the delay ring; process the sample from
+			// meterDelay ago so the analyser tracks what is actually being heard.
+			r.bands.process(r.meterBuf.push((lv + rv) * 0.5))
 		}
-		// Enqueue the current band levels with a timestamp, then publish the
-		// snapshot that is meterSnapDelay old. This delays the visual display
-		// to match the oto playback buffer, keeping bars in sync with audio.
-		now := time.Now()
-		snap := make([]float32, len(r.bands.smooth))
-		copy(snap, r.bands.smooth)
-		r.snapshots = append(r.snapshots, bandSnapshot{levels: snap, capturedAt: now})
-		target := now.Add(-meterSnapDelay)
-		publishIdx := -1
-		for i := range r.snapshots {
-			if !r.snapshots[i].capturedAt.After(target) {
-				publishIdx = i
-			} else {
-				break
-			}
+		for b, level := range r.bands.smooth {
+			voice.SetTrackBandLevel(r.track, b, level)
 		}
-		if publishIdx >= 0 {
-			pub := r.snapshots[publishIdx]
-			r.snapshots = r.snapshots[publishIdx+1:]
-			for b, level := range pub.levels {
-				voice.SetTrackBandLevel(r.track, b, level)
-			}
+		// Update EMA of DSP wall-clock time so the settings screen can display it.
+		dspUs := time.Since(dspStart).Microseconds()
+		prev := playbackProcessEMAus.Load()
+		ema := dspUs
+		if prev != 0 {
+			ema = int64(0.9*float64(prev) + 0.1*float64(dspUs))
 		}
+		playbackProcessEMAus.Store(ema)
+		// Remember frame count for next call's jitter baseline.
+		r.prevFrames = frames
 	}
 	return n, err
 }

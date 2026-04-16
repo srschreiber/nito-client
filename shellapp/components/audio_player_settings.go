@@ -787,7 +787,7 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	if gap < 1 {
 		gap = 1
 	}
-	lines = append(lines, title+strings.Repeat(" ", gap)+hint, "")
+	lines = append(lines, title+dim.Render(strings.Repeat(" ", gap))+hint, "")
 
 	const graphH = 9
 	graphW := innerW - 8
@@ -798,7 +798,19 @@ func (s *AudioPlayerSettingsScreen) Render() string {
 	for _, row := range renderEQGraph(eq, graphW, graphH, levels) {
 		lines = append(lines, row)
 	}
-	lines = append(lines, "")
+	processStr := "--"
+	if us := playbackProcessEMAus.Load(); us > 0 {
+		processStr = fmt.Sprintf("%.1f ms", float64(us)/1000.0)
+	}
+	jitterAvgStr := "--"
+	if us := playbackJitterEMAus.Load(); us > 0 {
+		jitterAvgStr = fmt.Sprintf("%.1f ms", float64(us)/1000.0)
+	}
+	jitterPeakStr := "--"
+	if us := playbackJitterPeakUs.Load(); us > 0 {
+		jitterPeakStr = fmt.Sprintf("%.1f ms", float64(us)/1000.0)
+	}
+	lines = append(lines, dim.Render("  Process "+processStr+"  Jitter avg "+jitterAvgStr+"  peak "+jitterPeakStr), "")
 
 	// ── Row 1: Bass | Mid | Treble | Presence (4-column EQ row) ─────────────
 	var bassItems, midItems, trebItems, presItems []string
