@@ -220,6 +220,7 @@ var (
 	// music while voice latency stays low.
 	musicOtoOnce sync.Once
 	musicOtoCtx  *oto.Context
+	musicOtoRate int // sample rate the music context was initialised with
 
 	sendPacketCount atomic.Uint64
 	sendByteCount   atomic.Uint64
@@ -881,14 +882,18 @@ type voiceSession struct {
 func GetOtoCtx() (*oto.Context, error) { return getOtoCtx() }
 
 // GetMusicOtoCtx returns a dedicated oto context for .play music playback,
-// initializing it on first call. The 500ms hardware buffer absorbs GC/scheduler
-// jitter that would cause pops through the 20ms voice context.
-func GetMusicOtoCtx() (*oto.Context, error) {
+// initializing it on first call at the given sample rate. The 500ms hardware
+// buffer absorbs GC/scheduler jitter that would cause pops through the 20ms
+// voice context. Passing the MP3 decoder's sample rate ensures playback speed
+// matches the source — using the voice rate (48000 Hz) with a 44100 Hz MP3
+// would cause ~8% speed-up.
+func GetMusicOtoCtx(sr int) (*oto.Context, error) {
 	var initErr error
 	musicOtoOnce.Do(func() {
+		musicOtoRate = sr
 		var ready chan struct{}
 		musicOtoCtx, ready, initErr = oto.NewContextWithOptions(&oto.NewContextOptions{
-			SampleRate:   sampleRate,
+			SampleRate:   sr,
 			ChannelCount: 2,
 			Format:       oto.FormatSignedInt16LE,
 			BufferSize:   500 * time.Millisecond,

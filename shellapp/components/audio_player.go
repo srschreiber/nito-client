@@ -269,11 +269,6 @@ func playOneAttempt(ctx context.Context, roomID, audioURL string, track int) (bo
 		}()
 	}
 
-	otoCtx, err := voice.GetMusicOtoCtx()
-	if err != nil {
-		return false, audioPlaybackErr(track, "oto init", err)
-	}
-
 	prefetch := newPrefetchReader(ctx, resp.Body)
 	dec, err := mp3.NewDecoder(prefetch)
 	if err != nil {
@@ -281,6 +276,11 @@ func playOneAttempt(ctx context.Context, roomID, audioURL string, track int) (bo
 			return false, nil
 		}
 		return false, audioPlaybackErr(track, "mp3 decode", err)
+	}
+
+	otoCtx, err := voice.GetMusicOtoCtx(dec.SampleRate())
+	if err != nil {
+		return false, audioPlaybackErr(track, "oto init", err)
 	}
 
 	eq := newEQReader(dec, dec.SampleRate(), track)
