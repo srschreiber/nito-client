@@ -11311,3 +11311,31 @@ Run 'room-invites' to list invitations, 'room-accept -r 49afa434-d931-46c1-814b-
 08:37:05 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
 08:42:58 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
 08:52:12 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+09:51:00 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+10:38:21 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+10:38:46 [INFO] audio_player: m3u yielded no tracks, attempting direct stream of https://streams.ilovemusic.de/iloveradio17.mp3.m3u
+10:41:10 [INFO] audio_player: m3u yielded no tracks, attempting direct stream of https://streams.ilovemusic.de/iloveradio17.mp3.m3u
+10:59:01 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+10:59:23 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+11:17:00 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+11:46:32 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+11:47:20 [INFO] audio_player: m3u yielded no tracks, attempting direct stream of https://streams.ilovemusic.de/iloveradio17.mp3.m3u
+12:01:33 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:04:01 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:27:50 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:39:37 [ERROR] audio_player: fetch: Get "https://archive.org/download/Radiohead-Remixed-1/03%20-%20Radiohead%20-%20Nude%20%28KHAN%20Mix%29.mp3": dial tcp 207.241.224.2:443: i/o timeout
+12:49:41 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+12:51:33 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+12:54:15 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+12:54:21 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+12:54:40 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+13:13:53 [WARN] reconnect failed: dial tcp 100.22.29.166:80: i/o timeout
+13:13:53 [INFO] disconnecting from broker
+13:13:58 [WARN] reconnect failed: dial tcp 100.22.29.166:80: i/o timeout
+13:14:01 [WARN] reconnect failed: dial tcp 100.22.29.166:80: i/o timeout
+13:31:12 [INFO] audio_player: m3u resolved 14 track(s) from https://ia601003.us.archive.org/24/items/Radiohead-Remixed-1/Radiohead-Remixed-1_vbr.m3u
+13:33:11 [INFO] audio_player: m3u yielded no tracks, attempting direct stream of https://streams.ilovemusic.de/iloveradio17.mp3.m3u
+13:33:13 [INFO] audio_player: live edge reached on track 0 — reconnecting
+13:33:15 [INFO] audio_player: live edge reached on track 0 — reconnecting
+13:38:07 [INFO] audio_player: m3u yielded no tracks, attempting direct stream of https://streams.ilovemusic.de/iloveradio17.mp3.m3u
+13:44:43 [INFO] audio_player: m3u yielded no tracks, attempting direct stream of https://streams.ilovemusic.de/iloveradio17.mp3.m3u
