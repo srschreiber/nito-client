@@ -76,7 +76,7 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 	errLabel.TextStyle = fyne.TextStyle{Monospace: true}
 	errLabel.Hide()
 
-	loadingLabel := txt("connecting…", colDimMid, 12, false, true)
+	loadingLabel := txt("connecting…", liveDimMid, 12, false, true)
 	loadingLabel.Hide()
 
 	var submitBtn *nitoBtn
@@ -167,7 +167,7 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 
 	noticeHeader := txt("⚠  your keys", amberCol, 12, true, false)
 	noticeLine := func(s string) *canvas.Text { return monoTxt(s, colText) }
-	noticeDim := func(s string) *canvas.Text { return monoTxt(s, colDimMid) }
+	noticeDim := func(s string) *canvas.Text { return monoTxt(s, liveDimMid) }
 
 	noticeBody := container.NewVBox(
 		noticeHeader,
@@ -201,8 +201,8 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 	})
 
 	// ── Brand area ────────────────────────────────────────────────────────────
-	titleText := txt("nito", colAccent, 30, true, true)
-	subtitleText := txt("encrypted voice & chat", colDim, 11, false, true)
+	titleText := txt("nito", liveAccent, 30, true, true)
+	subtitleText := txt("encrypted voice & chat", liveDim, 11, false, true)
 	brandArea := container.NewVBox(
 		container.NewCenter(titleText),
 		vspace(2),
@@ -228,11 +228,11 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 		vspace(10),
 		registerNotice,
 		vspace(4),
-		monoTxt("broker", colDimMid), brokerEntry,
+		monoTxt("broker", liveDimMid), brokerEntry,
 		vspace(8),
-		monoTxt("username", colDimMid), usernameEntry,
+		monoTxt("username", liveDimMid), usernameEntry,
 		vspace(8),
-		monoTxt("password", colDimMid), passwordEntry,
+		monoTxt("password", liveDimMid), passwordEntry,
 		vspace(12),
 		withPointerCursor(rememberCheck),
 		vspace(12),

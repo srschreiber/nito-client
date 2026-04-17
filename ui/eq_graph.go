@@ -130,7 +130,7 @@ func computeEQResponseGains(width int, eq eqGraphSettings) []float64 {
 
 func eqPixelColor(x, y, width, height int, gains []float64) color.Color {
 	if x >= len(gains) {
-		return colSurface
+		return liveSurface
 	}
 	gainDB := gains[x]
 	if gainDB > eqDBRange {
@@ -163,12 +163,12 @@ func eqPixelColor(x, y, width, height int, gains []float64) color.Color {
 	// Curve — 2px thick.
 	if y >= curveRow-1 && y <= curveRow+1 {
 		if gainDB >= 0 {
-			return colAccent
+			return liveAccent
 		}
 		return colAmber
 	}
 
-	return colSurface
+	return liveSurface
 }
 
 // precomputeEQImage renders the full EQ response curve into an *image.NRGBA.
@@ -253,7 +253,7 @@ func (w *EQGraphWidget) CreateRenderer() fyne.WidgetRenderer {
 	raster := canvas.NewRasterWithPixels(func(px, py, pw, ph int) color.Color {
 		img := w.rendered
 		if img == nil || pw <= 0 || ph <= 0 {
-			return colSurface
+			return liveSurface
 		}
 		// Scale coordinates so the old image fills the new size during a drag.
 		x := px * img.Bounds().Dx() / pw
@@ -261,7 +261,7 @@ func (w *EQGraphWidget) CreateRenderer() fyne.WidgetRenderer {
 		if x < img.Bounds().Dx() && y < img.Bounds().Dy() {
 			return img.NRGBAAt(x, y)
 		}
-		return colSurface
+		return liveSurface
 	})
 	raster.SetMinSize(fyne.NewSize(0, 100))
 	return widget.NewSimpleRenderer(raster)

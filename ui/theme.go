@@ -37,6 +37,33 @@ var (
 	colHover       = color.NRGBA{R: 0x32, G: 0x22, B: 0x50, A: 0xff} // button/item hover
 )
 
+// ── Live-colour wrappers ──────────────────────────────────────────────────────
+//
+// liveCol implements color.Color by reading through a pointer to a col* global.
+// Canvas objects constructed with a liveXxx value will repaint with the correct
+// profile colour after applyColorProfile() without any explicit per-widget update.
+
+type liveCol struct{ p *color.NRGBA }
+
+func (c liveCol) RGBA() (r, g, b, a uint32) { return c.p.RGBA() }
+
+// One live reference per profile-sensitive global, in the same order they are
+// declared above so Go initialises them in the right dependency order.
+var (
+	liveSep         = liveCol{&colSep}
+	liveAccent      = liveCol{&colAccent}
+	liveAccentDark  = liveCol{&colAccentDark}
+	liveDim         = liveCol{&colDim}
+	liveDimMid      = liveCol{&colDimMid}
+	liveSurface     = liveCol{&colSurface}
+	liveSurface2    = liveCol{&colSurface2}
+	liveBorder      = liveCol{&colBorder}
+	liveBorderFocus = liveCol{&colBorderFocus}
+	liveHover       = liveCol{&colHover}
+	liveInputBg     = liveCol{&colInputBg}
+	liveTabActive   = liveCol{&colTabActive}
+)
+
 // ── Theme ─────────────────────────────────────────────────────────────────────
 
 type nitoTheme struct{}

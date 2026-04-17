@@ -30,10 +30,10 @@ type CircleStopBtn struct {
 
 func newCircleStop(onTap func()) *CircleStopBtn {
 	b := &CircleStopBtn{onTap: onTap}
-	b.circ = canvas.NewRectangle(colAccentDark)
+	b.circ = canvas.NewRectangle(liveAccentDark)
 	b.circ.CornerRadius = 9
 	b.circ.SetMinSize(fyne.NewSize(18, 18))
-	b.label = txt("■", colAccent, 9, false, false)
+	b.label = txt("■", liveAccent, 9, false, false)
 	b.ExtendBaseWidget(b)
 	return b
 }
@@ -45,20 +45,20 @@ func (b *CircleStopBtn) CreateRenderer() fyne.WidgetRenderer {
 }
 
 func (b *CircleStopBtn) Refresh() {
-	b.circ.FillColor = colAccentDark
+	b.circ.FillColor = liveAccentDark
 	b.circ.Refresh()
-	b.label.Color = colAccent
+	b.label.Color = liveAccent
 	b.label.Refresh()
 	b.BaseWidget.Refresh()
 }
 
 func (b *CircleStopBtn) Tapped(_ *fyne.PointEvent) {
-	b.circ.FillColor = colAccent
+	b.circ.FillColor = liveAccent
 	b.circ.Refresh()
 	go func() {
 		time.Sleep(120 * time.Millisecond)
 		fyne.Do(func() {
-			b.circ.FillColor = colAccentDark
+			b.circ.FillColor = liveAccentDark
 			b.circ.Refresh()
 		})
 		if b.onTap != nil {
@@ -70,14 +70,14 @@ func (b *CircleStopBtn) Tapped(_ *fyne.PointEvent) {
 func (b *CircleStopBtn) TappedSecondary(_ *fyne.PointEvent) {}
 
 func (b *CircleStopBtn) MouseIn(_ *desktop.MouseEvent) {
-	b.circ.FillColor = colBorderFocus
+	b.circ.FillColor = liveBorderFocus
 	b.circ.Refresh()
 }
 
 func (b *CircleStopBtn) MouseMoved(_ *desktop.MouseEvent) {}
 
 func (b *CircleStopBtn) MouseOut() {
-	b.circ.FillColor = colAccentDark
+	b.circ.FillColor = liveAccentDark
 	b.circ.Refresh()
 }
 
@@ -211,7 +211,7 @@ func showVoiceSettingsPopup(w fyne.Window) {
 
 	body := container.NewVBox(
 		minWidth,
-		monoTxt("Input device", colDimMid), withPointerCursor(inputSel), vspace(4),
+		monoTxt("Input device", liveDimMid), withPointerCursor(inputSel), vspace(4),
 		hline(), vspace(4),
 		withPointerCursor(noiseCheck),
 		withPointerCursor(aecCheck),
@@ -228,8 +228,6 @@ func showVoiceSettingsPopup(w fyne.Window) {
 // theme refresh. A registered themeListener keeps the active-ring indicators
 // in sync without rebuilding the widget tree.
 func buildThemeSection() fyne.CanvasObject {
-	header := txt("COLOUR PRESET", colAccent, 11, true, true)
-
 	borders := make([]*canvas.Rectangle, len(colorProfiles))
 	nameLabels := make([]*canvas.Text, len(colorProfiles))
 
@@ -252,7 +250,7 @@ func buildThemeSection() fyne.CanvasObject {
 		}
 		borders[i] = ring
 
-		nameLabel := monoTxt(p.Name, colDimMid)
+		nameLabel := monoTxt(p.Name, liveDimMid)
 		nameLabels[i] = nameLabel
 
 		swatch := container.NewCenter(
@@ -267,8 +265,6 @@ func buildThemeSection() fyne.CanvasObject {
 
 	// Update rings and label colours whenever the profile changes.
 	registerThemeListener(func() {
-		header.Color = colAccent
-		header.Refresh()
 		for i, p := range colorProfiles {
 			if p.Name == activeProfileName {
 				borders[i].StrokeColor = colText
@@ -276,13 +272,12 @@ func buildThemeSection() fyne.CanvasObject {
 				borders[i].StrokeColor = colTransparent
 			}
 			borders[i].Refresh()
-			nameLabels[i].Color = colDimMid
+			nameLabels[i].Color = liveDimMid
 			nameLabels[i].Refresh()
 		}
 	})
 
 	return container.NewVBox(
-		container.NewPadded(header),
 		vspace(2),
 		newResponsiveGrid(4, 60, cells...),
 		vspace(4),
@@ -294,29 +289,30 @@ func buildThemeSection() fyne.CanvasObject {
 // buildStatusTab returns the status tab content and an update function that
 // mutates the live labels. The update function must be called on the Fyne thread.
 func buildStatusTab() (fyne.CanvasObject, func(connected bool, brokerURL, userID string, latencyMs int64)) {
-	dot := txt("○ ", colDim, 13, false, true)
-	statusLabel := monoTxt("offline", colDim)
-	pingLabel := monoTxt("--", colDim)
-	brokerLabel := monoTxt("--", colDim)
-	userLabel := monoTxt("--", colDim)
+	dot := txt("○ ", liveDim, 13, false, true)
+	statusLabel := monoTxt("offline", liveDim)
+	pingLabel := monoTxt("--", liveDim)
+	brokerLabel := monoTxt("--", liveDim)
+	userLabel := monoTxt("--", liveDim)
 
 	connSection := container.NewVBox(
 		vspace(4),
 		container.NewHBox(dot, statusLabel),
-		container.NewHBox(monoTxt("  ping    ", colDimMid), pingLabel),
-		container.NewHBox(monoTxt("  broker  ", colDimMid), brokerLabel),
-		container.NewHBox(monoTxt("  user    ", colDimMid), userLabel),
+		container.NewHBox(monoTxt("  ping    ", liveDimMid), pingLabel),
+		container.NewHBox(monoTxt("  broker  ", liveDimMid), brokerLabel),
+		container.NewHBox(monoTxt("  user    ", liveDimMid), userLabel),
 	)
 
 	statsContent := container.NewVBox(
-		container.NewHBox(monoTxt("voice pkt/s  ", colDimMid), monoTxt("--", colDim)),
-		container.NewHBox(monoTxt("voice loss   ", colDimMid), monoTxt("--", colDim)),
+		container.NewHBox(monoTxt("voice pkt/s  ", liveDimMid), monoTxt("--", liveDim)),
+		container.NewHBox(monoTxt("voice loss   ", liveDimMid), monoTxt("--", liveDim)),
 	)
 
 	accordion := NewCollapseSection("STATS", container.NewVBox(statsContent), false)
 	sep := func() fyne.CanvasObject { return container.NewVBox(vspace(8), hline(), vspace(8)) }
 
-	themeSection := buildThemeSection()
+	themeBody := buildThemeSection()
+	themeSection := NewCollapseSection("COLOUR PRESET", themeBody, false)
 
 	area := container.NewVScroll(container.NewVBox(connSection, sep(), accordion, sep(), themeSection))
 
@@ -337,16 +333,16 @@ func buildStatusTab() (fyne.CanvasObject, func(connected bool, brokerURL, userID
 			userLabel.Text = userID
 			userLabel.Color = colText
 		} else {
-			dot.Color = colDim
+			dot.Color = liveDim
 			dot.Text = "○ "
 			statusLabel.Text = "offline"
-			statusLabel.Color = colDim
+			statusLabel.Color = liveDim
 			pingLabel.Text = "--"
-			pingLabel.Color = colDim
+			pingLabel.Color = liveDim
 			brokerLabel.Text = "--"
-			brokerLabel.Color = colDim
+			brokerLabel.Color = liveDim
 			userLabel.Text = "--"
-			userLabel.Color = colDim
+			userLabel.Color = liveDim
 		}
 		dot.Refresh()
 		statusLabel.Refresh()
@@ -435,7 +431,7 @@ func (sp *StatusPanel) SetInvites(invites []apitypes.PendingInvite) {
 			}()
 		}
 		rows = append(rows, container.NewPadded(container.NewHBox(
-			monoTxt("◆ ", colAccent), nameLabel, acceptBtn,
+			monoTxt("◆ ", liveAccent), nameLabel, acceptBtn,
 		)))
 	}
 	if len(rows) == 0 {

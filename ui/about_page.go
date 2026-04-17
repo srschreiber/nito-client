@@ -92,9 +92,9 @@ func showAboutWindow(a fyne.App) {
 		func(id widget.ListItemID, obj fyne.CanvasObject) {
 			label := obj.(*fyne.Container).Objects[0].(*canvas.Text)
 			if id == selected {
-				label.Color = colAccent
+				label.Color = liveAccent
 			} else {
-				label.Color = colDimMid
+				label.Color = liveDimMid
 			}
 			label.Text = allLicenses[id].name
 			label.Refresh()

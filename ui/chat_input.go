@@ -21,7 +21,7 @@ type ChatInput struct {
 
 func NewChatInput(onSubmit func(string)) *ChatInput {
 	ci := &ChatInput{onSubmit: onSubmit}
-	ci.modeLabel = txt("> ", colAccent, 13, false, true)
+	ci.modeLabel = txt("> ", liveAccent, 13, false, true)
 
 	entry := widget.NewEntry()
 	entry.SetPlaceHolder("type a message")
@@ -46,7 +46,7 @@ func (ci *ChatInput) SetChatMode(on bool) {
 		ci.modeLabel.Color = colLavender
 	} else {
 		ci.modeLabel.Text = "> "
-		ci.modeLabel.Color = colAccent
+		ci.modeLabel.Color = liveAccent
 	}
 	ci.modeLabel.Refresh()
 }
@@ -54,7 +54,7 @@ func (ci *ChatInput) SetChatMode(on bool) {
 func (ci *ChatInput) SetDMMode(username string) {
 	if username == "" {
 		ci.modeLabel.Text = "> "
-		ci.modeLabel.Color = colAccent
+		ci.modeLabel.Color = liveAccent
 	} else {
 		ci.modeLabel.Text = "dm " + username + " › "
 		ci.modeLabel.Color = colCyan
@@ -74,9 +74,9 @@ func (ci *ChatInput) DMTarget() string {
 func (ci *ChatInput) CreateRenderer() fyne.WidgetRenderer {
 	inputRow := container.NewBorder(nil, nil, container.NewPadded(ci.modeLabel), nil, ci.Entry)
 
-	inputBg := canvas.NewRectangle(colInputBg)
+	inputBg := canvas.NewRectangle(liveInputBg)
 	inputBg.CornerRadius = 6
-	inputBg.StrokeColor = colBorder
+	inputBg.StrokeColor = liveBorder
 	inputBg.StrokeWidth = 1
 
 	return widget.NewSimpleRenderer(container.NewStack(inputBg, container.NewPadded(inputRow)))

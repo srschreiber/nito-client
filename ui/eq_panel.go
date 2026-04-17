@@ -101,7 +101,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	graphStack := container.NewStack(graph, spectrum)
 
 	// ── Preset selector ───────────────────────────────────────────────────────
-	infoLabel := txt("", colDimMid, 11, false, true)
+	infoLabel := txt("", liveDimMid, 11, false, true)
 
 	allPresetNames := func() []string {
 		var names []string
@@ -187,7 +187,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			}
 		}
 		body := container.NewVBox(
-			monoTxt("preset name", colDimMid), nameEntry, vspace(6),
+			monoTxt("preset name", liveDimMid), nameEntry, vspace(6),
 			container.NewHBox(confirmBtn, cancelBtn),
 		)
 		pop = showNitoPopup("SAVE PRESET", body, w)
@@ -211,7 +211,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			valLabel.Refresh()
 		}
 		return container.NewVBox(
-			container.NewHBox(monoTxt(label, colDimMid), valLabel),
+			container.NewHBox(monoTxt(label, liveDimMid), valLabel),
 			withPointerCursorNoHover(sl),
 		)
 	}

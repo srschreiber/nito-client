@@ -24,8 +24,8 @@ func txt(s string, col color.Color, size float32, bold, mono bool) *canvas.Text 
 }
 
 func monoTxt(s string, col color.Color) *canvas.Text { return txt(s, col, 13, false, true) }
-func dimTxt(s string) *canvas.Text                   { return monoTxt(s, colDim) }
-func sectionBadge(s string) *canvas.Text             { return txt(s, colAccent, 11, true, true) }
+func dimTxt(s string) *canvas.Text                   { return monoTxt(s, liveDim) }
+func sectionBadge(s string) *canvas.Text             { return txt(s, liveAccent, 11, true, true) }
 
 // truncLabel returns a Label that clips to "…" when the allocated width is
 // too narrow to show the full text.  Use inside container.NewBorder (not HBox)
@@ -38,7 +38,7 @@ func truncLabel(s string, _ color.Color, bold bool) *widget.Label {
 }
 
 func hline() *canvas.Rectangle {
-	r := canvas.NewRectangle(colSep)
+	r := canvas.NewRectangle(liveSep)
 	r.SetMinSize(fyne.NewSize(0, 1))
 	return r
 }
@@ -51,13 +51,13 @@ func vspace(h float32) fyne.CanvasObject {
 
 // panelStack wraps content in a stack with a rounded bordered panel background.
 func panelStack(focused bool, content fyne.CanvasObject) (*canvas.Rectangle, fyne.CanvasObject) {
-	bg := canvas.NewRectangle(colSurface)
+	bg := canvas.NewRectangle(liveSurface)
 	bg.CornerRadius = 6
 	if focused {
-		bg.StrokeColor = colBorderFocus
+		bg.StrokeColor = liveBorderFocus
 		bg.StrokeWidth = 1.5
 	} else {
-		bg.StrokeColor = colBorder
+		bg.StrokeColor = liveBorder
 		bg.StrokeWidth = 1
 	}
 	return bg, container.NewStack(bg, container.NewPadded(content))
@@ -170,10 +170,10 @@ type PillPlayBtn struct {
 
 func newPillPlayBtn(icon string, onTap func()) *PillPlayBtn {
 	b := &PillPlayBtn{onTap: onTap}
-	b.circ = canvas.NewRectangle(colAccentDark)
+	b.circ = canvas.NewRectangle(liveAccentDark)
 	b.circ.CornerRadius = 9
 	b.circ.SetMinSize(fyne.NewSize(18, 18))
-	b.label = txt(icon, colAccent, 9, false, false)
+	b.label = txt(icon, liveAccent, 9, false, false)
 	b.ExtendBaseWidget(b)
 	return b
 }
@@ -184,10 +184,10 @@ func (b *PillPlayBtn) SetIcon(icon string) {
 }
 
 func (b *PillPlayBtn) Refresh() {
-	b.circ.FillColor = colAccentDark
+	b.circ.FillColor = liveAccentDark
 	b.circ.Refresh()
 	if !b.isThumb {
-		b.label.Color = colAccent
+		b.label.Color = liveAccent
 		b.label.Refresh()
 	}
 	b.BaseWidget.Refresh()
@@ -197,7 +197,7 @@ func (b *PillPlayBtn) Refresh() {
 // album-art thumb in audio embeds. Shows ♪ when idle, ■ when playing.
 func newThumbPlayBtn(icon string, onTap func()) *PillPlayBtn {
 	b := &PillPlayBtn{onTap: onTap, isThumb: true}
-	b.circ = canvas.NewRectangle(colAccentDark)
+	b.circ = canvas.NewRectangle(liveAccentDark)
 	b.circ.CornerRadius = 24
 	b.circ.SetMinSize(fyne.NewSize(48, 48))
 	b.label = txt(icon, color.White, 22, true, false)
@@ -212,12 +212,12 @@ func (b *PillPlayBtn) CreateRenderer() fyne.WidgetRenderer {
 }
 
 func (b *PillPlayBtn) Tapped(_ *fyne.PointEvent) {
-	b.circ.FillColor = colAccent
+	b.circ.FillColor = liveAccent
 	b.circ.Refresh()
 	go func() {
 		time.Sleep(120 * time.Millisecond)
 		fyne.Do(func() {
-			b.circ.FillColor = colAccentDark
+			b.circ.FillColor = liveAccentDark
 			b.circ.Refresh()
 		})
 		if b.onTap != nil {
@@ -229,12 +229,12 @@ func (b *PillPlayBtn) Tapped(_ *fyne.PointEvent) {
 func (b *PillPlayBtn) TappedSecondary(_ *fyne.PointEvent) {}
 
 func (b *PillPlayBtn) MouseIn(_ *desktop.MouseEvent) {
-	b.circ.FillColor = colBorderFocus
+	b.circ.FillColor = liveBorderFocus
 	b.circ.Refresh()
 }
 func (b *PillPlayBtn) MouseMoved(_ *desktop.MouseEvent) {}
 func (b *PillPlayBtn) MouseOut() {
-	b.circ.FillColor = colAccentDark
+	b.circ.FillColor = liveAccentDark
 	b.circ.Refresh()
 }
 func (b *PillPlayBtn) Cursor() desktop.Cursor { return desktop.PointerCursor }
@@ -270,7 +270,7 @@ func (h *HoverRow) Tapped(_ *fyne.PointEvent) {
 func (h *HoverRow) TappedSecondary(_ *fyne.PointEvent) {}
 
 func (h *HoverRow) MouseIn(_ *desktop.MouseEvent) {
-	h.bg.FillColor = colHover
+	h.bg.FillColor = liveHover
 	h.bg.Refresh()
 }
 
@@ -337,7 +337,7 @@ func (tb *TabBar) CreateRenderer() fyne.WidgetRenderer {
 		bg := canvas.NewRectangle(colTransparent)
 		bg.CornerRadius = 4
 		if i == tb.Active {
-			bg.FillColor = colHover
+			bg.FillColor = liveHover
 		}
 		hoverRow := NewHoverRow(
 			container.NewStack(bg, container.NewPadded(label)),
@@ -392,7 +392,7 @@ func (r *tabBarRenderer) Objects() []fyne.CanvasObject { return []fyne.CanvasObj
 func (r *tabBarRenderer) Refresh() {
 	for i, bg := range r.bgs {
 		if i == r.bar.Active {
-			bg.FillColor = colHover
+			bg.FillColor = liveHover
 		} else {
 			bg.FillColor = colTransparent
 		}
@@ -514,8 +514,8 @@ func NewCollapseSection(title string, body fyne.CanvasObject, startOpen bool) *C
 		title:     title,
 		open:      startOpen,
 		body:      body,
-		arrow:     txt(arrowText, colAccent, 11, true, true),
-		titleText: txt(title, colAccent, 11, true, true),
+		arrow:     txt(arrowText, liveAccent, 11, true, true),
+		titleText: txt(title, liveAccent, 11, true, true),
 	}
 	if !startOpen {
 		body.Hide()
@@ -543,9 +543,9 @@ func (c *CollapseSection) CreateRenderer() fyne.WidgetRenderer {
 }
 
 func (c *CollapseSection) Refresh() {
-	c.arrow.Color = colAccent
+	c.arrow.Color = liveAccent
 	c.arrow.Refresh()
-	c.titleText.Color = colAccent
+	c.titleText.Color = liveAccent
 	c.titleText.Refresh()
 	c.BaseWidget.Refresh()
 }
@@ -555,9 +555,9 @@ func (c *CollapseSection) Refresh() {
 // showNitoPopup shows a styled floating popup that auto-dismisses when the user
 // clicks outside it (uses widget.PopUp, not a modal dialog).
 func showNitoPopup(title string, body fyne.CanvasObject, w fyne.Window) *widget.PopUp {
-	bg := canvas.NewRectangle(colSurface)
+	bg := canvas.NewRectangle(liveSurface)
 	bg.CornerRadius = 16
-	bg.StrokeColor = colBorderFocus
+	bg.StrokeColor = liveBorderFocus
 	bg.StrokeWidth = 1.5
 
 	content := container.NewVBox(
@@ -602,14 +602,14 @@ func showToast(w fyne.Window, message string, kind toastKind) {
 		accentCol = colAmber
 		icon = "⚠ "
 	default:
-		accentCol = colAccent
+		accentCol = liveAccent
 		icon = "· "
 	}
 
 	iconLabel := txt(icon, accentCol, 13, true, true)
 	msgLabel := monoTxt(message, colText)
 
-	bg := canvas.NewRectangle(colSurface2)
+	bg := canvas.NewRectangle(liveSurface2)
 	bg.CornerRadius = 8
 	bg.StrokeColor = accentCol
 	bg.StrokeWidth = 1.5

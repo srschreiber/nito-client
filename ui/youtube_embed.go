@@ -138,14 +138,14 @@ func (c *ytCardWidget) Tapped(_ *fyne.PointEvent) {
 func (c *ytCardWidget) TappedSecondary(_ *fyne.PointEvent) {}
 
 func (c *ytCardWidget) MouseIn(_ *desktop.MouseEvent) {
-	c.bg.FillColor = colHover
+	c.bg.FillColor = liveHover
 	c.bg.Refresh()
 }
 
 func (c *ytCardWidget) MouseMoved(_ *desktop.MouseEvent) {}
 
 func (c *ytCardWidget) MouseOut() {
-	c.bg.FillColor = colSurface2
+	c.bg.FillColor = liveSurface2
 	c.bg.Refresh()
 }
 
@@ -163,12 +163,12 @@ func buildYouTubeEmbed(videoURL string) fyne.CanvasObject {
 	}
 
 	// ── Thumbnail ─────────────────────────────────────────────────────────────
-	thumbPlaceholder := canvas.NewRectangle(colSurface)
+	thumbPlaceholder := canvas.NewRectangle(liveSurface)
 	thumbPlaceholder.SetMinSize(fyne.NewSize(ytCardW, ytCardH))
 	thumbStack := container.NewStack(thumbPlaceholder)
 
 	// ── Channel avatar circle ─────────────────────────────────────────────────
-	avatarBg := canvas.NewRectangle(colAccentDark)
+	avatarBg := canvas.NewRectangle(liveAccentDark)
 	avatarBg.CornerRadius = 14
 	avatarBg.SetMinSize(fyne.NewSize(28, 28))
 	avatarInitial := txt("?", color.White, 12, true, false)
@@ -193,9 +193,9 @@ func buildYouTubeEmbed(videoURL string) fyne.CanvasObject {
 	)
 
 	// ── Card shell ────────────────────────────────────────────────────────────
-	bg := canvas.NewRectangle(colSurface2)
+	bg := canvas.NewRectangle(liveSurface2)
 	bg.CornerRadius = 8
-	bg.StrokeColor = colBorder
+	bg.StrokeColor = liveBorder
 	bg.StrokeWidth = 1
 
 	bottomSection := container.NewVBox(

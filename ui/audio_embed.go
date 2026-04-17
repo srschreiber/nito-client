@@ -365,13 +365,13 @@ func buildAudioEmbed(audioURL string) fyne.CanvasObject {
 	aliasBtn.Importance = widget.LowImportance
 
 	// ── Card shell ────────────────────────────────────────────────────────────
-	bg := canvas.NewRectangle(colSurface2)
+	bg := canvas.NewRectangle(liveSurface2)
 	bg.CornerRadius = 8
-	bg.StrokeColor = colBorder
+	bg.StrokeColor = liveBorder
 	bg.StrokeWidth = 1
 	bg.SetMinSize(fyne.NewSize(audioCardW, 0))
 
-	audioBadge := txt("♫  audio", colDimMid, 10, true, true)
+	audioBadge := txt("♫  audio", liveDimMid, 10, true, true)
 
 	rightCol := container.NewVBox(
 		titleLabel,

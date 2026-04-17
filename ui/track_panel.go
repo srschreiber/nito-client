@@ -144,14 +144,14 @@ func NewTrackMeterWidget(trackIdx int) *TrackMeterWidget {
 	m.raster = canvas.NewRasterWithPixels(func(px, py, pw, ph int) color.Color {
 		img := m.rendered
 		if img == nil || pw <= 0 || ph <= 0 {
-			return colSurface
+			return liveSurface
 		}
 		x := px * img.Bounds().Dx() / pw
 		y := py * img.Bounds().Dy() / ph
 		if x < img.Bounds().Dx() && y < img.Bounds().Dy() {
 			return img.NRGBAAt(x, y)
 		}
-		return colSurface
+		return liveSurface
 	})
 	m.raster.SetMinSize(fyne.NewSize(float32(meterBandCount)*10, meterH))
 	m.ExtendBaseWidget(m)
@@ -194,14 +194,14 @@ func (m *TrackMeterWidget) pixelAt(px, py, pw, ph int) color.Color {
 	n := meterBandCount
 	bandW := pw / n
 	if bandW <= 0 {
-		return colSurface
+		return liveSurface
 	}
 	b := px / bandW
 	if b >= n {
-		return colSurface
+		return liveSurface
 	}
 	if px%bandW == bandW-1 { // 1px gap between bands
-		return colSurface
+		return liveSurface
 	}
 
 	level := voice.GetTrackBandLevel(m.trackIdx, b)
@@ -217,14 +217,14 @@ func (m *TrackMeterWidget) pixelAt(px, py, pw, ph int) color.Color {
 
 	barH := int(scaled * float64(ph))
 	if py < ph-barH {
-		return colSurface
+		return liveSurface
 	}
 
 	// Gradient: green (bottom) → amber (mid) → accent (top)
 	posInBar := float32(ph-py) / float32(ph)
 	switch {
 	case posInBar > 0.75:
-		return colAccent
+		return liveAccent
 	case posInBar > 0.45:
 		return colAmber
 	default:
@@ -259,11 +259,7 @@ func (r *trackRowBundle) tick(tickN int) {
 			r.statusLabel.SetText(frame + " BUFFERING")
 			r.statusLabel.Importance = widget.WarningImportance
 		} else if voice.IsTrackLive(r.trackIdx) {
-			if (tickN/5)%2 == 0 {
-				r.statusLabel.SetText("◉ LIVE")
-			} else {
-				r.statusLabel.SetText("○ LIVE")
-			}
+			r.statusLabel.SetText("◉ LIVE")
 			r.statusLabel.Importance = widget.DangerImportance
 		} else {
 			title := voice.GetTrackTitle(r.trackIdx)
@@ -292,7 +288,7 @@ func newTrackRowBundle(idx int, w fyne.Window) *trackRowBundle {
 		nitoLog("stopped track " + itoa(idx))
 	})
 
-	noteIcon := txt("♪ ", colAccent, 11, false, true)
+	noteIcon := txt("♪ ", liveAccent, 11, false, true)
 	leftSide := container.NewHBox(stopBtn, container.NewPadded(noteIcon), meter)
 	activeLayer := container.NewPadded(
 		container.NewBorder(nil, nil, leftSide, nil, container.NewPadded(statusLabel)),
@@ -300,8 +296,8 @@ func newTrackRowBundle(idx int, w fyne.Window) *trackRowBundle {
 
 	idleLayer := NewHoverRow(
 		container.NewPadded(container.NewHBox(
-			txt("• ", colDimMid, 13, false, true),
-			monoTxt("track "+itoa(idx+1)+" — idle", colDim),
+			txt("• ", liveDimMid, 13, false, true),
+			monoTxt("track "+itoa(idx+1)+" — idle", liveDim),
 		)),
 		func() { showPlayPopup(w, idx) },
 	)
@@ -368,11 +364,11 @@ func showPlayPopup(w fyne.Window, idx int) {
 
 	var bodyItems []fyne.CanvasObject
 	bodyItems = append(bodyItems,
-		monoTxt("URL", colDimMid), urlEntry, vspace(4),
+		monoTxt("URL", liveDimMid), urlEntry, vspace(4),
 	)
 	if len(aliasNames) > 0 {
 		bodyItems = append(bodyItems,
-			monoTxt("or alias", colDimMid), aliasSel, vspace(4),
+			monoTxt("or alias", liveDimMid), aliasSel, vspace(4),
 		)
 	}
 	bodyItems = append(bodyItems,
@@ -428,8 +424,8 @@ func showAddAliasPopup(w fyne.Window, onAdded func()) {
 	}
 
 	body := container.NewVBox(
-		monoTxt("alias name", colDimMid), nameEntry, vspace(4),
-		monoTxt("URL", colDimMid), urlEntry, vspace(6),
+		monoTxt("alias name", liveDimMid), nameEntry, vspace(4),
+		monoTxt("URL", liveDimMid), urlEntry, vspace(6),
 		container.NewHBox(saveBtn, cancelBtn),
 	)
 	pop = showNitoPopup("ADD ALIAS", body, w)
@@ -481,8 +477,8 @@ func showAddAliasPopupPrefilled(w fyne.Window, initName, initURL string, onAdded
 	}
 
 	body := container.NewVBox(
-		monoTxt("alias name", colDimMid), nameEntry, vspace(4),
-		monoTxt("URL", colDimMid), urlEntry, vspace(6),
+		monoTxt("alias name", liveDimMid), nameEntry, vspace(4),
+		monoTxt("URL", liveDimMid), urlEntry, vspace(6),
 		container.NewHBox(saveBtn, cancelBtn),
 	)
 	pop = showNitoPopup("ADD ALIAS", body, w)
@@ -534,7 +530,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 				nitoLog("alias play: " + n)
 			})
 
-			copyBtn := newBtn("cp", func() {
+			copyBtn := newBtn("copy", func() {
 				fyne.CurrentApp().Clipboard().SetContent(u)
 				showToast(w, "copied: "+truncURL(u, 40), toastInfo)
 			})

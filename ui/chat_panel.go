@@ -51,7 +51,7 @@ func renderMessage(m chatMessage) fyne.CanvasObject {
 	}
 	msgRow := func(ts, from string, fromCol color.Color, text string) fyne.CanvasObject {
 		meta := container.NewHBox(
-			txt(ts+" ", colDim, 12, false, true),
+			txt(ts+" ", liveDim, 12, false, true),
 			txt(from+"  ", fromCol, 13, false, true),
 		)
 		return container.NewPadded(container.NewBorder(nil, nil, meta, nil, msgBody(text)))
@@ -241,7 +241,7 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 			}
 		}
 		body := container.NewVBox(
-			monoTxt("room name", colDimMid), nameEntry, vspace(6),
+			monoTxt("room name", liveDimMid), nameEntry, vspace(6),
 			container.NewHBox(confirmBtn, cancelBtn),
 		)
 		pop = showNitoPopup("CREATE ROOM", body, w)
@@ -289,7 +289,7 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 			}
 		}
 		body := container.NewVBox(
-			monoTxt("username", colDimMid), userEntry, vspace(6),
+			monoTxt("username", liveDimMid), userEntry, vspace(6),
 			container.NewHBox(confirmBtn, cancelBtn),
 		)
 		pop = showNitoPopup("INVITE TO ROOM", body, w)
@@ -324,7 +324,7 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 
 	// ── Room list section (dynamic) ───────────────────────────────────────────
 	roomSection := container.NewVBox(
-		txt("my rooms", colDimMid, 11, false, true),
+		txt("my rooms", liveDimMid, 11, false, true),
 		cp.roomListBox,
 		vspace(4),
 		createBtn,
@@ -338,7 +338,7 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 	)
 
 	scrollBody := container.NewVScroll(container.NewVBox(roomSection, memberSection))
-	bg := canvas.NewRectangle(colSurface2)
+	bg := canvas.NewRectangle(liveSurface2)
 	bg.CornerRadius = 4
 	return container.NewStack(bg, container.NewPadded(
 		container.NewBorder(nil, footer, nil, nil, scrollBody),
@@ -362,14 +362,14 @@ func (cp *ChatPanel) SetRooms(rooms []apitypes.RoomEntry) {
 
 	for _, r := range owned {
 		r := r
-		icon := monoTxt("◆ ", colAccent)
+		icon := monoTxt("◆ ", liveAccent)
 		name := truncLabel(r.Name, colText, true)
 		row := container.NewPadded(container.NewBorder(nil, nil, icon, nil, name))
 		rows = append(rows, NewHoverRow(row, func() { cp.selectRoom(r.ID, r.Name) }))
 	}
 
 	if len(joined) > 0 {
-		rows = append(rows, vspace(4), txt("joined rooms", colDimMid, 11, false, true))
+		rows = append(rows, vspace(4), txt("joined rooms", liveDimMid, 11, false, true))
 		for _, r := range joined {
 			r := r
 			icon := monoTxt("• ", colText)
@@ -397,11 +397,11 @@ func (cp *ChatPanel) SetMembers(members []apitypes.RoomMemberEntry) {
 		if m.Online {
 			dot = txt("● ", colGreen, 12, false, true)
 		} else {
-			dot = txt("○ ", colDim, 12, false, true)
+			dot = txt("○ ", liveDim, 12, false, true)
 		}
-		nameCol := colText
+		var nameCol color.Color = colText
 		if !m.Online {
-			nameCol = colDim
+			nameCol = liveDim
 		}
 		nameLabel := truncLabel(m.Username, nameCol, false)
 		row := container.NewPadded(container.NewBorder(nil, nil, dot, nil, nameLabel))
@@ -544,8 +544,8 @@ func (cp *ChatPanel) createDMView(username string) {
 func (cp *ChatPanel) buildDMView(msgBox *fyne.Container, username string) fyne.CanvasObject {
 	backLabel := NewTappable(
 		container.NewHBox(
-			txt("← ", colAccent, 13, false, true),
-			txt("#"+cp.currentRoomName, colDimMid, 12, false, true),
+			txt("← ", liveAccent, 13, false, true),
+			txt("#"+cp.currentRoomName, liveDimMid, 12, false, true),
 		),
 		func() { cp.showRoomArea() },
 	)
