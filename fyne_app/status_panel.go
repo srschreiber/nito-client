@@ -17,52 +17,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-type mockTrack struct {
-	idx       int
-	playing   bool
-	title     string
-	startedBy string
-	broadcast bool
-}
-
-var mockTracks = []mockTrack{
-	{0, true, "I♥CHILLHOP", "you", true},
-	{1, false, "", "", false},
-	{2, false, "", "", false},
-}
-
-var mockAliases = []string{"radiohead", "lofi-beats", "", "", ""}
-
-// ── EQ preset mock data ───────────────────────────────────────────────────────
-
-type mockPresetDef struct {
-	name    string
-	tagline string
-	tags    string
-	custom  bool
-}
-
-var mockBuiltinPresets = []mockPresetDef{
-	{"Airy", "Light & ethereal", "EQ · Chorus", false},
-	{"Auto Pan", "Rhythmic stereo sweep", "Auto-Pan", false},
-	{"Balanced", "Gentle V-curve", "EQ only", false},
-	{"Bass Boost", "Heavy low end", "EQ only", false},
-	{"Bright", "Crispy highs", "EQ only", false},
-	{"Chill", "Warm & relaxed", "EQ · Reverb", false},
-	{"Delay Echo", "Bouncy echo repeats", "EQ · Delay", false},
-	{"Flat", "No processing", "Clean slate", false},
-	{"Immersive", "Spacious & enveloping", "EQ · Reverb · Chorus", false},
-	{"Lo-Fi", "Warm, dusty & nostalgic", "EQ · Reverb · Delay", false},
-	{"Punchy", "Tight bass, forward mids", "EQ only", false},
-	{"Techno", "Full FX chain, high energy", "EQ · Reverb · Chorus · Delay · Pan", false},
-	{"Vocal Boost", "Forward mids & presence", "EQ only", false},
-	{"Warm", "Full bass, rolled highs", "EQ only", false},
-}
-
-var mockCustomPresets []mockPresetDef
-
 // ── CircleStopBtn ─────────────────────────────────────────────────────────────
 
 type CircleStopBtn struct {
@@ -114,46 +68,6 @@ func (b *CircleStopBtn) MouseMoved(_ *desktop.MouseEvent) {}
 func (b *CircleStopBtn) MouseOut() {
 	b.circ.FillColor = colAccentDark
 	b.circ.Refresh()
-}
-
-// ── Track row ─────────────────────────────────────────────────────────────────
-
-func buildTrackRow(t mockTrack) fyne.CanvasObject {
-	if !t.playing {
-		return container.NewPadded(container.NewHBox(
-			txt("• ", colDimMid, 13, false, true),
-			monoTxt("idle", colDim),
-		))
-	}
-
-	stopBtn := newCircleStop(func() {})
-	noteIcon := txt("♪ ", colAccent, 13, false, true)
-
-	var detail fyne.CanvasObject
-	if t.broadcast {
-		broadcastIcon := txt(" ◉ ", colAccent, 13, false, true)
-		titleStr := t.title
-		if titleStr == "" {
-			titleStr = "broadcasting"
-		}
-		detail = container.NewHBox(noteIcon, broadcastIcon, monoTxt(titleStr, colText))
-	} else {
-		byStr := "you"
-		if t.startedBy != "you" {
-			byStr = "by: " + t.startedBy
-		}
-		byLabel := monoTxt("  "+byStr, colDim)
-		if t.title != "" {
-			detail = container.NewVBox(
-				container.NewHBox(noteIcon, byLabel),
-				monoTxt("  "+t.title, colDimMid),
-			)
-		} else {
-			detail = container.NewHBox(noteIcon, byLabel)
-		}
-	}
-
-	return container.NewPadded(container.NewHBox(stopBtn, detail))
 }
 
 // ── Voice settings popup ──────────────────────────────────────────────────────
@@ -215,53 +129,6 @@ func showVoiceSettingsPopup(w fyne.Window) {
 		testBtn,
 	)
 	showNitoPopup("VOICE SETTINGS", body, w)
-}
-
-// ── Idle track popup ──────────────────────────────────────────────────────────
-
-func showIdleTrackPopup(w fyne.Window, idx int) {
-	urlEntry := widget.NewEntry()
-	urlEntry.SetPlaceHolder("https://...")
-
-	var aliases []string
-	for _, a := range mockAliases {
-		if a != "" {
-			aliases = append(aliases, a)
-		}
-	}
-	aliasSel := widget.NewSelect(aliases, func(string) {})
-
-	playBtn := widget.NewButton("Play", nil)
-	playBtn.Importance = widget.HighImportance
-	cancelBtn := widget.NewButton("Cancel", nil)
-	cancelBtn.Importance = widget.LowImportance
-
-	var pop *widget.PopUp
-	playBtn.OnTapped = func() {
-		target := strings.TrimSpace(urlEntry.Text)
-		if target == "" && aliasSel.Selected != "" {
-			target = aliasSel.Selected
-		}
-		if pop != nil {
-			pop.Hide()
-		}
-		if target != "" {
-			showToast(w, "playing: "+target, toastInfo)
-		}
-	}
-	cancelBtn.OnTapped = func() {
-		if pop != nil {
-			pop.Hide()
-		}
-	}
-
-	body := container.NewVBox(
-		monoTxt("URL", colDimMid), urlEntry, vspace(4),
-		monoTxt("or alias", colDimMid), aliasSel, vspace(6),
-		container.NewHBox(playBtn, cancelBtn),
-	)
-	pop = showNitoPopup("TRACK "+itoa(idx), body, w)
-	w.Canvas().Focus(urlEntry)
 }
 
 // ── STATUS tab ────────────────────────────────────────────────────────────────
@@ -329,220 +196,6 @@ func buildStatusTab() (fyne.CanvasObject, func(connected bool, brokerURL, userID
 	}
 
 	return area, update
-}
-
-// ── TRACKS tab ────────────────────────────────────────────────────────────────
-
-func buildTracksTab(w fyne.Window) fyne.CanvasObject {
-	var trackRows []fyne.CanvasObject
-	for i, t := range mockTracks {
-		row := buildTrackRow(t)
-		if !t.playing {
-			idx := i
-			trackRows = append(trackRows, NewHoverRow(row, func() {
-				showIdleTrackPopup(w, idx)
-			}))
-		} else {
-			trackRows = append(trackRows, row)
-		}
-	}
-
-	var aliasRows []fyne.CanvasObject
-	for _, a := range mockAliases {
-		if a == "" {
-			addBtn := widget.NewButton("+", func() {})
-			addBtn.Importance = widget.LowImportance
-			aliasRows = append(aliasRows, container.NewBorder(nil, nil, nil, addBtn,
-				container.NewPadded(dimTxt("empty"))))
-		} else {
-			alias := a
-			removeBtn := widget.NewButton("−", func() { _ = alias }) // TODO: remove alias
-			removeBtn.Importance = widget.LowImportance
-			aliasRows = append(aliasRows, container.NewBorder(nil, nil, nil, removeBtn,
-				container.NewPadded(monoTxt(alias, colText))))
-		}
-	}
-	accordion := NewCollapseSection("PLAY ALIASES", container.NewVBox(aliasRows...), false)
-
-	scrollItems := append(trackRows, vspace(8), accordion)
-	scrollBody := container.NewVScroll(container.NewVBox(scrollItems...))
-
-	stopAllBtn := widget.NewButton("■  Stop All", func() {})
-	stopAllBtn.Importance = widget.LowImportance
-	_, footerCard := panelStack(false, stopAllBtn)
-	footer := container.NewVBox(vspace(6), footerCard, vspace(4))
-
-	return container.NewBorder(nil, footer, nil, nil, scrollBody)
-}
-
-// ── TRACK EQ tab ──────────────────────────────────────────────────────────────
-
-func buildEQTab(w fyne.Window) fyne.CanvasObject {
-	// ── Preset selector ───────────────────────────────────────────────────────
-	allPresetNames := func() []string {
-		names := make([]string, 0, len(mockBuiltinPresets)+len(mockCustomPresets))
-		for _, p := range mockBuiltinPresets {
-			names = append(names, p.name)
-		}
-		for _, p := range mockCustomPresets {
-			names = append(names, "★ "+p.name)
-		}
-		return names
-	}
-
-	infoLabel := txt("No processing  ·  Clean slate", colDimMid, 11, false, true)
-
-	var presetSel *widget.Select
-	presetSel = widget.NewSelect(allPresetNames(), func(selected string) {
-		for _, p := range append(mockBuiltinPresets, mockCustomPresets...) {
-			if p.name == selected || "★ "+p.name == selected {
-				infoLabel.Text = p.tagline + "  ·  " + p.tags
-				infoLabel.Refresh()
-				name := p.name
-				showToast(w, "applied: "+name, toastInfo)
-				return
-			}
-		}
-	})
-	presetSel.SetSelected("Flat")
-
-	saveBtn := widget.NewButton("Save as...", nil)
-	saveBtn.Importance = widget.LowImportance
-	saveBtn.OnTapped = func() {
-		nameEntry := widget.NewEntry()
-		nameEntry.SetPlaceHolder("preset name")
-		confirmBtn := widget.NewButton("Save", nil)
-		cancelBtn := widget.NewButton("Cancel", nil)
-		cancelBtn.Importance = widget.LowImportance
-		var pop *widget.PopUp
-		confirmBtn.OnTapped = func() {
-			name := strings.TrimSpace(nameEntry.Text)
-			if pop != nil {
-				pop.Hide()
-			}
-			if name != "" {
-				mockCustomPresets = append(mockCustomPresets, mockPresetDef{
-					name: name, tagline: "Custom preset", tags: "Custom", custom: true,
-				})
-				presetSel.Options = allPresetNames()
-				presetSel.Refresh()
-				showToast(w, "saved preset: "+name, toastSuccess)
-			}
-		}
-		cancelBtn.OnTapped = func() {
-			if pop != nil {
-				pop.Hide()
-			}
-		}
-		body := container.NewVBox(
-			monoTxt("preset name", colDimMid), nameEntry, vspace(6),
-			container.NewHBox(confirmBtn, cancelBtn),
-		)
-		pop = showNitoPopup("SAVE PRESET", body, w)
-		w.Canvas().Focus(nameEntry)
-	}
-
-	presetRow := container.NewBorder(nil, nil, nil, saveBtn, presetSel)
-	presetSection := container.NewVBox(presetRow, container.NewHBox(infoLabel))
-
-	// ── EQ graph ──────────────────────────────────────────────────────────────
-	graph := NewEQGraphWidget()
-
-	// Helper: labeled slider row.
-	slRow := func(label, val string, lo, hi, cur float64) fyne.CanvasObject {
-		sl := widget.NewSlider(lo, hi)
-		sl.Value = cur
-		return container.NewVBox(
-			container.NewHBox(monoTxt(label, colDimMid), monoTxt("  "+val, colText)),
-			sl,
-		)
-	}
-
-	// wrapCard gives each section a subtle bordered panel.
-	wrapCard := func(content fyne.CanvasObject) fyne.CanvasObject {
-		_, card := panelStack(false, content)
-		return card
-	}
-
-	// 4-band EQ
-	bassCard := wrapCard(container.NewVBox(
-		sectionBadge("BASS"),
-		slRow("gain", "+3.0 dB", -18, 18, 3),
-		slRow("freq", "80 Hz", 40, 500, 80),
-	))
-	midCard := wrapCard(container.NewVBox(
-		sectionBadge("MID"),
-		slRow("gain", "-0.5 dB", -18, 18, -0.5),
-		slRow("freq", "800 Hz", 200, 8000, 800),
-		slRow("Q   ", "1.2", 0.3, 6.0, 1.2),
-	))
-	trebCard := wrapCard(container.NewVBox(
-		sectionBadge("TREBLE"),
-		slRow("gain", "+2.0 dB", -18, 18, 2),
-		slRow("freq", "8000 Hz", 1000, 16000, 8000),
-	))
-	presCard := wrapCard(container.NewVBox(
-		sectionBadge("PRESENCE"),
-		slRow("gain", "+2.0 dB", -18, 18, 2),
-		slRow("freq", "3000 Hz", 2000, 5000, 3000),
-		slRow("Q   ", "1.5", 0.3, 6.0, 1.5),
-	))
-	bandsRow := container.NewGridWithColumns(4, bassCard, midCard, trebCard, presCard)
-
-	// Effects
-	delayEnabled := widget.NewCheck("enabled", func(bool) {})
-	delayCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("DELAY"), delayEnabled),
-		slRow("delay   ", "100 ms", 1, 500, 100),
-		slRow("feedback", "0.50", 0, 0.95, 0.5),
-	))
-	reverbEnabled := widget.NewCheck("enabled", func(bool) {})
-	reverbCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("REVERB"), reverbEnabled),
-		slRow("mix  ", "0.30", 0, 1, 0.3),
-		slRow("size ", "1.0", 0.5, 2.0, 1.0),
-		slRow("decay", "0.50", 0, 1, 0.5),
-		slRow("tone ", "0.70", 0, 1, 0.7),
-	))
-	chorusEnabled := widget.NewCheck("enabled", func(bool) {})
-	chorusCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("CHORUS"), chorusEnabled),
-		slRow("delay", "15 ms", 5, 30, 15),
-		slRow("rate ", "0.5 Hz", 0.1, 5.0, 0.5),
-		slRow("depth", "5.0 ms", 0, 15, 5.0),
-		slRow("mix  ", "0.30", 0, 1, 0.3),
-	))
-	effectsRow := container.NewGridWithColumns(3, delayCard, reverbCard, chorusCard)
-
-	// Pitch / Pan / Output
-	pitchEnabled := widget.NewCheck("enabled", func(bool) {})
-	pitchCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("PITCH"), pitchEnabled),
-		slRow("semitones", "0.0 st", -12, 12, 0),
-	))
-	autoPanCheck := widget.NewCheck("auto pan", func(bool) {})
-	panCard := wrapCard(container.NewVBox(
-		sectionBadge("PAN"),
-		slRow("balance", "center", -1, 1, 0),
-		autoPanCheck,
-		slRow("rate ", "0.5 Hz", 0.05, 5.0, 0.5),
-		slRow("depth", "0%", 0, 1, 0),
-	))
-	outputCard := wrapCard(container.NewVBox(
-		sectionBadge("OUTPUT"),
-		slRow("volume", "100%", 0, 800, 100),
-	))
-	bottomRow := container.NewGridWithColumns(3, pitchCard, panCard, outputCard)
-
-	sep := func() fyne.CanvasObject { return container.NewVBox(vspace(8), hline(), vspace(8)) }
-
-	return container.NewVScroll(container.NewVBox(
-		presetSection, sep(),
-		graph, sep(),
-		bandsRow, sep(),
-		effectsRow, sep(),
-		bottomRow, vspace(8),
-	))
 }
 
 // ── Invites tab ───────────────────────────────────────────────────────────────
@@ -632,11 +285,14 @@ func NewStatusPanel(w fyne.Window) *StatusPanel {
 	invitesArea, inviteListBox := buildInvitesTab(w)
 	sp.inviteListBox = inviteListBox
 
+	tracksArea, tracksTick := buildTracksTab(w)
+	eqArea, eqTick := buildEQTab(w)
+
 	tabNames := []string{"STATUS", "TRACKS", "TRACK EQ", "INVITES", "NOTIF", "LOGS"}
 	tabs := []fyne.CanvasObject{
 		statusArea,
-		buildTracksTab(w),
-		buildEQTab(w),
+		tracksArea,
+		eqArea,
 		invitesArea,
 		buildNotifTab(),
 		buildLogsTab(),
@@ -660,6 +316,19 @@ func NewStatusPanel(w fyne.Window) *StatusPanel {
 		}
 	})
 	sp.ExtendBaseWidget(sp)
+
+	// Start 50 ms animation ticker for track meters and EQ spectrum.
+	go func() {
+		t := time.NewTicker(50 * time.Millisecond)
+		defer t.Stop()
+		for range t.C {
+			fyne.Do(func() {
+				tracksTick()
+				eqTick()
+			})
+		}
+	}()
+
 	return sp
 }
 

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"image"
 	"image/color"
 	"math"
 
@@ -170,10 +171,43 @@ func eqPixelColor(x, y, width, height int, gains []float64) color.Color {
 	return colSurface
 }
 
+// precomputeEQImage renders the full EQ response curve into an *image.NRGBA.
+// This is called once per (width, height, settingsVer) combination so the
+// per-pixel raster callback degrades to a cheap array lookup.
+func precomputeEQImage(width, height int, eq eqGraphSettings) *image.NRGBA {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
+	}
+	gains := computeEQResponseGains(width, eq)
+	img := image.NewNRGBA(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			c := eqPixelColor(x, y, width, height, gains)
+			nc := color.NRGBAModel.Convert(c).(color.NRGBA)
+			img.SetNRGBA(x, y, nc)
+		}
+	}
+	return img
+}
+
 // EQGraphWidget renders a frequency response curve using canvas.Raster.
+// It caches a precomputed *image.NRGBA keyed on (width, height, settingsVer)
+// to avoid recomputing on every pixel callback — eliminating the resize lag.
 type EQGraphWidget struct {
 	widget.BaseWidget
-	Settings eqGraphSettings
+	Settings    eqGraphSettings
+	settingsVer int
+}
+
+// UpdateSettings replaces the EQ settings, invalidates the image cache, and
+// triggers a redraw.
+func (w *EQGraphWidget) UpdateSettings(s eqGraphSettings) {
+	w.Settings = s
+	w.settingsVer++
+	w.Refresh()
 }
 
 func NewEQGraphWidget() *EQGraphWidget {
@@ -183,15 +217,15 @@ func NewEQGraphWidget() *EQGraphWidget {
 }
 
 func (w *EQGraphWidget) CreateRenderer() fyne.WidgetRenderer {
-	var cachedW int
-	var cachedGains []float64
+	var cachedW, cachedH, cachedVer int
+	var img *image.NRGBA
 
 	raster := canvas.NewRasterWithPixels(func(px, py, pw, ph int) color.Color {
-		if pw != cachedW || cachedGains == nil {
-			cachedW = pw
-			cachedGains = computeEQResponseGains(pw, w.Settings)
+		if pw != cachedW || ph != cachedH || w.settingsVer != cachedVer || img == nil {
+			cachedW, cachedH, cachedVer = pw, ph, w.settingsVer
+			img = precomputeEQImage(pw, ph, w.Settings)
 		}
-		return eqPixelColor(px, py, pw, ph, cachedGains)
+		return img.NRGBAAt(px, py)
 	})
 	raster.SetMinSize(fyne.NewSize(0, 100))
 	return widget.NewSimpleRenderer(raster)

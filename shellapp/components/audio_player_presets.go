@@ -286,6 +286,36 @@ var audioPresetList = []audioPreset{
 	},
 }
 
+// ── Public exports ────────────────────────────────────────────────────────────
+
+// AudioPresetInfo is a public descriptor for a single built-in preset.
+type AudioPresetInfo struct {
+	Name    string
+	Tagline string
+	Tags    string
+}
+
+// ListBuiltinPresets returns info for every built-in audio preset in order.
+func ListBuiltinPresets() []AudioPresetInfo {
+	out := make([]AudioPresetInfo, len(audioPresetList))
+	for i, p := range audioPresetList {
+		out[i] = AudioPresetInfo{Name: p.name, Tagline: p.tagline, Tags: p.tags}
+	}
+	return out
+}
+
+// ApplyPresetByName applies the built-in preset with the given name, returning
+// its tagline and tags. Returns ok=false when no preset with that name exists.
+func ApplyPresetByName(name string) (tagline, tags string, ok bool) {
+	for _, p := range audioPresetList {
+		if p.name == name {
+			p.apply()
+			return p.tagline, p.tags, true
+		}
+	}
+	return "", "", false
+}
+
 // ── Display preset (built-in + custom unified) ────────────────────────────────
 
 type displayPreset struct {
