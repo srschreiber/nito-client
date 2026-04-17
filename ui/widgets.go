@@ -162,9 +162,10 @@ func (b *nitoBtn) TypedKey(ev *fyne.KeyEvent) {
 // but shows "▶" instead of "■". Call SetIcon to toggle between ▶ and ■.
 type PillPlayBtn struct {
 	widget.BaseWidget
-	circ  *canvas.Rectangle
-	label *canvas.Text
-	onTap func()
+	circ    *canvas.Rectangle
+	label   *canvas.Text
+	isThumb bool // true for 48×48 thumb variant (keeps white label)
+	onTap   func()
 }
 
 func newPillPlayBtn(icon string, onTap func()) *PillPlayBtn {
@@ -182,10 +183,20 @@ func (b *PillPlayBtn) SetIcon(icon string) {
 	b.label.Refresh()
 }
 
+func (b *PillPlayBtn) Refresh() {
+	b.circ.FillColor = colAccentDark
+	b.circ.Refresh()
+	if !b.isThumb {
+		b.label.Color = colAccent
+		b.label.Refresh()
+	}
+	b.BaseWidget.Refresh()
+}
+
 // newThumbPlayBtn creates a 48×48 fully-rounded play button — used as the
 // album-art thumb in audio embeds. Shows ♪ when idle, ■ when playing.
 func newThumbPlayBtn(icon string, onTap func()) *PillPlayBtn {
-	b := &PillPlayBtn{onTap: onTap}
+	b := &PillPlayBtn{onTap: onTap, isThumb: true}
 	b.circ = canvas.NewRectangle(colAccentDark)
 	b.circ.CornerRadius = 24
 	b.circ.SetMinSize(fyne.NewSize(48, 48))
@@ -487,10 +498,11 @@ func (l *responsiveGrid) MinSize(objs []fyne.CanvasObject) fyne.Size {
 // expanded, with the body shown/hidden below.
 type CollapseSection struct {
 	widget.BaseWidget
-	title string
-	open  bool
-	body  fyne.CanvasObject
-	arrow *canvas.Text
+	title     string
+	open      bool
+	body      fyne.CanvasObject
+	arrow     *canvas.Text
+	titleText *canvas.Text // stored so Refresh() can update colour on theme change
 }
 
 func NewCollapseSection(title string, body fyne.CanvasObject, startOpen bool) *CollapseSection {
@@ -499,10 +511,11 @@ func NewCollapseSection(title string, body fyne.CanvasObject, startOpen bool) *C
 		arrowText = "▼ "
 	}
 	c := &CollapseSection{
-		title: title,
-		open:  startOpen,
-		body:  body,
-		arrow: txt(arrowText, colAccent, 11, true, true),
+		title:     title,
+		open:      startOpen,
+		body:      body,
+		arrow:     txt(arrowText, colAccent, 11, true, true),
+		titleText: txt(title, colAccent, 11, true, true),
 	}
 	if !startOpen {
 		body.Hide()
@@ -512,7 +525,6 @@ func NewCollapseSection(title string, body fyne.CanvasObject, startOpen bool) *C
 }
 
 func (c *CollapseSection) CreateRenderer() fyne.WidgetRenderer {
-	titleLabel := sectionBadge(c.title)
 	toggle := func() {
 		c.open = !c.open
 		if c.open {
@@ -525,9 +537,17 @@ func (c *CollapseSection) CreateRenderer() fyne.WidgetRenderer {
 		c.arrow.Refresh()
 		c.Refresh()
 	}
-	header := NewHoverRow(container.NewHBox(c.arrow, titleLabel), toggle)
+	header := NewHoverRow(container.NewHBox(c.arrow, c.titleText), toggle)
 	layout := container.NewVBox(header, c.body)
 	return widget.NewSimpleRenderer(layout)
+}
+
+func (c *CollapseSection) Refresh() {
+	c.arrow.Color = colAccent
+	c.arrow.Refresh()
+	c.titleText.Color = colAccent
+	c.titleText.Refresh()
+	c.BaseWidget.Refresh()
 }
 
 // ── Popup helper ──────────────────────────────────────────────────────────────

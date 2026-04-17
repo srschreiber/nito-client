@@ -24,6 +24,7 @@ import (
 type CircleStopBtn struct {
 	widget.BaseWidget
 	circ  *canvas.Rectangle
+	label *canvas.Text
 	onTap func()
 }
 
@@ -32,15 +33,23 @@ func newCircleStop(onTap func()) *CircleStopBtn {
 	b.circ = canvas.NewRectangle(colAccentDark)
 	b.circ.CornerRadius = 9
 	b.circ.SetMinSize(fyne.NewSize(18, 18))
+	b.label = txt("■", colAccent, 9, false, false)
 	b.ExtendBaseWidget(b)
 	return b
 }
 
 func (b *CircleStopBtn) CreateRenderer() fyne.WidgetRenderer {
-	label := txt("■", colAccent, 9, false, false)
 	return widget.NewSimpleRenderer(
-		container.NewStack(b.circ, container.NewCenter(label)),
+		container.NewStack(b.circ, container.NewCenter(b.label)),
 	)
+}
+
+func (b *CircleStopBtn) Refresh() {
+	b.circ.FillColor = colAccentDark
+	b.circ.Refresh()
+	b.label.Color = colAccent
+	b.label.Refresh()
+	b.BaseWidget.Refresh()
 }
 
 func (b *CircleStopBtn) Tapped(_ *fyne.PointEvent) {
@@ -212,6 +221,74 @@ func showVoiceSettingsPopup(w fyne.Window) {
 	showNitoPopup("VOICE SETTINGS", body, w)
 }
 
+// ── Theme section ─────────────────────────────────────────────────────────────
+
+// buildThemeSection returns a grid of four colour-swatch buttons. Tapping one
+// calls applyColorProfile which updates all col* globals and triggers a Fyne
+// theme refresh. A registered themeListener keeps the active-ring indicators
+// in sync without rebuilding the widget tree.
+func buildThemeSection() fyne.CanvasObject {
+	header := txt("COLOUR PRESET", colAccent, 11, true, true)
+
+	borders := make([]*canvas.Rectangle, len(colorProfiles))
+	nameLabels := make([]*canvas.Text, len(colorProfiles))
+
+	var cells []fyne.CanvasObject
+	for i, p := range colorProfiles {
+		i, p := i, p
+
+		// Inner filled circle — always the profile's accent colour.
+		inner := canvas.NewRectangle(p.Accent)
+		inner.CornerRadius = 14
+		inner.SetMinSize(fyne.NewSize(28, 28))
+
+		// Outer ring — white when active, transparent otherwise.
+		ring := canvas.NewRectangle(colTransparent)
+		ring.CornerRadius = 17
+		ring.StrokeWidth = 2.5
+		ring.SetMinSize(fyne.NewSize(34, 34))
+		if p.Name == activeProfileName {
+			ring.StrokeColor = colText
+		}
+		borders[i] = ring
+
+		nameLabel := monoTxt(p.Name, colDimMid)
+		nameLabels[i] = nameLabel
+
+		swatch := container.NewCenter(
+			container.NewStack(ring, container.NewCenter(inner)),
+		)
+		cell := NewTappable(
+			container.NewVBox(swatch, container.NewCenter(nameLabel)),
+			func() { applyColorProfile(p.Name) },
+		)
+		cells = append(cells, cell)
+	}
+
+	// Update rings and label colours whenever the profile changes.
+	registerThemeListener(func() {
+		header.Color = colAccent
+		header.Refresh()
+		for i, p := range colorProfiles {
+			if p.Name == activeProfileName {
+				borders[i].StrokeColor = colText
+			} else {
+				borders[i].StrokeColor = colTransparent
+			}
+			borders[i].Refresh()
+			nameLabels[i].Color = colDimMid
+			nameLabels[i].Refresh()
+		}
+	})
+
+	return container.NewVBox(
+		container.NewPadded(header),
+		vspace(2),
+		newResponsiveGrid(4, 60, cells...),
+		vspace(4),
+	)
+}
+
 // ── STATUS tab ────────────────────────────────────────────────────────────────
 
 // buildStatusTab returns the status tab content and an update function that
@@ -239,7 +316,9 @@ func buildStatusTab() (fyne.CanvasObject, func(connected bool, brokerURL, userID
 	accordion := NewCollapseSection("STATS", container.NewVBox(statsContent), false)
 	sep := func() fyne.CanvasObject { return container.NewVBox(vspace(8), hline(), vspace(8)) }
 
-	area := container.NewVScroll(container.NewVBox(connSection, sep(), accordion))
+	themeSection := buildThemeSection()
+
+	area := container.NewVScroll(container.NewVBox(connSection, sep(), accordion, sep(), themeSection))
 
 	update := func(connected bool, brokerURL, userID string, latencyMs int64) {
 		if connected {

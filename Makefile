@@ -1,6 +1,6 @@
 run-ui:
-	@echo "Running UI..."
-	cd ui && go run .
+	@echo "Building and running nito..."
+	cd ui && go build -o nito . && ./nito
 
 tag-and-push:
 	@current=$$(cat engine/tag.txt | tr -d '\n'); \

@@ -19,7 +19,8 @@ import (
 )
 
 func main() {
-	a := app.New()
+	a := app.NewWithID("com.srschreiber.nito")
+	loadSavedProfile() // apply saved palette before first draw
 	a.Settings().SetTheme(nitoTheme{})
 
 	w := a.NewWindow("nito")
