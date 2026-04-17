@@ -124,12 +124,14 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		// Strip the ★ prefix for custom presets
 		name := strings.TrimPrefix(selected, "★ ")
 
+		unfocus := func() { go func() { fyne.Do(w.Canvas().Unfocus) }() }
 		// Try built-in first
 		if tagline, tags, ok := components.ApplyPresetByName(name); ok {
 			infoLabel.Text = tagline + "  ·  " + tags
 			infoLabel.Refresh()
 			syncGraph()
 			showToast(w, "preset: "+name, toastInfo)
+			unfocus()
 			return
 		}
 		// Try custom
@@ -141,6 +143,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 				infoLabel.Refresh()
 				syncGraph()
 				showToast(w, "preset: "+name, toastInfo)
+				unfocus()
 				return
 			}
 		}
@@ -152,13 +155,13 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	}
 	presetReady = true
 
-	saveBtn := widget.NewButton("Save as…", nil)
+	saveBtn := newBtn("Save as…", nil)
 	saveBtn.Importance = widget.LowImportance
 	saveBtn.OnTapped = func() {
 		nameEntry := widget.NewEntry()
 		nameEntry.SetPlaceHolder("preset name")
-		confirmBtn := widget.NewButton("Save", nil)
-		cancelBtn := widget.NewButton("Cancel", nil)
+		confirmBtn := newBtn("Save", nil)
+		cancelBtn := newBtn("Cancel", nil)
 		cancelBtn.Importance = widget.LowImportance
 		var pop *widget.PopUp
 		confirmBtn.OnTapped = func() {
@@ -191,7 +194,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		w.Canvas().Focus(nameEntry)
 	}
 
-	presetRow := container.NewBorder(nil, nil, nil, withPointerCursor(saveBtn), withPointerCursor(presetSel))
+	presetRow := container.NewBorder(nil, nil, nil, saveBtn, withPointerCursor(presetSel))
 	presetSection := container.NewVBox(presetRow, container.NewHBox(infoLabel))
 
 	// ── Slider helpers ────────────────────────────────────────────────────────
@@ -209,7 +212,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		}
 		return container.NewVBox(
 			container.NewHBox(monoTxt(label, colDimMid), valLabel),
-			withPointerCursor(sl),
+			withPointerCursorNoHover(sl),
 		)
 	}
 
@@ -228,8 +231,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	vol := voice.GetPlaybackEQVolume()
 
 	// ── 4-band EQ cards ───────────────────────────────────────────────────────
-	bassCard := wrapCard(container.NewVBox(
-		sectionBadge("BASS"),
+	bassCard := wrapCard(NewCollapseSection("BASS", container.NewVBox(
 		slRow("gain", fmtDB(eq.BassGain), -18, 18, float64(eq.BassGain), func(v float64) {
 			s := voice.GetPlaybackEQSettings()
 			s.BassGain = float32(v)
@@ -244,10 +246,9 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			voice.SaveAudioSettings()
 			syncGraph()
 		}),
-	))
+	), false))
 
-	midCard := wrapCard(container.NewVBox(
-		sectionBadge("MID"),
+	midCard := wrapCard(NewCollapseSection("MID", container.NewVBox(
 		slRow("gain", fmtDB(eq.MidGain), -18, 18, float64(eq.MidGain), func(v float64) {
 			s := voice.GetPlaybackEQSettings()
 			s.MidGain = float32(v)
@@ -269,10 +270,9 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			voice.SaveAudioSettings()
 			syncGraph()
 		}),
-	))
+	), false))
 
-	trebCard := wrapCard(container.NewVBox(
-		sectionBadge("TREBLE"),
+	trebCard := wrapCard(NewCollapseSection("TREBLE", container.NewVBox(
 		slRow("gain", fmtDB(eq.TrebleGain), -18, 18, float64(eq.TrebleGain), func(v float64) {
 			s := voice.GetPlaybackEQSettings()
 			s.TrebleGain = float32(v)
@@ -287,10 +287,9 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			voice.SaveAudioSettings()
 			syncGraph()
 		}),
-	))
+	), false))
 
-	presCard := wrapCard(container.NewVBox(
-		sectionBadge("PRESENCE"),
+	presCard := wrapCard(NewCollapseSection("PRESENCE", container.NewVBox(
 		slRow("gain", fmtDB(eq.PresenceGain), -18, 18, float64(eq.PresenceGain), func(v float64) {
 			s := voice.GetPlaybackEQSettings()
 			s.PresenceGain = float32(v)
@@ -312,9 +311,9 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			voice.SaveAudioSettings()
 			syncGraph()
 		}),
-	))
+	), false))
 
-	bandsRow := container.NewGridWithColumns(4, bassCard, midCard, trebCard, presCard)
+	bandsRow := newResponsiveGrid(4, 140, bassCard, midCard, trebCard, presCard)
 
 	// ── Effects cards ─────────────────────────────────────────────────────────
 
@@ -326,8 +325,8 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	})
 	delayEnabled.SetChecked(del.Enabled)
 
-	delayCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("DELAY"), withPointerCursor(delayEnabled)),
+	delayCard := wrapCard(NewCollapseSection("DELAY", container.NewVBox(
+		withPointerCursor(delayEnabled),
 		slRow("delay   ", fmtMs(del.DelayMs), 1, 500, float64(del.DelayMs), func(v float64) {
 			s := voice.GetDelaySettings()
 			s.DelayMs = float32(v)
@@ -340,7 +339,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			voice.SetDelaySettings(s)
 			voice.SaveAudioSettings()
 		}),
-	))
+	), false))
 
 	reverbEnabled := widget.NewCheck("enabled", func(b bool) {
 		s := voice.GetReverbSettings()
@@ -350,8 +349,8 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	})
 	reverbEnabled.SetChecked(rev.Enabled)
 
-	reverbCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("REVERB"), withPointerCursor(reverbEnabled)),
+	reverbCard := wrapCard(NewCollapseSection("REVERB", container.NewVBox(
+		withPointerCursor(reverbEnabled),
 		slRow("mix  ", fmtFloat(float64(rev.Mix)), 0, 1, float64(rev.Mix), func(v float64) {
 			s := voice.GetReverbSettings()
 			s.Mix = float32(v)
@@ -376,7 +375,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			voice.SetReverbSettings(s)
 			voice.SaveAudioSettings()
 		}),
-	))
+	), false))
 
 	chorusEnabled := widget.NewCheck("enabled", func(b bool) {
 		s := voice.GetChorusSettings()
@@ -386,8 +385,8 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	})
 	chorusEnabled.SetChecked(cho.Enabled)
 
-	chorusCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("CHORUS"), withPointerCursor(chorusEnabled)),
+	chorusCard := wrapCard(NewCollapseSection("CHORUS", container.NewVBox(
+		withPointerCursor(chorusEnabled),
 		slRow("delay", fmtMs(cho.BaseDelayMs), 5, 30, float64(cho.BaseDelayMs), func(v float64) {
 			s := voice.GetChorusSettings()
 			s.BaseDelayMs = float32(v)
@@ -412,9 +411,9 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			voice.SetChorusSettings(s)
 			voice.SaveAudioSettings()
 		}),
-	))
+	), false))
 
-	effectsRow := container.NewGridWithColumns(3, delayCard, reverbCard, chorusCard)
+	effectsRow := newResponsiveGrid(4, 140, delayCard, reverbCard, chorusCard)
 
 	// ── Pitch / Pan / Output cards ────────────────────────────────────────────
 
@@ -426,15 +425,15 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	})
 	pitchEnabled.SetChecked(pit.Enabled)
 
-	pitchCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("PITCH"), withPointerCursor(pitchEnabled)),
+	pitchCard := wrapCard(NewCollapseSection("PITCH", container.NewVBox(
+		withPointerCursor(pitchEnabled),
 		slRow("semitones", fmtFloat(float64(pit.Semitones))+" st", -12, 12, float64(pit.Semitones), func(v float64) {
 			s := voice.GetPlaybackPitchSettings()
 			s.Semitones = float32(v)
 			voice.SetPlaybackPitchSettings(s)
 			voice.SaveAudioSettings()
 		}),
-	))
+	), false))
 
 	autoPanCheck := widget.NewCheck("auto pan", func(b bool) {
 		s := voice.GetPannerSettings()
@@ -444,8 +443,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	})
 	autoPanCheck.SetChecked(pan.AutoPanEnabled)
 
-	panCard := wrapCard(container.NewVBox(
-		sectionBadge("PAN"),
+	panCard := wrapCard(NewCollapseSection("PAN", container.NewVBox(
 		slRow("balance", fmtPan(pan.Balance), -1, 1, float64(pan.Balance), func(v float64) {
 			s := voice.GetPannerSettings()
 			s.Balance = float32(v)
@@ -465,17 +463,16 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			voice.SetPannerSettings(s)
 			voice.SaveAudioSettings()
 		}),
-	))
+	), false))
 
-	outputCard := wrapCard(container.NewVBox(
-		sectionBadge("OUTPUT"),
+	outputCard := wrapCard(NewCollapseSection("OUTPUT", container.NewVBox(
 		slRow("volume", fmtPct(float32(vol)/100), 0, 800, float64(vol), func(v float64) {
 			voice.SetPlaybackEQVolume(int(v))
 			voice.SaveAudioSettings()
 		}),
-	))
+	), false))
 
-	bottomRow := container.NewGridWithColumns(3, pitchCard, panCard, outputCard)
+	bottomRow := newResponsiveGrid(4, 140, pitchCard, panCard, outputCard)
 
 	sep := func() fyne.CanvasObject { return container.NewVBox(vspace(8), hline(), vspace(8)) }
 
@@ -487,7 +484,10 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		bottomRow, vspace(8),
 	))
 
-	spectrumTick := func() { spectrum.Tick() }
+	spectrumTick := func() {
+		spectrum.Tick()
+		graph.Tick()
+	}
 	return content, spectrumTick
 }
 

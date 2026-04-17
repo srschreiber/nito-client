@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"image"
 	"image/color"
 	"math"
 	"strings"
@@ -123,18 +124,34 @@ const (
 )
 
 // TrackMeterWidget renders an animated N-band amplitude meter for one track.
-// Call Tick() every 50 ms (on the Fyne thread) to animate it.
+//
+// The raster callback is a pure image lookup — no per-pixel computation.
+// Tick() pre-renders the image at the current stable size. During a resize
+// drag the size changes between ticks; Tick detects this, skips computation,
+// and the raster scales the previous frame instead (no lag, imperceptible).
 type TrackMeterWidget struct {
 	widget.BaseWidget
 	trackIdx int
 	raster   *canvas.Raster
 	tick     int
+	rendered *image.NRGBA
+	lastW    int
+	lastH    int
 }
 
 func NewTrackMeterWidget(trackIdx int) *TrackMeterWidget {
 	m := &TrackMeterWidget{trackIdx: trackIdx}
 	m.raster = canvas.NewRasterWithPixels(func(px, py, pw, ph int) color.Color {
-		return m.pixelAt(px, py, pw, ph)
+		img := m.rendered
+		if img == nil || pw <= 0 || ph <= 0 {
+			return colSurface
+		}
+		x := px * img.Bounds().Dx() / pw
+		y := py * img.Bounds().Dy() / ph
+		if x < img.Bounds().Dx() && y < img.Bounds().Dy() {
+			return img.NRGBAAt(x, y)
+		}
+		return colSurface
 	})
 	m.raster.SetMinSize(fyne.NewSize(float32(meterBandCount)*10, meterH))
 	m.ExtendBaseWidget(m)
@@ -145,17 +162,36 @@ func (m *TrackMeterWidget) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(m.raster)
 }
 
-// Tick advances the animation and redraws. Call on the Fyne thread every 50 ms.
+// Tick pre-renders the meter image and refreshes. Skips if size changed since
+// last tick (drag in progress) — the previous frame scales instead.
 func (m *TrackMeterWidget) Tick() {
 	m.tick++
+	size := m.raster.Size()
+	w, h := int(size.Width), int(size.Height)
+	if w < 1 {
+		w = int(meterBandCount * 10)
+	}
+	if h < 1 {
+		h = int(meterH)
+	}
+	if w != m.lastW || h != m.lastH {
+		m.lastW, m.lastH = w, h
+		return // size is changing; show old frame, recompute next stable tick
+	}
+	img := image.NewNRGBA(image.Rect(0, 0, w, h))
+	for px := 0; px < w; px++ {
+		for py := 0; py < h; py++ {
+			c := m.pixelAt(px, py, w, h)
+			nc := color.NRGBAModel.Convert(c).(color.NRGBA)
+			img.SetNRGBA(px, py, nc)
+		}
+	}
+	m.rendered = img
 	m.raster.Refresh()
 }
 
 func (m *TrackMeterWidget) pixelAt(px, py, pw, ph int) color.Color {
 	n := meterBandCount
-	if pw <= 0 || ph <= 0 {
-		return colSurface
-	}
 	bandW := pw / n
 	if bandW <= 0 {
 		return colSurface
@@ -204,7 +240,7 @@ type trackRowBundle struct {
 	trackIdx    int
 	idleLayer   *HoverRow
 	activeLayer *fyne.Container
-	statusLabel *canvas.Text
+	statusLabel *widget.Label
 	meter       *TrackMeterWidget
 	wrapper     *fyne.Container // Stack(idleLayer, activeLayer)
 }
@@ -220,22 +256,22 @@ func (r *trackRowBundle) tick(tickN int) {
 
 		if voice.IsTrackBuffering(r.trackIdx) {
 			frame := spinnerFrames[tickN%len(spinnerFrames)]
-			r.statusLabel.Text = frame + " BUFFERING"
-			r.statusLabel.Color = colAmber
+			r.statusLabel.SetText(frame + " BUFFERING")
+			r.statusLabel.Importance = widget.WarningImportance
 		} else if voice.IsTrackLive(r.trackIdx) {
 			if (tickN/5)%2 == 0 {
-				r.statusLabel.Text = "◉ LIVE"
+				r.statusLabel.SetText("◉ LIVE")
 			} else {
-				r.statusLabel.Text = "○ LIVE"
+				r.statusLabel.SetText("○ LIVE")
 			}
-			r.statusLabel.Color = color.NRGBA{R: 0xff, G: 0x60, B: 0x60, A: 0xff}
+			r.statusLabel.Importance = widget.DangerImportance
 		} else {
 			title := voice.GetTrackTitle(r.trackIdx)
 			if title == "" {
 				title = "playing…"
 			}
-			r.statusLabel.Text = title
-			r.statusLabel.Color = colText
+			r.statusLabel.SetText(title)
+			r.statusLabel.Importance = widget.MediumImportance
 		}
 		r.statusLabel.Refresh()
 		r.meter.Tick()
@@ -247,19 +283,20 @@ func (r *trackRowBundle) tick(tickN int) {
 
 func newTrackRowBundle(idx int, w fyne.Window) *trackRowBundle {
 	meter := NewTrackMeterWidget(idx)
-	statusLabel := txt("", colText, 11, false, true)
+	statusLabel := widget.NewLabel("")
+	statusLabel.TextStyle = fyne.TextStyle{Monospace: true}
+	statusLabel.Truncation = fyne.TextTruncateEllipsis
+	statusLabel.Importance = widget.MediumImportance
 	stopBtn := newCircleStop(func() {
 		stopTrack(idx)
 		nitoLog("stopped track " + itoa(idx))
 	})
 
 	noteIcon := txt("♪ ", colAccent, 11, false, true)
-	activeLayer := container.NewPadded(container.NewHBox(
-		stopBtn,
-		container.NewPadded(noteIcon),
-		meter,
-		container.NewPadded(statusLabel),
-	))
+	leftSide := container.NewHBox(stopBtn, container.NewPadded(noteIcon), meter)
+	activeLayer := container.NewPadded(
+		container.NewBorder(nil, nil, leftSide, nil, container.NewPadded(statusLabel)),
+	)
 
 	idleLayer := NewHoverRow(
 		container.NewPadded(container.NewHBox(
@@ -302,9 +339,9 @@ func showPlayPopup(w fyne.Window, idx int) {
 		aliasSel = widget.NewSelect(aliasNames, nil)
 	}
 
-	playBtn := widget.NewButton("Play", nil)
+	playBtn := newBtn("Play", nil)
 	playBtn.Importance = widget.HighImportance
-	cancelBtn := widget.NewButton("Cancel", nil)
+	cancelBtn := newBtn("Cancel", nil)
 	cancelBtn.Importance = widget.LowImportance
 
 	var pop *widget.PopUp
@@ -355,9 +392,9 @@ func showAddAliasPopup(w fyne.Window, onAdded func()) {
 	urlEntry := widget.NewEntry()
 	urlEntry.SetPlaceHolder("https://...")
 
-	saveBtn := widget.NewButton("Save", nil)
+	saveBtn := newBtn("Save", nil)
 	saveBtn.Importance = widget.HighImportance
-	cancelBtn := widget.NewButton("Cancel", nil)
+	cancelBtn := newBtn("Cancel", nil)
 	cancelBtn.Importance = widget.LowImportance
 
 	var pop *widget.PopUp
@@ -408,9 +445,9 @@ func showAddAliasPopupPrefilled(w fyne.Window, initName, initURL string, onAdded
 	urlEntry.SetText(initURL)
 	urlEntry.SetPlaceHolder("https://...")
 
-	saveBtn := widget.NewButton("Save", nil)
+	saveBtn := newBtn("Save", nil)
 	saveBtn.Importance = widget.HighImportance
-	cancelBtn := widget.NewButton("Cancel", nil)
+	cancelBtn := newBtn("Cancel", nil)
 	cancelBtn.Importance = widget.LowImportance
 
 	var pop *widget.PopUp
@@ -481,7 +518,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		var aliasRows []fyne.CanvasObject
 		for name, url := range aliases {
 			n, u := name, url // capture
-			removeBtn := widget.NewButton("🗑", func() {
+			removeBtn := newBtn("🗑", func() {
 				if err := voice.DeleteAudioAlias(n); err != nil {
 					showToast(w, "remove alias: "+err.Error(), toastError)
 				} else {
@@ -497,7 +534,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 				nitoLog("alias play: " + n)
 			})
 
-			copyBtn := widget.NewButton("cp", func() {
+			copyBtn := newBtn("cp", func() {
 				fyne.CurrentApp().Clipboard().SetContent(u)
 				showToast(w, "copied: "+truncURL(u, 40), toastInfo)
 			})
@@ -505,13 +542,13 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 
 			left := container.NewHBox(
 				playBtn,
-				withPointerCursor(copyBtn),
+				copyBtn,
 			)
 			aliasText := widget.NewLabel(n + " → " + u)
 			aliasText.TextStyle = fyne.TextStyle{Monospace: true}
 			aliasText.Truncation = fyne.TextTruncateEllipsis
 			row := container.NewBorder(nil, nil,
-				left, withPointerCursor(removeBtn),
+				left, removeBtn,
 				container.NewPadded(aliasText),
 			)
 			aliasRows = append(aliasRows, row)
@@ -520,7 +557,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			aliasRows = append(aliasRows, container.NewPadded(dimTxt("no aliases saved")))
 		}
 		// Add button at the end
-		addBtn := widget.NewButton("+ Add Alias", func() {
+		addBtn := newBtn("+ Add Alias", func() {
 			showAddAliasPopup(w, func() { fyne.Do(rebuildAliases) })
 		})
 		addBtn.Importance = widget.LowImportance
@@ -534,7 +571,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	accordion := NewCollapseSection("PLAY ALIASES", aliasBox, false)
 
 	// ── Stop All footer ───────────────────────────────────────────────────────
-	stopAllBtn := widget.NewButton("■  Stop All", func() {
+	stopAllBtn := newBtn("■  Stop All", func() {
 		stopAllTracks()
 		nitoLog("stopped all tracks")
 	})

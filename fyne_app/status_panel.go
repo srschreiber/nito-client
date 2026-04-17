@@ -110,7 +110,7 @@ func showVoiceSettingsPopup(w fyne.Window) {
 		pitchLabel.Refresh()
 	}
 
-	testBtn := widget.NewButton("Test Voice", func() {
+	testBtn := newBtn("Test Voice", func() {
 		showToast(w, "testing voice...", toastInfo)
 	})
 	testBtn.Importance = widget.LowImportance
@@ -244,7 +244,7 @@ func (sp *StatusPanel) SetInvites(invites []apitypes.PendingInvite) {
 	for _, inv := range invites {
 		inv := inv
 		nameLabel := monoTxt(inv.RoomName, colText)
-		acceptBtn := widget.NewButton("Accept", nil)
+		acceptBtn := newBtn("Accept", nil)
 		acceptBtn.Importance = widget.LowImportance
 		acceptBtn.OnTapped = func() {
 			go func() {

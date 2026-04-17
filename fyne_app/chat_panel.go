@@ -195,13 +195,13 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 	w := cp.w
 
 	// ── Create room popup ─────────────────────────────────────────────────────
-	createBtn := widget.NewButton("+ Create", nil)
+	createBtn := newBtn("+ Create", nil)
 	createBtn.Importance = widget.LowImportance
 	createBtn.OnTapped = func() {
 		nameEntry := widget.NewEntry()
 		nameEntry.SetPlaceHolder("room name")
-		confirmBtn := widget.NewButton("Create", nil)
-		cancelBtn := widget.NewButton("Cancel", nil)
+		confirmBtn := newBtn("Create", nil)
+		cancelBtn := newBtn("Cancel", nil)
 		cancelBtn.Importance = widget.LowImportance
 		var pop *widget.PopUp
 		confirmBtn.OnTapped = func() {
@@ -245,7 +245,7 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 	}
 
 	// ── Invite popup ──────────────────────────────────────────────────────────
-	inviteBtn := widget.NewButton("+ Invite", nil)
+	inviteBtn := newBtn("+ Invite", nil)
 	inviteBtn.Importance = widget.LowImportance
 	inviteBtn.OnTapped = func() {
 		if cp.currentRoomID == "" {
@@ -254,8 +254,8 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 		}
 		userEntry := widget.NewEntry()
 		userEntry.SetPlaceHolder("username")
-		confirmBtn := widget.NewButton("Invite", nil)
-		cancelBtn := widget.NewButton("Cancel", nil)
+		confirmBtn := newBtn("Invite", nil)
+		cancelBtn := newBtn("Cancel", nil)
 		cancelBtn.Importance = widget.LowImportance
 		var pop *widget.PopUp
 		confirmBtn.OnTapped = func() {
@@ -293,17 +293,17 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 	}
 
 	// ── Voice settings ────────────────────────────────────────────────────────
-	voiceBtn := widget.NewButton("Voice", func() { showVoiceSettingsPopup(w) })
+	voiceBtn := newBtn("Voice", func() { showVoiceSettingsPopup(w) })
 	voiceBtn.Importance = widget.LowImportance
-	footer := container.NewVBox(hline(), withPointerCursor(voiceBtn), vspace(4))
+	footer := container.NewVBox(hline(), voiceBtn, vspace(4))
 
 	// ── Room list section (dynamic) ───────────────────────────────────────────
 	roomSection := container.NewVBox(
 		txt("my rooms", colDimMid, 11, false, true),
 		cp.roomListBox,
 		vspace(4),
-		withPointerCursor(createBtn),
-		withPointerCursor(inviteBtn),
+		createBtn,
+		inviteBtn,
 	)
 
 	// ── Member list section (dynamic) ─────────────────────────────────────────

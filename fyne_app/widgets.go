@@ -108,6 +108,54 @@ func withPointerCursor(obj fyne.CanvasObject) fyne.CanvasObject {
 	return container.NewStack(obj, layer)
 }
 
+// hoverAbsorber is a transparent overlay that consumes MouseIn/MouseOut/
+// MouseMoved events so the underlying widget never enters its hover state.
+// It still shows a pointer cursor and lets drags, taps, and scrolls fall
+// through to the widget underneath.
+type hoverAbsorber struct{ widget.BaseWidget }
+
+func (h *hoverAbsorber) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(canvas.NewRectangle(colTransparent))
+}
+func (h *hoverAbsorber) Cursor() desktop.Cursor           { return desktop.PointerCursor }
+func (h *hoverAbsorber) MouseIn(_ *desktop.MouseEvent)    {}
+func (h *hoverAbsorber) MouseMoved(_ *desktop.MouseEvent) {}
+func (h *hoverAbsorber) MouseOut()                        {}
+
+// withPointerCursorNoHover wraps a widget so the pointer cursor shows on
+// hover but the widget's built-in hover highlight (e.g. the slider thumb
+// turning purple) is suppressed.
+func withPointerCursorNoHover(obj fyne.CanvasObject) fyne.CanvasObject {
+	layer := &hoverAbsorber{}
+	layer.ExtendBaseWidget(layer)
+	return container.NewStack(obj, layer)
+}
+
+// ── nitoBtn ───────────────────────────────────────────────────────────────────
+
+// nitoBtn extends widget.Button to respond to both Space and Enter/Return, and
+// to show the pointer cursor on hover without needing a withPointerCursor wrapper.
+// Use newBtn() everywhere instead of widget.NewButton().
+type nitoBtn struct {
+	widget.Button
+}
+
+func newBtn(label string, tapped func()) *nitoBtn {
+	b := &nitoBtn{}
+	b.Text = label
+	b.OnTapped = tapped
+	b.ExtendBaseWidget(b)
+	return b
+}
+
+func (b *nitoBtn) Cursor() desktop.Cursor { return desktop.PointerCursor }
+
+func (b *nitoBtn) TypedKey(ev *fyne.KeyEvent) {
+	if ev.Name == fyne.KeySpace || ev.Name == fyne.KeyReturn {
+		b.Tapped(nil)
+	}
+}
+
 // ── PillPlayBtn ───────────────────────────────────────────────────────────────
 
 // PillPlayBtn mirrors CircleStopBtn exactly — same 18×18 circle, same colors —
@@ -260,17 +308,13 @@ func (tb *TabBar) CreateRenderer() fyne.WidgetRenderer {
 	for i, name := range tb.tabs {
 		idx := i
 		label := widget.NewLabel(name)
-		label.TextStyle = fyne.TextStyle{Bold: i == tb.Active, Monospace: true}
+		label.TextStyle = fyne.TextStyle{Monospace: true}
 		label.Truncation = fyne.TextTruncateEllipsis
-		if i == tb.Active {
-			label.Importance = widget.HighImportance
-		} else {
-			label.Importance = widget.LowImportance
-		}
+		label.Importance = widget.LowImportance
 		bg := canvas.NewRectangle(colTransparent)
 		bg.CornerRadius = 4
 		if i == tb.Active {
-			bg.FillColor = colTabActive
+			bg.FillColor = colHover
 		}
 		hoverRow := NewHoverRow(
 			container.NewStack(bg, container.NewPadded(label)),
@@ -323,23 +367,107 @@ func (r *tabBarRenderer) MinSize() fyne.Size           { return r.row.MinSize() 
 func (r *tabBarRenderer) Destroy()                     {}
 func (r *tabBarRenderer) Objects() []fyne.CanvasObject { return []fyne.CanvasObject{r.row} }
 func (r *tabBarRenderer) Refresh() {
-	for i, label := range r.labels {
+	for i, bg := range r.bgs {
 		if i == r.bar.Active {
-			label.TextStyle = fyne.TextStyle{Bold: true, Monospace: true}
-			label.Importance = widget.HighImportance
-			r.bgs[i].FillColor = colTabActive
+			bg.FillColor = colHover
 		} else {
-			label.TextStyle = fyne.TextStyle{Monospace: true}
-			label.Importance = widget.LowImportance
-			r.bgs[i].FillColor = colTransparent
+			bg.FillColor = colTransparent
 		}
-		label.Refresh()
-		r.bgs[i].Refresh()
+		bg.Refresh()
 	}
 	r.row.Refresh()
 }
 
 func (tb *TabBar) Refresh() { tb.BaseWidget.Refresh() }
+
+// ── responsiveGrid ────────────────────────────────────────────────────────────
+
+// responsiveGrid is a fyne.Layout that wraps items into rows whose column count
+// adapts to the container width. Maximum column count is capped at maxCols.
+// minCellW is the target minimum width per cell used to calculate columns.
+//
+// MinSize always reflects the current column count (stored from the last Layout
+// call) so the parent container allocates the right height as the panel resizes.
+type responsiveGrid struct {
+	maxCols   int
+	minCellW  float32
+	lastWidth float32 // last observed width; used in MinSize
+}
+
+func newResponsiveGrid(maxCols int, minCellW float32, objs ...fyne.CanvasObject) *fyne.Container {
+	return container.New(&responsiveGrid{maxCols: maxCols, minCellW: minCellW}, objs...)
+}
+
+func (l *responsiveGrid) cols(width float32, n int) int {
+	c := int(width / l.minCellW)
+	if c < 1 {
+		c = 1
+	}
+	if c > l.maxCols {
+		c = l.maxCols
+	}
+	if c > n {
+		c = n
+	}
+	return c
+}
+
+func (l *responsiveGrid) Layout(objs []fyne.CanvasObject, size fyne.Size) {
+	n := len(objs)
+	if n == 0 {
+		return
+	}
+	l.lastWidth = size.Width
+	cols := l.cols(size.Width, n)
+	cellW := size.Width / float32(cols)
+	rows := (n + cols - 1) / cols
+
+	// Per-row heights: tallest min-height in each row.
+	rowH := make([]float32, rows)
+	for i, o := range objs {
+		if h := o.MinSize().Height; h > rowH[i/cols] {
+			rowH[i/cols] = h
+		}
+	}
+
+	var y float32
+	for r := 0; r < rows; r++ {
+		for c := 0; c < cols; c++ {
+			i := r*cols + c
+			if i >= n {
+				break
+			}
+			objs[i].Move(fyne.NewPos(float32(c)*cellW, y))
+			objs[i].Resize(fyne.NewSize(cellW, rowH[r]))
+		}
+		y += rowH[r]
+	}
+}
+
+func (l *responsiveGrid) MinSize(objs []fyne.CanvasObject) fyne.Size {
+	n := len(objs)
+	if n == 0 {
+		return fyne.Size{}
+	}
+	w := l.lastWidth
+	if w < l.minCellW {
+		w = l.minCellW
+	}
+	cols := l.cols(w, n)
+	rows := (n + cols - 1) / cols
+
+	var maxCellW, maxCellH float32
+	for _, o := range objs {
+		ms := o.MinSize()
+		if ms.Width > maxCellW {
+			maxCellW = ms.Width
+		}
+		if ms.Height > maxCellH {
+			maxCellH = ms.Height
+		}
+	}
+	return fyne.NewSize(maxCellW, maxCellH*float32(rows))
+}
 
 // ── CollapseSection ───────────────────────────────────────────────────────────
 
@@ -372,7 +500,7 @@ func NewCollapseSection(title string, body fyne.CanvasObject, startOpen bool) *C
 }
 
 func (c *CollapseSection) CreateRenderer() fyne.WidgetRenderer {
-	titleLabel := txt(c.title, colText, 11, true, true)
+	titleLabel := sectionBadge(c.title)
 	toggle := func() {
 		c.open = !c.open
 		if c.open {

@@ -194,19 +194,52 @@ func precomputeEQImage(width, height int, eq eqGraphSettings) *image.NRGBA {
 }
 
 // EQGraphWidget renders a frequency response curve using canvas.Raster.
-// It caches a precomputed *image.NRGBA keyed on (width, height, settingsVer)
-// to avoid recomputing on every pixel callback — eliminating the resize lag.
+//
+// The raster callback is a pure array lookup — no math per pixel. The image is
+// pre-computed in the Tick path (called every 50 ms by the status panel ticker).
+// During an HSplit drag the widget resizes every event; Tick detects the size
+// change and skips recomputation, so the old image is shown (fast). Once the
+// drag stops the size stabilises, Tick recomputes once, and the raster refreshes.
 type EQGraphWidget struct {
 	widget.BaseWidget
 	Settings    eqGraphSettings
 	settingsVer int
+	rendered    *image.NRGBA // last computed image; nil until first Tick
+	renderedW   int
+	renderedH   int
+	renderedVer int
 }
 
-// UpdateSettings replaces the EQ settings, invalidates the image cache, and
-// triggers a redraw.
+// UpdateSettings replaces the EQ settings and marks the image stale so the
+// next Tick recomputes immediately.
 func (w *EQGraphWidget) UpdateSettings(s eqGraphSettings) {
 	w.Settings = s
 	w.settingsVer++
+	w.Refresh()
+}
+
+// Tick is called every 50 ms on the Fyne thread. It recomputes the image when
+// the widget size is stable (not currently being dragged) or settings changed.
+func (w *EQGraphWidget) Tick() {
+	size := w.Size()
+	iw, ih := int(size.Width), int(size.Height)
+	// Widget not laid out yet (tab inactive, zero size). Return without touching
+	// any state so we don't record a fake stable size or a 1×1 rendered image
+	// that would mark settingsVer as "up to date" at the wrong size.
+	if iw < 2 || ih < 2 {
+		return
+	}
+	// Skip if the widget was just resized (drag in progress) — the image will
+	// be recomputed next tick once the size stabilises.
+	if iw != w.renderedW || ih != w.renderedH {
+		w.renderedW, w.renderedH = iw, ih // record new size, skip computation
+		return
+	}
+	if w.settingsVer == w.renderedVer && w.rendered != nil {
+		return // image is up-to-date, nothing to do
+	}
+	w.rendered = precomputeEQImage(iw, ih, w.Settings)
+	w.renderedVer = w.settingsVer
 	w.Refresh()
 }
 
@@ -217,15 +250,18 @@ func NewEQGraphWidget() *EQGraphWidget {
 }
 
 func (w *EQGraphWidget) CreateRenderer() fyne.WidgetRenderer {
-	var cachedW, cachedH, cachedVer int
-	var img *image.NRGBA
-
 	raster := canvas.NewRasterWithPixels(func(px, py, pw, ph int) color.Color {
-		if pw != cachedW || ph != cachedH || w.settingsVer != cachedVer || img == nil {
-			cachedW, cachedH, cachedVer = pw, ph, w.settingsVer
-			img = precomputeEQImage(pw, ph, w.Settings)
+		img := w.rendered
+		if img == nil || pw <= 0 || ph <= 0 {
+			return colSurface
 		}
-		return img.NRGBAAt(px, py)
+		// Scale coordinates so the old image fills the new size during a drag.
+		x := px * img.Bounds().Dx() / pw
+		y := py * img.Bounds().Dy() / ph
+		if x < img.Bounds().Dx() && y < img.Bounds().Dy() {
+			return img.NRGBAAt(x, y)
+		}
+		return colSurface
 	})
 	raster.SetMinSize(fyne.NewSize(0, 100))
 	return widget.NewSimpleRenderer(raster)

@@ -50,7 +50,7 @@ func (nitoTheme) Color(n fyne.ThemeColorName, v fyne.ThemeVariant) color.Color {
 	case theme.ColorNamePrimary:
 		return colAccent
 	case theme.ColorNameFocus:
-		return colText // keep slider thumb and selection highlight white
+		return colBorderFocus // focus rings, dropdown selection, slider drag thumb
 	case theme.ColorNameHover:
 		return colHover
 	case theme.ColorNameInputBackground:

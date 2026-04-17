@@ -362,7 +362,7 @@ func buildAudioEmbed(audioURL string) fyne.CanvasObject {
 	})
 
 	// ── Alias button ──────────────────────────────────────────────────────────
-	aliasBtn := widget.NewButton("+ Alias", func() {
+	aliasBtn := newBtn("+ Alias", func() {
 		name := titleLabel.Text
 		if name == "Loading…" || name == "" {
 			name = titleFromURL(audioURL)
@@ -386,7 +386,7 @@ func buildAudioEmbed(audioURL string) fyne.CanvasObject {
 		titleLabel,
 		subtitleLabel,
 		vspace(2),
-		container.NewHBox(playBtn, withPointerCursor(aliasBtn)),
+		container.NewHBox(playBtn, aliasBtn),
 		vspace(2),
 		audioBadge,
 	)

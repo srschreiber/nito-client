@@ -79,7 +79,7 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 	loadingLabel := txt("connecting…", colDimMid, 12, false, true)
 	loadingLabel.Hide()
 
-	var submitBtn *widget.Button
+	var submitBtn *nitoBtn
 
 	submitFn := func() {
 		broker := normalizeBrokerURL(strings.TrimSpace(brokerEntry.Text))
@@ -149,7 +149,7 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 		}()
 	}
 
-	submitBtn = widget.NewButton("Continue", submitFn)
+	submitBtn = newBtn("Continue", submitFn)
 	submitBtn.Importance = widget.HighImportance
 
 	// Enter to advance / submit
@@ -172,7 +172,7 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 	)
 
 	// ── About link ────────────────────────────────────────────────────────────
-	aboutBtn := widget.NewButton("about & licenses", func() { showAboutWindow(a) })
+	aboutBtn := newBtn("about & licenses", func() { showAboutWindow(a) })
 	aboutBtn.Importance = widget.LowImportance
 
 	// ── Min-width spacer ──────────────────────────────────────────────────────
@@ -196,13 +196,13 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 		vspace(12),
 		withPointerCursor(rememberCheck),
 		vspace(12),
-		withPointerCursor(submitBtn),
+		submitBtn,
 		loadingLabel,
 		errLabel,
 		vspace(14),
 		hline(),
 		vspace(8),
-		container.NewCenter(withPointerCursor(aboutBtn)),
+		container.NewCenter(aboutBtn),
 	)
 
 	bg := canvas.NewRectangle(colBg)
