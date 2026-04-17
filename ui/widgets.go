@@ -88,6 +88,32 @@ func (t *Tappable) Tapped(_ *fyne.PointEvent) {
 func (t *Tappable) TappedSecondary(_ *fyne.PointEvent) {}
 func (t *Tappable) Cursor() desktop.Cursor             { return desktop.PointerCursor }
 
+// ── noFocusSlider ─────────────────────────────────────────────────────────────
+
+// noFocusSlider is a widget.Slider that opts out of tab focus entirely.
+// FocusGained immediately returns focus to nil so the tab order skips it,
+// and the slider never renders its focused (coloured) state.
+type noFocusSlider struct {
+	widget.Slider
+}
+
+func newNoFocusSlider(min, max float64) *noFocusSlider {
+	s := &noFocusSlider{}
+	s.Min = min
+	s.Max = max
+	s.ExtendBaseWidget(s)
+	return s
+}
+
+func (s *noFocusSlider) FocusGained() {
+	if c := fyne.CurrentApp().Driver().CanvasForObject(s); c != nil {
+		c.Focus(nil)
+	}
+}
+func (s *noFocusSlider) FocusLost()                {}
+func (s *noFocusSlider) TypedKey(_ *fyne.KeyEvent) {}
+func (s *noFocusSlider) TypedRune(_ rune)          {}
+
 // ── withPointerCursor ─────────────────────────────────────────────────────────
 
 // cursorLayer is a transparent overlay that makes the mouse cursor a pointer.

@@ -476,15 +476,12 @@ func NewStatusPanel(w fyne.Window) *StatusPanel {
 	sp.inviteListBox = inviteListBox
 
 	tracksArea, tracksTick := buildTracksTab(w)
-	eqArea, eqTick := buildEQTab(w)
 
-	tabNames := []string{"STATUS", "TRACKS", "TRACK EQ", "INVITES", "NOTIF", "LOGS"}
+	tabNames := []string{"STATUS", "TRACKS", "INVITES", "LOGS"}
 	tabs := []fyne.CanvasObject{
 		statusArea,
 		tracksArea,
-		eqArea,
 		invitesArea,
-		buildNotifTab(),
 		buildLogsTab(),
 	}
 
@@ -508,7 +505,6 @@ func NewStatusPanel(w fyne.Window) *StatusPanel {
 		for range t.C {
 			fyne.Do(func() {
 				tracksTick()
-				eqTick()
 				tickTrackWatchers()
 				if sp.cp != nil {
 					sp.cp.TickVoice()

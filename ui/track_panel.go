@@ -575,10 +575,15 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	_, footerCard := panelStack(false, stopAllBtn)
 	footer := container.NewVBox(vspace(6), footerCard, vspace(4))
 
+	eqBtn := newBtn("EQ", func() { showEQPopup(w) })
+	eqBtn.Importance = widget.LowImportance
+
 	scrollBody := container.NewVScroll(container.NewVBox(
 		vspace(4),
 		trackBox,
-		vspace(8),
+		vspace(4),
+		container.NewPadded(eqBtn),
+		vspace(4),
 		accordion,
 	))
 

@@ -108,19 +108,6 @@ func renderDaySep(date string) fyne.CanvasObject {
 	return container.NewPadded(monoTxt("  "+label, colMuted))
 }
 
-// ── Invites / Notif / Logs tabs (rendered by StatusPanel) ────────────────────
-
-func buildNotifTab() fyne.CanvasObject {
-	rows := []fyne.CanvasObject{
-		container.NewPadded(dimTxt("notifications will appear here")),
-	}
-	return container.NewBorder(
-		container.NewVBox(vspace(4), hline()),
-		nil, nil, nil,
-		container.NewVScroll(container.NewVBox(rows...)),
-	)
-}
-
 // ── ChatPanel ─────────────────────────────────────────────────────────────────
 
 type ChatPanel struct {

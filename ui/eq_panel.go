@@ -64,8 +64,10 @@ func (sw *SpectrumWidget) pixelAt(px, py, pw, ph int) color.Color {
 	level := voice.GetTrackEQBandLevel(0, b)
 	// Match bar-graph visual treatment: 3× scale, sqrt compression, wobble.
 	scaled := math.Sqrt(float64(level) * 3.0)
-	wobble := 0.05 * math.Sin(float64(time.Now().UnixMilli()%628)/100.0)
-	scaled += wobble
+	if level > 0 {
+		wobble := 0.05 * math.Sin(float64(time.Now().UnixMilli()%628)/100.0)
+		scaled += wobble
+	}
 	if scaled < 0 {
 		scaled = 0
 	} else if scaled > 1 {
@@ -89,9 +91,31 @@ func (sw *SpectrumWidget) pixelAt(px, py, pw, ph int) color.Color {
 
 // ── EQ panel ──────────────────────────────────────────────────────────────────
 
-// buildEQTab builds the TRACK EQ tab with real voice settings.
-// Returns the tab canvas object and a tick func for the spectrum widget.
-func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
+// showEQPopup opens the Track EQ panel as a floating popup with its own animation ticker.
+func showEQPopup(w fyne.Window) {
+	content, tick := buildEQContent(w)
+
+	minSz := canvas.NewRectangle(colTransparent)
+	minSz.SetMinSize(fyne.NewSize(700, 520))
+	body := container.NewStack(minSz, content)
+
+	pop := showNitoPopup("TRACK EQ", body, w)
+
+	go func() {
+		t := time.NewTicker(50 * time.Millisecond)
+		defer t.Stop()
+		for range t.C {
+			if !pop.Visible() {
+				return
+			}
+			fyne.Do(tick)
+		}
+	}()
+}
+
+// buildEQContent builds the TRACK EQ panel with real voice settings.
+// Returns the canvas object and a tick func for the spectrum widget.
+func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 	// ── Spectrum / EQ graph ───────────────────────────────────────────────────
 	graph := NewEQGraphWidget()
 	spectrum := NewSpectrumWidget()
@@ -214,7 +238,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	// onChange is called with the new value each time the slider moves.
 	slRow := func(label, initVal string, lo, hi, cur float64, onChange func(float64)) fyne.CanvasObject {
 		valLabel := monoTxt("  "+initVal, colText)
-		sl := widget.NewSlider(lo, hi)
+		sl := newNoFocusSlider(lo, hi)
 		sl.Value = cur
 		sl.OnChanged = func(v float64) {
 			onChange(v)
