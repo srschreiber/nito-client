@@ -5,7 +5,9 @@ package main
 
 import (
 	"image/color"
+	"math"
 	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -60,7 +62,16 @@ func (sw *SpectrumWidget) pixelAt(px, py, pw, ph int) color.Color {
 	}
 
 	level := voice.GetTrackEQBandLevel(0, b)
-	barH := int(float32(ph) * level)
+	// Match bar-graph visual treatment: 3× scale, sqrt compression, wobble.
+	scaled := math.Sqrt(float64(level) * 3.0)
+	wobble := 0.05 * math.Sin(float64(time.Now().UnixMilli()%628)/100.0)
+	scaled += wobble
+	if scaled < 0 {
+		scaled = 0
+	} else if scaled > 1 {
+		scaled = 1
+	}
+	barH := int(float64(ph) * scaled)
 	if py < ph-barH {
 		return colTransparent
 	}

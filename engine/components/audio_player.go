@@ -105,7 +105,7 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 		var decSrc io.Reader = dec
 		eqRate := dec.SampleRate()
 		if dec.SampleRate() != 48000 {
-			decSrc = newResampler(dec, dec.SampleRate(), 48000)
+			decSrc = newResampler(bufio.NewReaderSize(dec, 8192), dec.SampleRate(), 48000)
 			eqRate = 48000
 		}
 
@@ -425,7 +425,7 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 	var decSrc io.Reader = dec
 	eqRate := dec.SampleRate()
 	if dec.SampleRate() != 48000 {
-		decSrc = newResampler(dec, dec.SampleRate(), 48000)
+		decSrc = newResampler(bufio.NewReaderSize(dec, 8192), dec.SampleRate(), 48000)
 		eqRate = 48000
 	}
 
@@ -643,7 +643,9 @@ type eqReader struct {
 	panPhase      float64       // LFO phase for auto-pan; preserved across settings rebuilds
 	eqBands       bandAnalyzer  // 16-band analyser → audio settings EQ graph
 	meterBuf      meterDelayBuf // ring buffer delays both analysers by meterDelay
-	meterSmooth   [4]float32    // per-frame EMA for the status-bar slots (extra smoothing)
+	meterSmooth   [4]float32    // per-batch EMA for the status-bar slots
+	eqPeak        []float32     // per-batch peak of eqBands.smooth
+	eqSmooth      []float32     // per-batch EMA applied to eqPeak before publishing
 	// Pre-allocated work buffers reused each Read() call to avoid GC churn.
 	workLeft  []float32
 	workRight []float32
@@ -660,6 +662,8 @@ func newEQReader(src io.Reader, sampleRate, track int) *eqReader {
 	r.left.pitch = voice.NewPlaybackPitchEffect(sampleRate)
 	r.right.pitch = voice.NewPlaybackPitchEffect(sampleRate)
 	r.eqBands.init(float32(sampleRate), voice.NumEQBands)
+	r.eqPeak = make([]float32, voice.NumEQBands)
+	r.eqSmooth = make([]float32, voice.NumEQBands)
 	r.rebuildEffects()
 	return r
 }
@@ -832,10 +836,26 @@ func (r *eqReader) Read(p []byte) (int, error) {
 			// both analysers so both track what is actually being heard.
 			delayed := r.meterBuf.push((lv + rv) * 0.5)
 			r.eqBands.process(delayed)
+			// Track per-batch peak for each EQ band.
+			for b := range r.eqBands.smooth {
+				if r.eqBands.smooth[b] > r.eqPeak[b] {
+					r.eqPeak[b] = r.eqBands.smooth[b]
+				}
+			}
 		}
-		// Publish 16-band EQ levels for the audio settings graph.
-		for b := range r.eqBands.smooth {
-			voice.SetTrackEQBandLevel(r.track, b, r.eqBands.smooth[b])
+		// Smooth the per-batch peak with a fast-attack / slower-release EMA so the
+		// 16-band EQ graph animates like the status-bar meter rather than jumping
+		// every 200 ms.
+		const eqAttack = float32(0.75)
+		const eqRelease = float32(0.55)
+		for b, pk := range r.eqPeak {
+			if pk > r.eqSmooth[b] {
+				r.eqSmooth[b] = eqAttack*pk + (1-eqAttack)*r.eqSmooth[b]
+			} else {
+				r.eqSmooth[b] = eqRelease*pk + (1-eqRelease)*r.eqSmooth[b]
+			}
+			voice.SetTrackEQBandLevel(r.track, b, r.eqSmooth[b])
+			r.eqPeak[b] = 0 // reset for next batch
 		}
 		// Map to 4 status-bar slots in a middle-out pattern.
 		// Inner bars (1,2) use different frequency buckets so they animate
@@ -860,8 +880,9 @@ func (r *eqReader) Read(p []byte) (int, error) {
 		inner1 := clamp((r.eqBands.smooth[0] + r.eqBands.smooth[1] + r.eqBands.smooth[2]) / 3 * meterScale)
 		// Inner right = mid-bass (bands 3–5: ~100–400 Hz)
 		inner2 := clamp((r.eqBands.smooth[3] + r.eqBands.smooth[4] + r.eqBands.smooth[5]) / 3 * meterScale)
-		// Apply per-frame EMA so the status-bar bars glide smoothly.
-		const meterAlpha = float32(0.12)
+		// Apply EMA once per batch (not per sample) so the status-bar bars glide
+		// smoothly between oto Read calls rather than snapping to an instantaneous value.
+		const meterAlpha = float32(0.4)
 		targets := [4]float32{overflow(inner1), inner1, inner2, overflow(inner2)}
 		for i, t := range targets {
 			r.meterSmooth[i] = meterAlpha*t + (1-meterAlpha)*r.meterSmooth[i]
@@ -1081,7 +1102,10 @@ func (r *resampler) Read(p []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		r.bL, r.bR, _ = r.readFrame() // second frame; ignore EOF on very short files
+		r.bL, r.bR, err = r.readFrame()
+		if err != nil {
+			r.bL, r.bR = r.aL, r.aR
+		}
 		r.init = true
 	}
 	n := 0
