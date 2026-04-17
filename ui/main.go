@@ -43,14 +43,14 @@ func showMainView(a fyne.App, w fyne.Window) {
 	appWindow = w
 	statusPanel := NewStatusPanel(w)
 
-	// Create cmdBar before chatPanel so the closure captures the var reference.
+	// Create chatInput before chatPanel so the closure captures the var reference.
 	var chatPanel *ChatPanel
-	var cmdBar *CommandBar
-	cmdBar = NewCommandBar(func(text string) {
+	var chatInput *ChatInput
+	chatInput = NewChatInput(func(text string) {
 		if chatPanel == nil {
 			return
 		}
-		dmTarget := cmdBar.DMTarget()
+		dmTarget := chatInput.DMTarget()
 		if dmTarget != "" {
 			// DM mode — send encrypted direct message.
 			myID := connection.GetSessionUserID()
@@ -91,8 +91,8 @@ func showMainView(a fyne.App, w fyne.Window) {
 	})
 
 	chatPanel = NewChatPanel(w)
-	chatPanel.SetInputBar(cmdBar)
-	chatPanel.OnDMOpen = func(username string) { cmdBar.SetDMMode(username) }
+	chatPanel.SetInputBar(chatInput)
+	chatPanel.OnDMOpen = func(username string) { chatInput.SetDMMode(username) }
 	statusPanel.SetChatPanel(chatPanel)
 
 	split := container.NewHSplit(chatPanel, statusPanel)
@@ -116,11 +116,11 @@ func showMainView(a fyne.App, w fyne.Window) {
 	// '/' focuses the command bar from anywhere
 	w.Canvas().SetOnTypedRune(func(r rune) {
 		if r == '/' {
-			w.Canvas().Focus(cmdBar.Entry)
+			w.Canvas().Focus(chatInput.Entry)
 		}
 	})
 
-	w.Canvas().Focus(cmdBar.Entry)
+	w.Canvas().Focus(chatInput.Entry)
 
 	// Start background goroutines.
 	go pingLoop(statusPanel)

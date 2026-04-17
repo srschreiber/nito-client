@@ -4,8 +4,6 @@
 package main
 
 import (
-	"bytes"
-	"image/color"
 	"io"
 	"net/http"
 	"net/url"
@@ -322,13 +320,6 @@ func id3APIC(data []byte) []byte {
 // Metadata (title, artist, album art) loads asynchronously via ID3v2.
 // The play button streams track 0; the alias button saves the URL.
 func buildAudioEmbed(audioURL string) fyne.CanvasObject {
-	// ── Thumb / icon ──────────────────────────────────────────────────────────
-	thumbBg := canvas.NewRectangle(colAccentDark)
-	thumbBg.CornerRadius = 6
-	thumbBg.SetMinSize(fyne.NewSize(48, 48))
-	noteIcon := txt("♪", color.White, 22, true, false)
-	thumbStack := container.NewStack(thumbBg, container.NewCenter(noteIcon))
-
 	// ── Labels ────────────────────────────────────────────────────────────────
 	titleLabel := widget.NewLabel("Loading…")
 	titleLabel.Truncation = fyne.TextTruncateEllipsis
@@ -337,19 +328,19 @@ func buildAudioEmbed(audioURL string) fyne.CanvasObject {
 	subtitleLabel.Truncation = fyne.TextTruncateEllipsis
 	subtitleLabel.Importance = widget.LowImportance
 
-	// ── Play / stop button ────────────────────────────────────────────────────
+	// ── Thumb play button (48×48 circle — acts as both icon and play/stop) ────
 	isThisPlaying := func() bool {
 		return isTrackPlaying(0) && getTrackURL(0) == audioURL
 	}
-	playBtnIcon := func() string {
+	thumbIcon := func() string {
 		if isThisPlaying() {
 			return "■"
 		}
-		return "▶"
+		return "♪"
 	}
 
-	var playBtn *PillPlayBtn
-	playBtn = newPillPlayBtn(playBtnIcon(), func() {
+	var thumbBtn *PillPlayBtn
+	thumbBtn = newThumbPlayBtn(thumbIcon(), func() {
 		if isThisPlaying() {
 			stopTrack(0)
 		} else {
@@ -358,7 +349,7 @@ func buildAudioEmbed(audioURL string) fyne.CanvasObject {
 				startTrackLocal(0, resolved)
 			}()
 		}
-		playBtn.SetIcon(playBtnIcon())
+		thumbBtn.SetIcon(thumbIcon())
 	})
 
 	// ── Alias button ──────────────────────────────────────────────────────────
@@ -386,21 +377,21 @@ func buildAudioEmbed(audioURL string) fyne.CanvasObject {
 		titleLabel,
 		subtitleLabel,
 		vspace(2),
-		container.NewHBox(playBtn, aliasBtn),
+		container.NewHBox(aliasBtn),
 		vspace(2),
 		audioBadge,
 	)
 
 	inner := container.NewBorder(nil, nil,
-		container.NewPadded(thumbStack), nil,
+		container.NewPadded(thumbBtn), nil,
 		container.NewPadded(rightCol),
 	)
 
 	card := container.NewStack(bg, container.NewPadded(inner))
 
-	// ── Keep play button in sync with track state ─────────────────────────────
+	// ── Keep thumb button in sync with track state ───────────────────────────
 	registerTrackWatcher(func() {
-		playBtn.SetIcon(playBtnIcon())
+		thumbBtn.SetIcon(thumbIcon())
 	})
 
 	// ── Async metadata fetch ──────────────────────────────────────────────────
@@ -421,14 +412,7 @@ func buildAudioEmbed(audioURL string) fyne.CanvasObject {
 			case meta.Album != "":
 				subtitleLabel.SetText(meta.Album)
 			}
-
-			if len(meta.ThumbData) > 0 {
-				img := canvas.NewImageFromReader(bytes.NewReader(meta.ThumbData), "thumb_"+audioURL+".jpg")
-				img.FillMode = canvas.ImageFillContain
-				img.SetMinSize(fyne.NewSize(48, 48))
-				thumbStack.Objects = []fyne.CanvasObject{img}
-				thumbStack.Refresh()
-			}
+			_ = meta.ThumbData // album art not shown; thumb button shows ♪/■ state
 		})
 	}()
 

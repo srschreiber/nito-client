@@ -182,6 +182,18 @@ func (b *PillPlayBtn) SetIcon(icon string) {
 	b.label.Refresh()
 }
 
+// newThumbPlayBtn creates a 48×48 fully-rounded play button — used as the
+// album-art thumb in audio embeds. Shows ♪ when idle, ■ when playing.
+func newThumbPlayBtn(icon string, onTap func()) *PillPlayBtn {
+	b := &PillPlayBtn{onTap: onTap}
+	b.circ = canvas.NewRectangle(colAccentDark)
+	b.circ.CornerRadius = 24
+	b.circ.SetMinSize(fyne.NewSize(48, 48))
+	b.label = txt(icon, color.White, 22, true, false)
+	b.ExtendBaseWidget(b)
+	return b
+}
+
 func (b *PillPlayBtn) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(
 		container.NewStack(b.circ, container.NewCenter(b.label)),

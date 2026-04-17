@@ -157,9 +157,47 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 	usernameEntry.OnSubmitted = func(string) { w.Canvas().Focus(passwordEntry) }
 	passwordEntry.OnSubmitted = func(string) { submitFn() }
 
+	// ── Key-storage notice (shown only on REGISTER tab) ──────────────────────
+	amberCol := color.NRGBA{R: 0xfb, G: 0xbf, B: 0x24, A: 0xff}
+
+	noticeBg := canvas.NewRectangle(color.NRGBA{R: 0x1e, G: 0x18, B: 0x08, A: 0xff})
+	noticeBg.CornerRadius = 6
+	noticeBg.StrokeColor = amberCol
+	noticeBg.StrokeWidth = 1
+
+	noticeHeader := txt("⚠  your keys", amberCol, 12, true, false)
+	noticeLine := func(s string) *canvas.Text { return monoTxt(s, colText) }
+	noticeDim := func(s string) *canvas.Text { return monoTxt(s, colDimMid) }
+
+	noticeBody := container.NewVBox(
+		noticeHeader,
+		vspace(6),
+		noticeLine("nito is end-to-end encrypted. registering"),
+		noticeLine("generates an RSA key pair stored at:"),
+		vspace(4),
+		noticeDim("  ~/.nito/<broker>/users/<username>/keys/"),
+		vspace(4),
+		noticeLine("the private key never leaves your device."),
+		noticeLine("if you lose it, your account cannot be"),
+		noticeLine("recovered — there is no reset."),
+		vspace(4),
+		monoTxt("back up that directory.", amberCol),
+	)
+
+	registerNotice := container.NewStack(
+		noticeBg,
+		container.NewPadded(container.NewPadded(noticeBody)),
+	)
+	registerNotice.Hide()
+
 	// ── Mode toggle ───────────────────────────────────────────────────────────
 	modeTabBar := NewTabBar([]string{"LOGIN", "REGISTER"}, 0, func(i int) {
 		isLogin = i == 0
+		if i == 0 {
+			registerNotice.Hide()
+		} else {
+			registerNotice.Show()
+		}
 	})
 
 	// ── Brand area ────────────────────────────────────────────────────────────
@@ -187,7 +225,9 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 		hline(),
 		vspace(10),
 		modeTabBar,
-		vspace(14),
+		vspace(10),
+		registerNotice,
+		vspace(4),
 		monoTxt("broker", colDimMid), brokerEntry,
 		vspace(8),
 		monoTxt("username", colDimMid), usernameEntry,

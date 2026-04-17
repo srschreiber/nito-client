@@ -341,10 +341,14 @@ func (sp *StatusPanel) SetInvites(invites []apitypes.PendingInvite) {
 					}
 					nitoLog("accepted invite, joined " + inv.RoomName)
 					showToast(sp.w, "joined "+inv.RoomName, toastSuccess)
-					// Remove from list after accepting.
+					// Refresh both room list and invite list immediately.
 					go func() {
-						pending, e := connection.ListPendingInvites()
-						if e == nil {
+						if sp.cp != nil {
+							if rooms, e := connection.ListRooms(); e == nil {
+								fyne.Do(func() { sp.cp.SetRooms(rooms) })
+							}
+						}
+						if pending, e := connection.ListPendingInvites(); e == nil {
 							fyne.Do(func() { sp.SetInvites(pending) })
 						}
 					}()

@@ -339,7 +339,7 @@ func showPlayPopup(w fyne.Window, idx int) {
 		aliasSel = widget.NewSelect(aliasNames, nil)
 	}
 
-	playBtn := newBtn("Play", nil)
+	playBtn := newBtn("♪", nil)
 	playBtn.Importance = widget.HighImportance
 	cancelBtn := newBtn("Cancel", nil)
 	cancelBtn.Importance = widget.LowImportance
@@ -528,7 +528,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			})
 			removeBtn.Importance = widget.LowImportance
 
-			playBtn := newPillPlayBtn("Play", func() {
+			playBtn := newPillPlayBtn("♪", func() {
 				showToast(w, "playing alias: "+n, toastInfo)
 				startTrackLocal(0, u)
 				nitoLog("alias play: " + n)
