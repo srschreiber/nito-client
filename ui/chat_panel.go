@@ -425,11 +425,20 @@ func (cp *ChatPanel) SetMembers(members []apitypes.RoomMemberEntry) {
 // selectRoom is called when the user clicks a room row.
 func (cp *ChatPanel) selectRoom(roomID, roomName string) {
 	go func() {
+		// Notify broker we are leaving the previous room (if any).
+		var prevRoomID string
+		fyne.DoAndWait(func() { prevRoomID = cp.currentRoomID })
+		if prevRoomID != "" && prevRoomID != roomID {
+			commands.SendRoomLeave(prevRoomID)
+		}
+
 		if err := connection.SetSessionRoom(roomID); err != nil {
 			nitoLog("join room failed: " + err.Error())
 			fyne.Do(func() { showToast(cp.w, "room: "+err.Error(), toastError) })
 			return
 		}
+		// Notify broker we are now viewing this room so it routes messages here.
+		commands.SendRoomEnter(roomID)
 		nitoLog("joined room: " + roomName)
 
 		members, _ := connection.ListRoomMembers(roomID)
