@@ -134,23 +134,57 @@ func showVoiceSettingsPopup(w fyne.Window) {
 	var testBtn *nitoBtn
 	testBtn = newBtn("Test Voice", func() {
 		if voice.ActiveRoomID() == voice.SelfRoomID {
+			// Currently testing — stop it.
 			go func() {
 				_ = commands.VoiceLeaveTestAudioDirect()
 				fyne.Do(func() {
 					testBtn.Text = "Test Voice"
 					testBtn.Importance = widget.LowImportance
+					testBtn.Enable()
 					testBtn.Refresh()
 				})
 			}()
 		} else {
+			// Start test — show spinner while connecting.
+			fyne.Do(func() {
+				testBtn.Text = "| Connecting…"
+				testBtn.Importance = widget.LowImportance
+				testBtn.Disable()
+				testBtn.Refresh()
+			})
+			done := make(chan struct{})
 			go func() {
-				if err := commands.VoiceTestAudioDirect(); err != nil {
-					fyne.Do(func() { showToast(w, "test audio: "+err.Error(), toastError) })
-					return
+				frames := [4]string{"|", "/", "-", "\\"}
+				t := time.NewTicker(120 * time.Millisecond)
+				defer t.Stop()
+				i := 0
+				for {
+					select {
+					case <-done:
+						return
+					case <-t.C:
+						i++
+						frame := frames[i%4]
+						fyne.Do(func() {
+							testBtn.Text = frame + " Connecting…"
+							testBtn.Refresh()
+						})
+					}
 				}
+			}()
+			go func() {
+				err := commands.VoiceTestAudioDirect()
+				close(done)
 				fyne.Do(func() {
-					testBtn.Text = "Stop Test"
-					testBtn.Importance = widget.DangerImportance
+					testBtn.Enable()
+					if err != nil {
+						showToast(w, "test audio: "+err.Error(), toastError)
+						testBtn.Text = "Test Voice"
+						testBtn.Importance = widget.LowImportance
+					} else {
+						testBtn.Text = "Stop Test"
+						testBtn.Importance = widget.DangerImportance
+					}
 					testBtn.Refresh()
 				})
 			}()

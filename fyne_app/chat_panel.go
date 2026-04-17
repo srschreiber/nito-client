@@ -618,11 +618,11 @@ func (cp *ChatPanel) TickVoice() {
 	var imp widget.Importance
 	switch {
 	case connecting:
-		frame := spinnerFrames[cp.voiceTick%len(spinnerFrames)]
-		label = frame + " Connecting…"
+		frames := [4]string{"|", "/", "-", "\\"}
+		label = frames[(cp.voiceTick/2)%4] + " Connecting…"
 		imp = widget.LowImportance
 	case active:
-		label = "● Leave Voice"
+		label = "Leave Voice"
 		imp = widget.DangerImportance
 	default:
 		label = "Join Voice"
@@ -635,7 +635,7 @@ func (cp *ChatPanel) TickVoice() {
 		cp.voiceBtn.Refresh()
 	}
 
-	shouldDisable := !inRoom || connecting
+	shouldDisable := connecting || (!inRoom && !active)
 	if shouldDisable && !cp.voiceBtn.Disabled() {
 		cp.voiceBtn.Disable()
 	} else if !shouldDisable && cp.voiceBtn.Disabled() {
