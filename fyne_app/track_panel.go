@@ -15,7 +15,6 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
-	"github.com/srschreiber/nito-client/shellapp/commands"
 	"github.com/srschreiber/nito-client/shellapp/components"
 	"github.com/srschreiber/nito-client/shellapp/voice"
 )
@@ -261,12 +260,6 @@ func showPlayPopup(w fyne.Window, idx int) {
 		aliasSel = widget.NewSelect(aliasNames, nil)
 	}
 
-	broadcastCheck := widget.NewCheck("broadcast to room", nil)
-	// Only enable broadcast if in a voice call
-	if voice.ActiveRoomID() == "" {
-		broadcastCheck.Disable()
-	}
-
 	playBtn := widget.NewButton("Play", nil)
 	playBtn.Importance = widget.HighImportance
 	cancelBtn := widget.NewButton("Cancel", nil)
@@ -285,24 +278,8 @@ func showPlayPopup(w fyne.Window, idx int) {
 			showToast(w, "no URL or alias selected", toastWarn)
 			return
 		}
-
-		if broadcastCheck.Checked {
-			// Broadcast: send RPC to broker (broker will echo SoundClip back)
-			url := target
-			go func() {
-				if err := commands.PlayAudioDirect(url, idx); err != nil {
-					fyne.Do(func() {
-						showToast(w, "broadcast: "+err.Error(), toastError)
-					})
-				} else {
-					nitoLog("broadcast play: " + url)
-				}
-			}()
-		} else {
-			// Local only
-			startTrackLocal(idx, target)
-			nitoLog("local play track " + itoa(idx) + ": " + target)
-		}
+		startTrackLocal(idx, target)
+		nitoLog("play track " + itoa(idx) + ": " + target)
 	}
 	cancelBtn.OnTapped = func() {
 		if pop != nil {
@@ -320,7 +297,6 @@ func showPlayPopup(w fyne.Window, idx int) {
 		)
 	}
 	bodyItems = append(bodyItems,
-		broadcastCheck, vspace(6),
 		container.NewHBox(playBtn, cancelBtn),
 	)
 
@@ -407,7 +383,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		var aliasRows []fyne.CanvasObject
 		for name, url := range aliases {
 			n, u := name, url // capture
-			removeBtn := widget.NewButton("−", func() {
+			removeBtn := widget.NewButton("🗑", func() {
 				if err := voice.DeleteAudioAlias(n); err != nil {
 					showToast(w, "remove alias: "+err.Error(), toastError)
 				} else {
@@ -423,7 +399,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			})
 			playBtn.Importance = widget.LowImportance
 			row := container.NewBorder(nil, nil,
-				container.NewHBox(playBtn, removeBtn), nil,
+				playBtn, removeBtn,
 				container.NewPadded(monoTxt(n+" → "+truncURL(u, 30), colText)),
 			)
 			aliasRows = append(aliasRows, row)
