@@ -11,6 +11,7 @@ import (
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	"github.com/srschreiber/nito-client/shellapp/commands"
 	"github.com/srschreiber/nito-client/shellapp/connection"
+	"github.com/srschreiber/nito-client/shellapp/voice"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -148,6 +149,8 @@ type ChatPanel struct {
 	dmMessages map[string][]chatMessage
 
 	OnDMOpen func(username string)
+
+	voiceBtn *nitoBtn
 }
 
 func NewChatPanel(w fyne.Window) *ChatPanel {
@@ -292,10 +295,31 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 		w.Canvas().Focus(userEntry)
 	}
 
-	// ── Voice settings ────────────────────────────────────────────────────────
-	voiceBtn := newBtn("Voice", func() { showVoiceSettingsPopup(w) })
-	voiceBtn.Importance = widget.LowImportance
-	footer := container.NewVBox(hline(), voiceBtn, vspace(4))
+	// ── Voice join/leave button (state updated by TickVoice every 50 ms) ──────
+	cp.voiceBtn = newBtn("Join Voice", func() {
+		if voice.IsActive() {
+			go func() {
+				if err := commands.VoiceLeaveDirect(); err != nil {
+					fyne.Do(func() { showToast(w, "voice: "+err.Error(), toastError) })
+				} else {
+					nitoLog("left voice chat")
+				}
+			}()
+		} else if !voice.IsConnecting() {
+			go func() {
+				if err := commands.VoiceJoinDirect(); err != nil {
+					fyne.Do(func() { showToast(w, "voice: "+err.Error(), toastError) })
+				} else {
+					nitoLog("joined voice chat")
+				}
+			}()
+		}
+	})
+	cp.voiceBtn.Importance = widget.LowImportance
+
+	settingsBtn := newBtn("⚙ Voice Settings", func() { showVoiceSettingsPopup(w) })
+	settingsBtn.Importance = widget.LowImportance
+	footer := container.NewVBox(hline(), cp.voiceBtn, settingsBtn, vspace(4))
 
 	// ── Room list section (dynamic) ───────────────────────────────────────────
 	roomSection := container.NewVBox(
@@ -575,4 +599,43 @@ func (cp *ChatPanel) Refresh() {
 func (cp *ChatPanel) CreateRenderer() fyne.WidgetRenderer {
 	_, panel := panelStack(false, cp.content)
 	return widget.NewSimpleRenderer(panel)
+}
+
+// TickVoice updates the join/leave button to reflect current voice state.
+// Called every ~50 ms from the StatusPanel animation ticker on the Fyne thread.
+func (cp *ChatPanel) TickVoice() {
+	if cp.voiceBtn == nil {
+		return
+	}
+	active := voice.IsActive()
+	connecting := voice.IsConnecting()
+	inRoom := cp.currentRoomID != ""
+
+	var label string
+	var imp widget.Importance
+	switch {
+	case connecting:
+		label = "Connecting…"
+		imp = widget.LowImportance
+	case active:
+		label = "Leave Voice"
+		imp = widget.DangerImportance
+	default:
+		label = "Join Voice"
+		imp = widget.LowImportance
+	}
+
+	changed := cp.voiceBtn.Text != label || cp.voiceBtn.Importance != imp
+	if changed {
+		cp.voiceBtn.Text = label
+		cp.voiceBtn.Importance = imp
+		cp.voiceBtn.Refresh()
+	}
+
+	shouldDisable := !inRoom || connecting
+	if shouldDisable && !cp.voiceBtn.Disabled() {
+		cp.voiceBtn.Disable()
+	} else if !shouldDisable && cp.voiceBtn.Disabled() {
+		cp.voiceBtn.Enable()
+	}
 }

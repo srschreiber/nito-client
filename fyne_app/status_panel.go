@@ -8,7 +8,9 @@ import (
 	"time"
 
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
+	"github.com/srschreiber/nito-client/shellapp/commands"
 	"github.com/srschreiber/nito-client/shellapp/connection"
+	"github.com/srschreiber/nito-client/shellapp/voice"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -89,44 +91,87 @@ func fmtFloat(v float64) string {
 }
 
 func showVoiceSettingsPopup(w fyne.Window) {
-	inputSel := widget.NewSelect([]string{"Default Microphone", "USB Headset", "Built-in Mic"}, func(string) {})
-	inputSel.SetSelected("Default Microphone")
-	outputSel := widget.NewSelect([]string{"Default Speaker", "USB Headset", "Built-in Output"}, func(string) {})
-	outputSel.SetSelected("Default Speaker")
-	noiseCheck := widget.NewCheck("Noise reduction (RNNoise)", func(bool) {})
-	noiseCheck.SetChecked(true)
-	aecCheck := widget.NewCheck("Echo cancellation (AEC3)", func(bool) {})
-	aecCheck.SetChecked(true)
-
-	pitchSlider := widget.NewSlider(-6, 6)
-	pitchSlider.Step = 0.5
-	pitchLabel := monoTxt("0.0 st", colText)
-	pitchSlider.OnChanged = func(v float64) {
-		sign := "+"
-		if v < 0 {
-			sign = ""
-		}
-		pitchLabel.Text = sign + fmtFloat(v) + " st"
-		pitchLabel.Refresh()
+	// ── Input device ──────────────────────────────────────────────────────────
+	devices := voice.ListAudioInputs()
+	deviceLabels := make([]string, len(devices))
+	deviceIDs := make([]string, len(devices))
+	for i, d := range devices {
+		deviceLabels[i] = d.Label
+		deviceIDs[i] = d.ID
 	}
 
-	testBtn := newBtn("Test Voice", func() {
-		showToast(w, "testing voice...", toastInfo)
+	currentID := voice.SelectedInputDevice()
+	currentLabel := "System Default"
+	for i, id := range deviceIDs {
+		if id == currentID {
+			currentLabel = deviceLabels[i]
+			break
+		}
+	}
+
+	inputSel := widget.NewSelect(deviceLabels, func(selected string) {
+		for i, lbl := range deviceLabels {
+			if lbl == selected {
+				voice.SetInputDevice(deviceIDs[i])
+				return
+			}
+		}
 	})
-	testBtn.Importance = widget.LowImportance
+	inputSel.SetSelected(currentLabel)
+
+	// ── Noise / AEC ───────────────────────────────────────────────────────────
+	noiseCheck := widget.NewCheck("Noise reduction (RNNoise)", func(b bool) {
+		voice.SetDenoiseOutboundEnabled(b)
+	})
+	noiseCheck.SetChecked(voice.DenoiseOutboundEnabled())
+
+	aecCheck := widget.NewCheck("Echo cancellation (AEC3)", func(b bool) {
+		voice.SetAECEnabled(b)
+	})
+	aecCheck.SetChecked(voice.AECEnabled())
+
+	// ── Test voice toggle ─────────────────────────────────────────────────────
+	var testBtn *nitoBtn
+	testBtn = newBtn("Test Voice", func() {
+		if voice.ActiveRoomID() == voice.SelfRoomID {
+			go func() {
+				_ = commands.VoiceLeaveTestAudioDirect()
+				fyne.Do(func() {
+					testBtn.Text = "Test Voice"
+					testBtn.Importance = widget.LowImportance
+					testBtn.Refresh()
+				})
+			}()
+		} else {
+			go func() {
+				if err := commands.VoiceTestAudioDirect(); err != nil {
+					fyne.Do(func() { showToast(w, "test audio: "+err.Error(), toastError) })
+					return
+				}
+				fyne.Do(func() {
+					testBtn.Text = "Stop Test"
+					testBtn.Importance = widget.DangerImportance
+					testBtn.Refresh()
+				})
+			}()
+		}
+	})
+	if voice.ActiveRoomID() == voice.SelfRoomID {
+		testBtn.Text = "Stop Test"
+		testBtn.Importance = widget.DangerImportance
+	} else {
+		testBtn.Importance = widget.LowImportance
+	}
 
 	minWidth := canvas.NewRectangle(colTransparent)
 	minWidth.SetMinSize(fyne.NewSize(340, 0))
 
 	body := container.NewVBox(
 		minWidth,
-		monoTxt("Input device", colDimMid), inputSel, vspace(4),
-		monoTxt("Output device", colDimMid), outputSel, vspace(4),
+		monoTxt("Input device", colDimMid), withPointerCursor(inputSel), vspace(4),
 		hline(), vspace(4),
-		noiseCheck, aecCheck, vspace(4),
-		hline(), vspace(4),
-		monoTxt("Pitch shift", colDimMid),
-		container.NewHBox(pitchSlider, pitchLabel),
+		withPointerCursor(noiseCheck),
+		withPointerCursor(aecCheck),
 		vspace(4), hline(), vspace(4),
 		testBtn,
 	)
@@ -224,7 +269,12 @@ type StatusPanel struct {
 	setStatus     func(connected bool, brokerURL, userID string, latencyMs int64)
 	inviteListBox *fyne.Container
 	w             fyne.Window
+	cp            *ChatPanel
 }
+
+// SetChatPanel wires the ChatPanel so the status panel's animation ticker can
+// call TickVoice. Call once after both panels are created.
+func (sp *StatusPanel) SetChatPanel(cp *ChatPanel) { sp.cp = cp }
 
 // UpdateStatus refreshes the STATUS tab with live connection data.
 // Safe to call from any goroutine.
@@ -313,7 +363,7 @@ func NewStatusPanel(w fyne.Window) *StatusPanel {
 	})
 	sp.ExtendBaseWidget(sp)
 
-	// 50 ms animation ticker for track meters and EQ spectrum.
+	// 50 ms animation ticker for track meters, EQ spectrum, and voice state.
 	go func() {
 		t := time.NewTicker(50 * time.Millisecond)
 		defer t.Stop()
@@ -322,6 +372,9 @@ func NewStatusPanel(w fyne.Window) *StatusPanel {
 				tracksTick()
 				eqTick()
 				tickTrackWatchers()
+				if sp.cp != nil {
+					sp.cp.TickVoice()
+				}
 			})
 		}
 	}()

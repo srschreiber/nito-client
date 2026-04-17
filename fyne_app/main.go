@@ -15,6 +15,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"github.com/srschreiber/nito-client/shellapp/commands"
 	"github.com/srschreiber/nito-client/shellapp/connection"
+	"github.com/srschreiber/nito-client/shellapp/voice"
 )
 
 func main() {
@@ -92,6 +93,7 @@ func showMainView(a fyne.App, w fyne.Window) {
 	chatPanel = NewChatPanel(w)
 	chatPanel.SetInputBar(cmdBar)
 	chatPanel.OnDMOpen = func(username string) { cmdBar.SetDMMode(username) }
+	statusPanel.SetChatPanel(chatPanel)
 
 	split := container.NewHSplit(chatPanel, statusPanel)
 	split.SetOffset(0.72)
@@ -146,5 +148,6 @@ func pingLoop(sp *StatusPanel) {
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	voice.LoadAudioSettings()
 	nitoLog("nito started")
 }
