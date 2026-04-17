@@ -150,7 +150,8 @@ type ChatPanel struct {
 
 	OnDMOpen func(username string)
 
-	voiceBtn *nitoBtn
+	voiceBtn  *nitoBtn
+	voiceTick int
 }
 
 func NewChatPanel(w fyne.Window) *ChatPanel {
@@ -611,22 +612,24 @@ func (cp *ChatPanel) TickVoice() {
 	connecting := voice.IsConnecting()
 	inRoom := cp.currentRoomID != ""
 
+	cp.voiceTick++
+
 	var label string
 	var imp widget.Importance
 	switch {
 	case connecting:
-		label = "Connecting…"
+		frame := spinnerFrames[cp.voiceTick%len(spinnerFrames)]
+		label = frame + " Connecting…"
 		imp = widget.LowImportance
 	case active:
-		label = "Leave Voice"
+		label = "● Leave Voice"
 		imp = widget.DangerImportance
 	default:
 		label = "Join Voice"
 		imp = widget.LowImportance
 	}
 
-	changed := cp.voiceBtn.Text != label || cp.voiceBtn.Importance != imp
-	if changed {
+	if cp.voiceBtn.Text != label || cp.voiceBtn.Importance != imp {
 		cp.voiceBtn.Text = label
 		cp.voiceBtn.Importance = imp
 		cp.voiceBtn.Refresh()
