@@ -99,16 +99,22 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 			return
 		}
 
-		eq := newEQReader(dec, dec.SampleRate(), track)
+		// Resample before the EQ reader so the EQ reader is called with large
+		// buffers (by oto) rather than 4-byte frame reads (by the resampler).
+		// This keeps the band-level smoothing well-behaved.
+		var decSrc io.Reader = dec
+		eqRate := dec.SampleRate()
+		if dec.SampleRate() != 48000 {
+			decSrc = newResampler(dec, dec.SampleRate(), 48000)
+			eqRate = 48000
+		}
+
+		eq := newEQReader(decSrc, eqRate, track)
 		defer eq.Close()
 		defer voice.ClearTrackBandLevels(track)
 		defer voice.ClearTrackEQBandLevels(track)
 
-		var src io.Reader = eq
-		if dec.SampleRate() != 48000 {
-			src = newResampler(eq, dec.SampleRate(), 48000)
-		}
-		player := otoCtx.NewPlayer(src)
+		player := otoCtx.NewPlayer(eq)
 		if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
 			bss.SetBufferSize(48000 / 5 * 4) // ~200 ms at 48 kHz
 		}
@@ -414,15 +420,20 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 		return false, audioPlaybackErr(track, "oto init", err)
 	}
 
-	eq := newEQReader(dec, dec.SampleRate(), track)
+	// Resample before the EQ reader so the EQ reader is called with large
+	// buffers (by oto) rather than 4-byte frame reads (by the resampler).
+	var decSrc io.Reader = dec
+	eqRate := dec.SampleRate()
+	if dec.SampleRate() != 48000 {
+		decSrc = newResampler(dec, dec.SampleRate(), 48000)
+		eqRate = 48000
+	}
+
+	eq := newEQReader(decSrc, eqRate, track)
 	defer eq.Close()
 	defer voice.ClearTrackBandLevels(track)   // zero the status-bar meter when playback ends
 	defer voice.ClearTrackEQBandLevels(track) // zero the EQ graph when playback ends
-	var src io.Reader = eq
-	if dec.SampleRate() != 48000 {
-		src = newResampler(eq, dec.SampleRate(), 48000)
-	}
-	player := otoCtx.NewPlayer(src)
+	player := otoCtx.NewPlayer(eq)
 	if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
 		bufSize := 48000 / 5 * 4 // ~200 ms at 48 kHz
 		if isLive {
