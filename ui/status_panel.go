@@ -277,11 +277,36 @@ func buildThemeSection() fyne.CanvasObject {
 		}
 	})
 
+	// ── Brightness slider ─────────────────────────────────────────────────
+	brightLabel := monoTxt(fmtBrightness(brightnessScale), liveDimMid)
+
+	slider := widget.NewSlider(0.5, 1.8)
+	slider.Step = 0.05
+	slider.Value = float64(brightnessScale)
+	slider.OnChanged = func(v float64) {
+		brightLabel.Text = fmtBrightness(float32(v))
+		brightLabel.Refresh()
+		applyBrightness(float32(v))
+	}
+
+	brightnessRow := container.NewBorder(nil, nil,
+		monoTxt("brightness", liveDim),
+		brightLabel,
+		withPointerCursor(slider),
+	)
+
 	return container.NewVBox(
 		vspace(2),
 		newResponsiveGrid(4, 60, cells...),
+		vspace(6),
+		brightnessRow,
 		vspace(4),
 	)
+}
+
+func fmtBrightness(scale float32) string {
+	pct := int(scale*100 + 0.5)
+	return itoa(pct) + "%"
 }
 
 // ── STATUS tab ────────────────────────────────────────────────────────────────

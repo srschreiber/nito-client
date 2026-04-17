@@ -146,6 +146,33 @@ var colorProfiles = []ColorProfile{
 // activeProfileName is the name of the currently active profile.
 var activeProfileName = "purple"
 
+// brightnessScale is a multiplier applied to all surface/dim/border colors when
+// a profile is set. Accent and AccentDark are intentionally excluded so the hue
+// stays vivid at any brightness. Range roughly 0.5–1.8; default 1.0.
+var brightnessScale float32 = 1.0
+
+// scaledCol multiplies the RGB channels of c by brightnessScale, clamping to 255.
+func scaledCol(c color.NRGBA) color.NRGBA {
+	if brightnessScale == 1.0 {
+		return c
+	}
+	clamp := func(v float32) uint8 {
+		if v >= 255 {
+			return 255
+		}
+		if v <= 0 {
+			return 0
+		}
+		return uint8(v)
+	}
+	return color.NRGBA{
+		R: clamp(float32(c.R) * brightnessScale),
+		G: clamp(float32(c.G) * brightnessScale),
+		B: clamp(float32(c.B) * brightnessScale),
+		A: c.A,
+	}
+}
+
 // ── Theme-change listener registry ───────────────────────────────────────────
 //
 // Custom widgets that store canvas-object colors (not going through nitoTheme)
@@ -177,23 +204,26 @@ func profileByName(name string) ColorProfile {
 
 // ── Apply ─────────────────────────────────────────────────────────────────────
 
-// setProfileColors updates all mutable col* globals to match the named profile.
+// setProfileColors updates all mutable col* globals to match the named profile,
+// applying the current brightnessScale to surface/dim/border colors.
 // Does NOT call SetTheme or notify listeners — use applyColorProfile for that.
 func setProfileColors(name string) {
 	p := profileByName(name)
 	activeProfileName = p.Name
+	// Accent and AccentDark are hue-defining — skip brightness scaling.
 	colAccent = p.Accent
 	colAccentDark = p.AccentDark
-	colBorder = p.Border
-	colBorderFocus = p.BorderFocus
-	colSep = p.Sep
-	colDim = p.Dim
-	colDimMid = p.DimMid
-	colSurface = p.Surface
-	colSurface2 = p.Surface2
-	colTabActive = p.TabActive
-	colInputBg = p.InputBg
-	colHover = p.Hover
+	// All other colors are scaled by the current brightness multiplier.
+	colBorder = scaledCol(p.Border)
+	colBorderFocus = scaledCol(p.BorderFocus)
+	colSep = scaledCol(p.Sep)
+	colDim = scaledCol(p.Dim)
+	colDimMid = scaledCol(p.DimMid)
+	colSurface = scaledCol(p.Surface)
+	colSurface2 = scaledCol(p.Surface2)
+	colTabActive = scaledCol(p.TabActive)
+	colInputBg = scaledCol(p.InputBg)
+	colHover = scaledCol(p.Hover)
 }
 
 // applyColorProfile applies a named profile, refreshes the Fyne theme, saves
@@ -209,14 +239,26 @@ func applyColorProfile(name string) {
 	notifyThemeListeners()
 }
 
-// loadSavedProfile reads the user's saved profile from preferences and applies
-// the colors to the global col* vars (without triggering a theme refresh —
-// the app's initial SetTheme call handles that).
+// applyBrightness sets the brightness multiplier, saves the preference, and
+// re-applies the current profile. Must be called on the Fyne main thread.
+func applyBrightness(scale float32) {
+	brightnessScale = scale
+	a := fyne.CurrentApp()
+	if a != nil {
+		a.Preferences().SetFloat("brightness", float64(scale))
+	}
+	applyColorProfile(activeProfileName)
+}
+
+// loadSavedProfile reads the user's saved profile and brightness from
+// preferences and applies them to the global col* vars (without triggering a
+// theme refresh — the app's initial SetTheme call handles that).
 func loadSavedProfile() {
 	a := fyne.CurrentApp()
 	if a == nil {
 		return
 	}
+	brightnessScale = float32(a.Preferences().FloatWithFallback("brightness", 1.0))
 	name := a.Preferences().StringWithFallback("colorProfile", "purple")
 	setProfileColors(name)
 }
