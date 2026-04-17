@@ -108,6 +108,66 @@ func withPointerCursor(obj fyne.CanvasObject) fyne.CanvasObject {
 	return container.NewStack(obj, layer)
 }
 
+// ── PillPlayBtn ───────────────────────────────────────────────────────────────
+
+// PillPlayBtn mirrors CircleStopBtn exactly — same 18×18 circle, same colors —
+// but shows "▶" instead of "■". Call SetIcon to toggle between ▶ and ■.
+type PillPlayBtn struct {
+	widget.BaseWidget
+	circ  *canvas.Rectangle
+	label *canvas.Text
+	onTap func()
+}
+
+func newPillPlayBtn(icon string, onTap func()) *PillPlayBtn {
+	b := &PillPlayBtn{onTap: onTap}
+	b.circ = canvas.NewRectangle(colAccentDark)
+	b.circ.CornerRadius = 9
+	b.circ.SetMinSize(fyne.NewSize(18, 18))
+	b.label = txt(icon, colAccent, 9, false, false)
+	b.ExtendBaseWidget(b)
+	return b
+}
+
+func (b *PillPlayBtn) SetIcon(icon string) {
+	b.label.Text = icon
+	b.label.Refresh()
+}
+
+func (b *PillPlayBtn) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(
+		container.NewStack(b.circ, container.NewCenter(b.label)),
+	)
+}
+
+func (b *PillPlayBtn) Tapped(_ *fyne.PointEvent) {
+	b.circ.FillColor = colAccent
+	b.circ.Refresh()
+	go func() {
+		time.Sleep(120 * time.Millisecond)
+		fyne.Do(func() {
+			b.circ.FillColor = colAccentDark
+			b.circ.Refresh()
+		})
+		if b.onTap != nil {
+			b.onTap()
+		}
+	}()
+}
+
+func (b *PillPlayBtn) TappedSecondary(_ *fyne.PointEvent) {}
+
+func (b *PillPlayBtn) MouseIn(_ *desktop.MouseEvent) {
+	b.circ.FillColor = colBorderFocus
+	b.circ.Refresh()
+}
+func (b *PillPlayBtn) MouseMoved(_ *desktop.MouseEvent) {}
+func (b *PillPlayBtn) MouseOut() {
+	b.circ.FillColor = colAccentDark
+	b.circ.Refresh()
+}
+func (b *PillPlayBtn) Cursor() desktop.Cursor { return desktop.PointerCursor }
+
 // ── HoverRow ──────────────────────────────────────────────────────────────────
 
 // HoverRow is a tappable row that highlights its background on hover.
@@ -193,23 +253,23 @@ func (tb *TabBar) Next() {
 }
 
 func (tb *TabBar) CreateRenderer() fyne.WidgetRenderer {
-	var labels []*canvas.Text
+	var labels []*widget.Label
 	var bgs []*canvas.Rectangle
 	var items []fyne.CanvasObject
 
 	for i, name := range tb.tabs {
 		idx := i
-		isActive := i == tb.Active
-		labelCol := colDimMid
-		labelBold := false
-		if isActive {
-			labelCol = colAccent
-			labelBold = true
+		label := widget.NewLabel(name)
+		label.TextStyle = fyne.TextStyle{Bold: i == tb.Active, Monospace: true}
+		label.Truncation = fyne.TextTruncateEllipsis
+		if i == tb.Active {
+			label.Importance = widget.HighImportance
+		} else {
+			label.Importance = widget.LowImportance
 		}
-		label := txt(name, labelCol, 12, labelBold, true)
 		bg := canvas.NewRectangle(colTransparent)
 		bg.CornerRadius = 4
-		if isActive {
+		if i == tb.Active {
 			bg.FillColor = colTabActive
 		}
 		hoverRow := NewHoverRow(
@@ -227,15 +287,34 @@ func (tb *TabBar) CreateRenderer() fyne.WidgetRenderer {
 		items = append(items, hoverRow)
 	}
 
-	row := container.NewHBox(items...)
+	row := container.New(&tabBarLayout{n: len(items)}, items...)
 
 	return &tabBarRenderer{bar: tb, row: row, labels: labels, bgs: bgs}
+}
+
+// tabBarLayout distributes available width equally across all tabs so the bar
+// can be narrowed freely — labels truncate with "…" instead of pushing wider.
+type tabBarLayout struct{ n int }
+
+func (l *tabBarLayout) Layout(objs []fyne.CanvasObject, size fyne.Size) {
+	if l.n == 0 {
+		return
+	}
+	w := size.Width / float32(l.n)
+	for i, o := range objs {
+		o.Move(fyne.NewPos(float32(i)*w, 0))
+		o.Resize(fyne.NewSize(w, size.Height))
+	}
+}
+
+func (l *tabBarLayout) MinSize(_ []fyne.CanvasObject) fyne.Size {
+	return fyne.NewSize(float32(l.n)*28, 28)
 }
 
 type tabBarRenderer struct {
 	bar    *TabBar
 	row    *fyne.Container
-	labels []*canvas.Text
+	labels []*widget.Label
 	bgs    []*canvas.Rectangle
 }
 
@@ -246,17 +325,18 @@ func (r *tabBarRenderer) Objects() []fyne.CanvasObject { return []fyne.CanvasObj
 func (r *tabBarRenderer) Refresh() {
 	for i, label := range r.labels {
 		if i == r.bar.Active {
-			label.Color = colAccent
 			label.TextStyle = fyne.TextStyle{Bold: true, Monospace: true}
+			label.Importance = widget.HighImportance
 			r.bgs[i].FillColor = colTabActive
 		} else {
-			label.Color = colDimMid
 			label.TextStyle = fyne.TextStyle{Monospace: true}
+			label.Importance = widget.LowImportance
 			r.bgs[i].FillColor = colTransparent
 		}
 		label.Refresh()
 		r.bgs[i].Refresh()
 	}
+	r.row.Refresh()
 }
 
 func (tb *TabBar) Refresh() { tb.BaseWidget.Refresh() }

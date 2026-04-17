@@ -4,6 +4,7 @@
 package main
 
 import (
+	"image/color"
 	"strings"
 	"time"
 
@@ -40,46 +41,46 @@ type chatMessage struct {
 
 func renderMessage(m chatMessage) fyne.CanvasObject {
 	var row fyne.CanvasObject
+	msgBody := func(text string) *widget.Label {
+		l := widget.NewLabel(text)
+		l.Selectable = true
+		l.TextStyle = fyne.TextStyle{Monospace: true}
+		l.Wrapping = fyne.TextWrapWord
+		return l
+	}
+	msgRow := func(ts, from string, fromCol color.Color, text string) fyne.CanvasObject {
+		meta := container.NewHBox(
+			txt(ts+" ", colDim, 12, false, true),
+			txt(from+"  ", fromCol, 13, false, true),
+		)
+		return container.NewPadded(container.NewBorder(nil, nil, meta, nil, msgBody(text)))
+	}
+
 	switch m.kind {
 	case msgSystem:
 		return container.NewPadded(monoTxt("  "+m.body, colMuted))
 	case msgSelf:
-		body := widget.NewLabel(m.body)
-		body.Selectable = true
-		body.TextStyle = fyne.TextStyle{Monospace: true}
-		row = container.NewPadded(container.NewHBox(
-			txt(m.timestamp+" ", colDim, 12, false, true),
-			txt("you  ", colCyan, 13, false, true),
-			body,
-		))
+		row = msgRow(m.timestamp, "you", colCyan, m.body)
 	case msgDM:
-		body := widget.NewLabel(m.body)
-		body.Selectable = true
-		body.TextStyle = fyne.TextStyle{Monospace: true}
-		row = container.NewPadded(container.NewHBox(
-			txt(m.timestamp+" ", colDim, 12, false, true),
-			txt(m.from+"  ", colLavender, 13, false, true),
-			body,
-		))
+		row = msgRow(m.timestamp, m.from, colLavender, m.body)
 	default:
-		body := widget.NewLabel(m.body)
-		body.Selectable = true
-		body.TextStyle = fyne.TextStyle{Monospace: true}
-		row = container.NewPadded(container.NewHBox(
-			txt(m.timestamp+" ", colDim, 12, false, true),
-			txt(m.from+"  ", colLavender, 13, false, true),
-			body,
-		))
+		row = msgRow(m.timestamp, m.from, colLavender, m.body)
 	}
 
-	// Append YouTube embeds for any YouTube URLs in the body.
+	// Append embeds for YouTube and audio URLs.
 	ytURLs := findYouTubeURLs(m.body)
-	if len(ytURLs) == 0 {
+	audioURLs := findAudioURLs(m.body)
+	if len(ytURLs) == 0 && len(audioURLs) == 0 {
 		return row
 	}
 	parts := []fyne.CanvasObject{row}
 	for _, u := range ytURLs {
 		if embed := buildYouTubeEmbed(u); embed != nil {
+			parts = append(parts, embed)
+		}
+	}
+	for _, u := range audioURLs {
+		if embed := buildAudioEmbed(u); embed != nil {
 			parts = append(parts, embed)
 		}
 	}

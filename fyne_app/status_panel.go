@@ -299,27 +299,21 @@ func NewStatusPanel(w fyne.Window) *StatusPanel {
 		buildNotifTab(),
 		buildLogsTab(),
 	}
-	for i, t := range tabs {
-		if i != 0 {
-			t.Hide()
-		}
-	}
 
-	content := container.NewStack(tabs...)
+	// Only the active tab lives in the Stack at any time. Fyne's StackLayout
+	// calls Resize on every child unconditionally, so putting all tabs in the
+	// stack causes every hidden pane (including the EQ raster and tracks
+	// accordion) to be laid out on every HSplit drag event.
+	content := container.NewStack(tabs[0])
 	sp.content = content
 	sp.tabs = tabs
 	sp.TabBar = NewTabBar(tabNames, 0, func(idx int) {
-		for i, t := range tabs {
-			if i == idx {
-				t.Show()
-			} else {
-				t.Hide()
-			}
-		}
+		content.Objects = []fyne.CanvasObject{tabs[idx]}
+		content.Refresh()
 	})
 	sp.ExtendBaseWidget(sp)
 
-	// Start 50 ms animation ticker for track meters and EQ spectrum.
+	// 50 ms animation ticker for track meters and EQ spectrum.
 	go func() {
 		t := time.NewTicker(50 * time.Millisecond)
 		defer t.Stop()
@@ -327,6 +321,7 @@ func NewStatusPanel(w fyne.Window) *StatusPanel {
 			fyne.Do(func() {
 				tracksTick()
 				eqTick()
+				tickTrackWatchers()
 			})
 		}
 	}()

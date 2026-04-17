@@ -25,9 +25,42 @@ var (
 	trackMu    sync.Mutex
 	trackState [3]struct {
 		cancel context.CancelFunc
-		gen    int // incremented each startTrackLocal; goroutine clears only its own gen
+		gen    int    // incremented each startTrackLocal; goroutine clears only its own gen
+		url    string // last URL started on this track
 	}
 )
+
+// ── Track state watchers ──────────────────────────────────────────────────────
+
+var (
+	watcherMu     sync.Mutex
+	trackWatchers []func()
+)
+
+// aliasRefreshHook is set by buildTracksTab so that any caller that saves a
+// new alias (e.g. the audio embed's "+ Alias" button) can trigger a list
+// rebuild without needing a direct reference to the closure.
+var aliasRefreshHook func()
+
+// registerTrackWatcher registers fn to be called on the Fyne thread every
+// ~50 ms so embeds can sync their play-button state.
+func registerTrackWatcher(fn func()) {
+	watcherMu.Lock()
+	trackWatchers = append(trackWatchers, fn)
+	watcherMu.Unlock()
+}
+
+// tickTrackWatchers fires all registered watcher callbacks. Called from the
+// 50 ms animation ticker in NewStatusPanel (already on the Fyne thread).
+func tickTrackWatchers() {
+	watcherMu.Lock()
+	fns := make([]func(), len(trackWatchers))
+	copy(fns, trackWatchers)
+	watcherMu.Unlock()
+	for _, fn := range fns {
+		fn()
+	}
+}
 
 func stopTrack(idx int) {
 	trackMu.Lock()
@@ -52,6 +85,7 @@ func startTrackLocal(idx int, audioURL string) {
 	trackMu.Lock()
 	trackState[idx].cancel = cancel
 	trackState[idx].gen++
+	trackState[idx].url = audioURL
 	myGen := trackState[idx].gen
 	trackMu.Unlock()
 
@@ -61,6 +95,7 @@ func startTrackLocal(idx int, audioURL string) {
 		trackMu.Lock()
 		if trackState[idx].gen == myGen {
 			trackState[idx].cancel = nil
+			trackState[idx].url = ""
 		}
 		trackMu.Unlock()
 	}()
@@ -71,6 +106,13 @@ func isTrackPlaying(idx int) bool {
 	trackMu.Lock()
 	defer trackMu.Unlock()
 	return trackState[idx].cancel != nil
+}
+
+// getTrackURL returns the URL currently playing on track idx (empty if idle).
+func getTrackURL(idx int) string {
+	trackMu.Lock()
+	defer trackMu.Unlock()
+	return trackState[idx].url
 }
 
 // ── TrackMeterWidget ──────────────────────────────────────────────────────────
@@ -335,6 +377,62 @@ func showAddAliasPopup(w fyne.Window, onAdded func()) {
 		}
 		nitoLog("saved alias: " + name)
 		showToast(w, "alias saved: "+name, toastSuccess)
+		if aliasRefreshHook != nil {
+			aliasRefreshHook()
+		}
+		if onAdded != nil {
+			onAdded()
+		}
+	}
+	cancelBtn.OnTapped = func() {
+		if pop != nil {
+			pop.Hide()
+		}
+	}
+
+	body := container.NewVBox(
+		monoTxt("alias name", colDimMid), nameEntry, vspace(4),
+		monoTxt("URL", colDimMid), urlEntry, vspace(6),
+		container.NewHBox(saveBtn, cancelBtn),
+	)
+	pop = showNitoPopup("ADD ALIAS", body, w)
+	w.Canvas().Focus(nameEntry)
+}
+
+// showAddAliasPopupPrefilled is like showAddAliasPopup but pre-fills name/url.
+func showAddAliasPopupPrefilled(w fyne.Window, initName, initURL string, onAdded func()) {
+	nameEntry := widget.NewEntry()
+	nameEntry.SetText(initName)
+	nameEntry.SetPlaceHolder("alias name")
+	urlEntry := widget.NewEntry()
+	urlEntry.SetText(initURL)
+	urlEntry.SetPlaceHolder("https://...")
+
+	saveBtn := widget.NewButton("Save", nil)
+	saveBtn.Importance = widget.HighImportance
+	cancelBtn := widget.NewButton("Cancel", nil)
+	cancelBtn.Importance = widget.LowImportance
+
+	var pop *widget.PopUp
+	saveBtn.OnTapped = func() {
+		name := strings.TrimSpace(nameEntry.Text)
+		u := strings.TrimSpace(urlEntry.Text)
+		if pop != nil {
+			pop.Hide()
+		}
+		if name == "" || u == "" {
+			showToast(w, "name and URL required", toastWarn)
+			return
+		}
+		if err := voice.SaveAudioAlias(name, u); err != nil {
+			showToast(w, "save alias: "+err.Error(), toastError)
+			return
+		}
+		nitoLog("saved alias: " + name)
+		showToast(w, "alias saved: "+name, toastSuccess)
+		if aliasRefreshHook != nil {
+			aliasRefreshHook()
+		}
 		if onAdded != nil {
 			onAdded()
 		}
@@ -392,15 +490,29 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 				}
 			})
 			removeBtn.Importance = widget.LowImportance
-			playBtn := widget.NewButton("▶", func() {
+
+			playBtn := newPillPlayBtn("Play", func() {
 				showToast(w, "playing alias: "+n, toastInfo)
 				startTrackLocal(0, u)
 				nitoLog("alias play: " + n)
 			})
-			playBtn.Importance = widget.LowImportance
+
+			copyBtn := widget.NewButton("cp", func() {
+				fyne.CurrentApp().Clipboard().SetContent(u)
+				showToast(w, "copied: "+truncURL(u, 40), toastInfo)
+			})
+			copyBtn.Importance = widget.LowImportance
+
+			left := container.NewHBox(
+				playBtn,
+				withPointerCursor(copyBtn),
+			)
+			aliasText := widget.NewLabel(n + " → " + u)
+			aliasText.TextStyle = fyne.TextStyle{Monospace: true}
+			aliasText.Truncation = fyne.TextTruncateEllipsis
 			row := container.NewBorder(nil, nil,
-				playBtn, removeBtn,
-				container.NewPadded(monoTxt(n+" → "+truncURL(u, 30), colText)),
+				left, withPointerCursor(removeBtn),
+				container.NewPadded(aliasText),
 			)
 			aliasRows = append(aliasRows, row)
 		}
@@ -408,7 +520,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			aliasRows = append(aliasRows, container.NewPadded(dimTxt("no aliases saved")))
 		}
 		// Add button at the end
-		addBtn := widget.NewButton("+ add alias", func() {
+		addBtn := widget.NewButton("+ Add Alias", func() {
 			showAddAliasPopup(w, func() { fyne.Do(rebuildAliases) })
 		})
 		addBtn.Importance = widget.LowImportance
@@ -417,6 +529,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		aliasBox.Refresh()
 	}
 	rebuildAliases()
+	aliasRefreshHook = func() { fyne.Do(rebuildAliases) }
 
 	accordion := NewCollapseSection("PLAY ALIASES", aliasBox, false)
 

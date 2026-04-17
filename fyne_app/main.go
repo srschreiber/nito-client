@@ -32,9 +32,14 @@ func main() {
 	w.ShowAndRun()
 }
 
+// appWindow is the main application window, set once auth succeeds.
+// Used by widgets (e.g. audio embeds) that need to show popups.
+var appWindow fyne.Window
+
 // showMainView builds and sets the main chat + status layout.
 // Called after successful auth.
 func showMainView(a fyne.App, w fyne.Window) {
+	appWindow = w
 	statusPanel := NewStatusPanel(w)
 
 	// Create cmdBar before chatPanel so the closure captures the var reference.
