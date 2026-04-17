@@ -95,14 +95,6 @@ After setup, run the app with:
 make run-shell
 ```
 
-## What's stopping me from building my own broker?
-
-You can use the shared module as a spec to implement a compatible broker. The wire protocol is fully documented in `shared/`.
-
-## Why isn't the broker source available?
-
-The broker doesn't need to be released for you to verify E2EE — you can see that nothing flows to the broker unencrypted (except metadata: usernames, room names, presence, timestamps). See `shared/` for exactly what the broker can and cannot see.
-
 ## License
 
 Source available — see [LICENSE](LICENSE). You may read and audit the code. No rights to use, copy, modify, or distribute are granted without explicit written permission.
