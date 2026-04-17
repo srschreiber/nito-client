@@ -311,8 +311,8 @@ func (cp *ChatPanel) SetRooms(rooms []apitypes.RoomEntry) {
 	for _, r := range owned {
 		r := r
 		icon := monoTxt("◆ ", colAccent)
-		name := txt(r.Name, colText, 13, true, true)
-		row := container.NewPadded(container.NewHBox(icon, name))
+		name := truncLabel(r.Name, colText, true)
+		row := container.NewPadded(container.NewBorder(nil, nil, icon, nil, name))
 		rows = append(rows, NewHoverRow(row, func() { cp.selectRoom(r.ID, r.Name) }))
 	}
 
@@ -321,8 +321,8 @@ func (cp *ChatPanel) SetRooms(rooms []apitypes.RoomEntry) {
 		for _, r := range joined {
 			r := r
 			icon := monoTxt("• ", colText)
-			name := monoTxt(r.Name, colText)
-			row := container.NewPadded(container.NewHBox(icon, name))
+			name := truncLabel(r.Name, colText, false)
+			row := container.NewPadded(container.NewBorder(nil, nil, icon, nil, name))
 			rows = append(rows, NewHoverRow(row, func() { cp.selectRoom(r.ID, r.Name) }))
 		}
 	}
@@ -351,8 +351,8 @@ func (cp *ChatPanel) SetMembers(members []apitypes.RoomMemberEntry) {
 		if !m.Online {
 			nameCol = colDim
 		}
-		nameLabel := monoTxt(m.Username, nameCol)
-		row := container.NewPadded(container.NewHBox(dot, nameLabel))
+		nameLabel := truncLabel(m.Username, nameCol, false)
+		row := container.NewPadded(container.NewBorder(nil, nil, dot, nil, nameLabel))
 		if m.Online && m.Username != myID {
 			username := m.Username
 			rows = append(rows, NewHoverRow(row, func() { cp.openDM(username) }))

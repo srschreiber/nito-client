@@ -27,6 +27,16 @@ func monoTxt(s string, col color.Color) *canvas.Text { return txt(s, col, 13, fa
 func dimTxt(s string) *canvas.Text                   { return monoTxt(s, colDim) }
 func sectionBadge(s string) *canvas.Text             { return txt(s, colAccent, 11, true, true) }
 
+// truncLabel returns a Label that clips to "…" when the allocated width is
+// too narrow to show the full text.  Use inside container.NewBorder (not HBox)
+// so the label actually receives the remaining width to fill.
+func truncLabel(s string, _ color.Color, bold bool) *widget.Label {
+	l := widget.NewLabel(s)
+	l.Truncation = fyne.TextTruncateEllipsis
+	l.TextStyle = fyne.TextStyle{Monospace: true, Bold: bold}
+	return l
+}
+
 func hline() *canvas.Rectangle {
 	r := canvas.NewRectangle(colSep)
 	r.SetMinSize(fyne.NewSize(0, 1))
