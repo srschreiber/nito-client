@@ -16,14 +16,14 @@ import (
 
 var (
 	colBg          = color.NRGBA{R: 0x0d, G: 0x0d, B: 0x0d, A: 0xff} // window bg
-	colSurface     = color.NRGBA{R: 0x14, G: 0x12, B: 0x18, A: 0xff} // panel/card bg
-	colSurface2    = color.NRGBA{R: 0x1c, G: 0x18, B: 0x24, A: 0xff} // raised surface (input, sidebar)
-	colBorder      = color.NRGBA{R: 0x2a, G: 0x1e, B: 0x3c, A: 0xff} // unfocused border — dark purple
-	colBorderFocus = color.NRGBA{R: 0x5b, G: 0x2d, B: 0x9e, A: 0xff} // focused border — medium purple
-	colSep         = color.NRGBA{R: 0x1e, G: 0x16, B: 0x2a, A: 0xff} // separator line
+	colSurface     = color.NRGBA{R: 0x1c, G: 0x18, B: 0x26, A: 0xff} // panel/card bg
+	colSurface2    = color.NRGBA{R: 0x26, G: 0x20, B: 0x30, A: 0xff} // raised surface (input, sidebar)
+	colBorder      = color.NRGBA{R: 0x3e, G: 0x2e, B: 0x58, A: 0xff} // unfocused border — dark purple
+	colBorderFocus = color.NRGBA{R: 0x70, G: 0x40, B: 0xc0, A: 0xff} // focused border — medium purple
+	colSep         = color.NRGBA{R: 0x2c, G: 0x20, B: 0x40, A: 0xff} // separator line
 	colText        = color.NRGBA{R: 0xcc, G: 0xcc, B: 0xd8, A: 0xff} // main text (cool white)
-	colDim         = color.NRGBA{R: 0x52, G: 0x4e, B: 0x66, A: 0xff} // dim — purple-tinted gray
-	colDimMid      = color.NRGBA{R: 0x78, G: 0x74, B: 0x96, A: 0xff} // mid dim
+	colDim         = color.NRGBA{R: 0x80, G: 0x78, B: 0xa0, A: 0xff} // dim — purple-tinted gray
+	colDimMid      = color.NRGBA{R: 0xa8, G: 0x9e, B: 0xc8, A: 0xff} // mid dim
 	colAccent      = color.NRGBA{R: 0x8b, G: 0x5c, B: 0xf6, A: 0xff} // primary — soft violet
 	colAccentDark  = color.NRGBA{R: 0x4c, G: 0x2d, B: 0x91, A: 0xff} // darker violet
 	colCyan        = color.NRGBA{R: 0x67, G: 0xe8, B: 0xf9, A: 0xff} // self messages / labels
@@ -32,9 +32,9 @@ var (
 	colAmber       = color.NRGBA{R: 0xfb, G: 0xbf, B: 0x24, A: 0xff} // warning
 	colMuted       = color.NRGBA{R: 0x6b, G: 0x72, B: 0x80, A: 0xff} // system messages
 	colTransparent = color.NRGBA{A: 0x00}
-	colTabActive   = color.NRGBA{R: 0x20, G: 0x18, B: 0x2e, A: 0xff} // active tab bg
-	colInputBg     = color.NRGBA{R: 0x18, G: 0x14, B: 0x22, A: 0xff}
-	colHover       = color.NRGBA{R: 0x32, G: 0x22, B: 0x50, A: 0xff} // button/item hover
+	colTabActive   = color.NRGBA{R: 0x2c, G: 0x24, B: 0x38, A: 0xff} // active tab bg
+	colInputBg     = color.NRGBA{R: 0x20, G: 0x1c, B: 0x2c, A: 0xff}
+	colHover       = color.NRGBA{R: 0x40, G: 0x2a, B: 0x68, A: 0xff} // button/item hover
 )
 
 // ── Live-colour wrappers ──────────────────────────────────────────────────────
