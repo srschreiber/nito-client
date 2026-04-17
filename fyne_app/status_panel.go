@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	apitypes "github.com/srschreiber/nito-client/shared/api_types"
+	"github.com/srschreiber/nito-client/shellapp/connection"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
@@ -542,14 +545,30 @@ func buildEQTab(w fyne.Window) fyne.CanvasObject {
 	))
 }
 
+// ── Invites tab ───────────────────────────────────────────────────────────────
+
+// buildInvitesTab builds the INVITES tab. Returns the tab canvas object and a
+// list box container that can be updated via SetInvites.
+func buildInvitesTab(w fyne.Window) (fyne.CanvasObject, *fyne.Container) {
+	listBox := container.NewVBox(dimTxt("no pending invites"))
+	area := container.NewBorder(
+		container.NewVBox(vspace(4), hline()),
+		nil, nil, nil,
+		container.NewVScroll(listBox),
+	)
+	return area, listBox
+}
+
 // ── StatusPanel ───────────────────────────────────────────────────────────────
 
 type StatusPanel struct {
 	widget.BaseWidget
-	TabBar    *TabBar
-	content   *fyne.Container
-	tabs      []fyne.CanvasObject
-	setStatus func(connected bool, brokerURL, userID string, latencyMs int64)
+	TabBar        *TabBar
+	content       *fyne.Container
+	tabs          []fyne.CanvasObject
+	setStatus     func(connected bool, brokerURL, userID string, latencyMs int64)
+	inviteListBox *fyne.Container
+	w             fyne.Window
 }
 
 // UpdateStatus refreshes the STATUS tab with live connection data.
@@ -561,18 +580,64 @@ func (sp *StatusPanel) UpdateStatus(connected bool, brokerURL, userID string, la
 	fyne.Do(func() { sp.setStatus(connected, brokerURL, userID, latencyMs) })
 }
 
+// SetInvites rebuilds the INVITES tab rows. Must be called on the Fyne thread.
+func (sp *StatusPanel) SetInvites(invites []apitypes.PendingInvite) {
+	if sp.inviteListBox == nil {
+		return
+	}
+	var rows []fyne.CanvasObject
+	for _, inv := range invites {
+		inv := inv
+		nameLabel := monoTxt(inv.RoomName, colText)
+		acceptBtn := widget.NewButton("Accept", nil)
+		acceptBtn.Importance = widget.LowImportance
+		acceptBtn.OnTapped = func() {
+			go func() {
+				err := connection.AcceptInvite(inv.RoomID)
+				fyne.Do(func() {
+					if err != nil {
+						nitoLog("accept invite failed: " + err.Error())
+						showToast(sp.w, "accept invite: "+err.Error(), toastError)
+						return
+					}
+					nitoLog("accepted invite, joined " + inv.RoomName)
+					showToast(sp.w, "joined "+inv.RoomName, toastSuccess)
+					// Remove from list after accepting.
+					go func() {
+						pending, e := connection.ListPendingInvites()
+						if e == nil {
+							fyne.Do(func() { sp.SetInvites(pending) })
+						}
+					}()
+				})
+			}()
+		}
+		rows = append(rows, container.NewPadded(container.NewHBox(
+			monoTxt("◆ ", colAccent), nameLabel, acceptBtn,
+		)))
+	}
+	if len(rows) == 0 {
+		rows = append(rows, dimTxt("no pending invites"))
+	}
+	sp.inviteListBox.Objects = rows
+	sp.inviteListBox.Refresh()
+}
+
 func NewStatusPanel(w fyne.Window) *StatusPanel {
-	sp := &StatusPanel{}
+	sp := &StatusPanel{w: w}
 
 	statusArea, setStatus := buildStatusTab()
 	sp.setStatus = setStatus
+
+	invitesArea, inviteListBox := buildInvitesTab(w)
+	sp.inviteListBox = inviteListBox
 
 	tabNames := []string{"STATUS", "TRACKS", "TRACK EQ", "INVITES", "NOTIF", "LOGS"}
 	tabs := []fyne.CanvasObject{
 		statusArea,
 		buildTracksTab(w),
 		buildEQTab(w),
-		buildInvitesTab(w),
+		invitesArea,
 		buildNotifTab(),
 		buildLogsTab(),
 	}

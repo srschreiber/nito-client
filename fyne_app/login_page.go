@@ -118,11 +118,21 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 				loadingLabel.Hide()
 				submitBtn.Enable()
 				if err != nil {
+					action := "login"
+					if !isLoginCopy {
+						action = "register"
+					}
+					nitoLog(action + " failed for " + username + ": " + err.Error())
 					errLabel.Text = err.Error()
 					errLabel.Show()
 					errLabel.Refresh()
 					return
 				}
+				action := "logged in"
+				if !isLoginCopy {
+					action = "registered"
+				}
+				nitoLog(action + " as " + username + " @ " + broker)
 				if rememberCheck.Checked {
 					saveLoginPrefs(loginPrefs{Broker: broker, Username: username})
 				} else {

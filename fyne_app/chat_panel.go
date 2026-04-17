@@ -5,6 +5,11 @@ package main
 
 import (
 	"strings"
+	"time"
+
+	apitypes "github.com/srschreiber/nito-client/shared/api_types"
+	"github.com/srschreiber/nito-client/shellapp/commands"
+	"github.com/srschreiber/nito-client/shellapp/connection"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -23,91 +28,17 @@ const (
 	msgDM
 )
 
-type mockMessage struct {
+type chatMessage struct {
 	kind      msgKind
 	timestamp string
 	from      string
 	body      string
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-var mockChatMessages = []mockMessage{
-	{msgSystem, "09:01", "", "— joined room: general —"},
-	{msgChat, "09:02", "alice", "hey, you around?"},
-	{msgSelf, "09:02", "you", "yeah what's up"},
-	{msgChat, "09:03", "alice", "want to hop on a call?"},
-	{msgSelf, "09:03", "you", "sure give me 2 mins"},
-	{msgSystem, "09:04", "", "— alice joined voice —"},
-	{msgSystem, "09:04", "", "— you joined voice —"},
-	{msgChat, "09:05", "alice", "can you hear me?"},
-	{msgSelf, "09:05", "you", "yeah loud and clear"},
-	{msgSelf, "09:08", "you", ".play https://archive.org/example.mp3"},
-	{msgSystem, "09:08", "", "— track 0 started (broadcasting) —"},
-	{msgChat, "09:09", "alice", "nice tune"},
-}
-
-var mockDMConvos = []struct {
-	with     string
-	preview  string
-	unread   int
-	messages []mockMessage
-}{
-	{
-		"alice", "nice tune", 0,
-		[]mockMessage{
-			{msgSelf, "09:01", "you", "hey"},
-			{msgDM, "09:01", "alice", "hey! what's up"},
-			{msgDM, "09:05", "alice", "nice tune"},
-		},
-	},
-	{
-		"bob", "see you in the room", 2,
-		[]mockMessage{
-			{msgDM, "08:55", "bob", "yo"},
-			{msgDM, "08:56", "bob", "see you in the room"},
-		},
-	},
-}
-
-var mockRooms = []struct {
-	name    string
-	members int
-	joined  bool
-	owner   bool
-}{
-	{"general", 3, true, true},
-	{"dev", 1, false, false},
-	{"music", 2, false, false},
-}
-
-var mockMembers = []struct {
-	name   string
-	online bool
-}{
-	{"alice", true},
-	{"bob", true},
-	{"carol", false},
-}
-
-var mockLogs = []string{
-	"[INFO] connected to broker nito.example.com",
-	"[INFO] joined room: general",
-	"[INFO] voice: peer connection created",
-	"[INFO] audio_player: m3u resolved 1 track(s)",
-	"[INFO] track 0 started: I♥CHILLHOP",
-}
-
-var mockInvites = []struct {
-	from string
-	room string
-}{
-	{"bob", "dev"},
-}
-
 // ── Message renderer ──────────────────────────────────────────────────────────
 
-func renderMessage(m mockMessage) fyne.CanvasObject {
+func renderMessage(m chatMessage) fyne.CanvasObject {
+	var row fyne.CanvasObject
 	switch m.kind {
 	case msgSystem:
 		return container.NewPadded(monoTxt("  "+m.body, colMuted))
@@ -115,7 +46,7 @@ func renderMessage(m mockMessage) fyne.CanvasObject {
 		body := widget.NewLabel(m.body)
 		body.Selectable = true
 		body.TextStyle = fyne.TextStyle{Monospace: true}
-		return container.NewPadded(container.NewHBox(
+		row = container.NewPadded(container.NewHBox(
 			txt(m.timestamp+" ", colDim, 12, false, true),
 			txt("you  ", colCyan, 13, false, true),
 			body,
@@ -124,7 +55,7 @@ func renderMessage(m mockMessage) fyne.CanvasObject {
 		body := widget.NewLabel(m.body)
 		body.Selectable = true
 		body.TextStyle = fyne.TextStyle{Monospace: true}
-		return container.NewPadded(container.NewHBox(
+		row = container.NewPadded(container.NewHBox(
 			txt(m.timestamp+" ", colDim, 12, false, true),
 			txt(m.from+"  ", colLavender, 13, false, true),
 			body,
@@ -133,32 +64,110 @@ func renderMessage(m mockMessage) fyne.CanvasObject {
 		body := widget.NewLabel(m.body)
 		body.Selectable = true
 		body.TextStyle = fyne.TextStyle{Monospace: true}
-		return container.NewPadded(container.NewHBox(
+		row = container.NewPadded(container.NewHBox(
 			txt(m.timestamp+" ", colDim, 12, false, true),
 			txt(m.from+"  ", colLavender, 13, false, true),
 			body,
 		))
 	}
+
+	// Append YouTube embeds for any YouTube URLs in the body.
+	ytURLs := findYouTubeURLs(m.body)
+	if len(ytURLs) == 0 {
+		return row
+	}
+	parts := []fyne.CanvasObject{row}
+	for _, u := range ytURLs {
+		if embed := buildYouTubeEmbed(u); embed != nil {
+			parts = append(parts, embed)
+		}
+	}
+	return container.NewVBox(parts...)
 }
 
-// ── Room sidebar ──────────────────────────────────────────────────────────────
+// ── Invites / Notif / Logs tabs (rendered by StatusPanel) ────────────────────
 
-func buildRoomSidebar(w fyne.Window, onRoomTap func(), onMemberTap func(string)) fyne.CanvasObject {
-	var rows []fyne.CanvasObject
+func buildNotifTab() fyne.CanvasObject {
+	rows := []fyne.CanvasObject{
+		container.NewPadded(dimTxt("notifications will appear here")),
+	}
+	return container.NewBorder(
+		container.NewVBox(vspace(4), hline()),
+		nil, nil, nil,
+		container.NewVScroll(container.NewVBox(rows...)),
+	)
+}
 
-	// ── Rooms ──
-	rows = append(rows, txt("my rooms", colDimMid, 11, false, true))
-	for _, r := range mockRooms {
-		if !r.owner {
-			continue
-		}
-		icon := monoTxt("◆ ", colAccent)
-		name := txt(r.name, colText, 13, true, true)
-		row := container.NewPadded(container.NewHBox(icon, name))
-		rows = append(rows, NewHoverRow(row, onRoomTap))
+// ── ChatPanel ─────────────────────────────────────────────────────────────────
+
+type ChatPanel struct {
+	widget.BaseWidget
+	w fyne.Window
+
+	// Room area
+	content     *fyne.Container
+	msgBox      *fyne.Container   // VBox of room messages
+	msgScroll   *container.Scroll // VScroll wrapping msgBox
+	roomHeader  *canvas.Text      // "# roomname"
+	roomListBox *fyne.Container   // VBox of room sidebar rows
+	memberBox   *fyne.Container   // VBox of member rows
+	chatRight   *fyne.Container   // Stack: roomArea + DM views
+
+	// Current room
+	messages        []chatMessage
+	currentRoomID   string
+	currentRoomName string
+	roomArea        fyne.CanvasObject
+
+	// DM views
+	dmViews    map[string]fyne.CanvasObject
+	dmMsgBoxes map[string]*fyne.Container
+	dmMessages map[string][]chatMessage
+
+	OnDMOpen func(username string)
+}
+
+func NewChatPanel(w fyne.Window) *ChatPanel {
+	cp := &ChatPanel{
+		w:          w,
+		dmViews:    make(map[string]fyne.CanvasObject),
+		dmMsgBoxes: make(map[string]*fyne.Container),
+		dmMessages: make(map[string][]chatMessage),
 	}
 
-	// + create room — pinned after owned rooms
+	// ── Room chat area ────────────────────────────────────────────────────────
+	cp.roomHeader = sectionBadge("# —")
+	cp.msgBox = container.NewVBox()
+	cp.msgScroll = container.NewVScroll(cp.msgBox)
+	header := container.NewVBox(
+		container.NewHBox(cp.roomHeader),
+		vspace(2), hline(),
+	)
+	cp.roomArea = container.NewBorder(header, nil, nil, nil, cp.msgScroll)
+
+	// ── Stack: room area + (DM views added dynamically) ──────────────────────
+	cp.chatRight = container.NewStack(cp.roomArea)
+
+	// ── Room sidebar ──────────────────────────────────────────────────────────
+	cp.roomListBox = container.NewVBox(dimTxt("loading rooms…"))
+	cp.memberBox = container.NewVBox()
+
+	sidebar := cp.buildSidebar()
+
+	split := container.NewHSplit(sidebar, cp.chatRight)
+	split.SetOffset(0.18)
+
+	cp.content = container.NewStack(split)
+	cp.ExtendBaseWidget(cp)
+	return cp
+}
+
+// buildSidebar constructs the sidebar once; room/member rows are updated via
+// SetRooms / SetMembers. Buttons wire to real backend operations.
+func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
+	w := cp.w
+
+	// ── Create room popup ─────────────────────────────────────────────────────
 	createBtn := widget.NewButton("+ Create", nil)
 	createBtn.Importance = widget.LowImportance
 	createBtn.OnTapped = func() {
@@ -173,9 +182,27 @@ func buildRoomSidebar(w fyne.Window, onRoomTap func(), onMemberTap func(string))
 			if pop != nil {
 				pop.Hide()
 			}
-			if name != "" {
-				showToast(w, "room created: "+name, toastSuccess)
+			if name == "" {
+				return
 			}
+			go func() {
+				_, err := commands.CreateRoomDirect(name)
+				fyne.Do(func() {
+					if err != nil {
+						nitoLog("create room failed: " + err.Error())
+						showToast(w, "create room: "+err.Error(), toastError)
+						return
+					}
+					nitoLog("created room: " + name)
+					showToast(w, "room created: "+name, toastSuccess)
+					go func() {
+						rooms, err := connection.ListRooms()
+						if err == nil {
+							fyne.Do(func() { cp.SetRooms(rooms) })
+						}
+					}()
+				})
+			}()
 		}
 		cancelBtn.OnTapped = func() {
 			if pop != nil {
@@ -189,12 +216,15 @@ func buildRoomSidebar(w fyne.Window, onRoomTap func(), onMemberTap func(string))
 		pop = showNitoPopup("CREATE ROOM", body, w)
 		w.Canvas().Focus(nameEntry)
 	}
-	rows = append(rows, createBtn, vspace(4))
 
-	// Invite button — shown when in a room
+	// ── Invite popup ──────────────────────────────────────────────────────────
 	inviteBtn := widget.NewButton("+ Invite", nil)
 	inviteBtn.Importance = widget.LowImportance
 	inviteBtn.OnTapped = func() {
+		if cp.currentRoomID == "" {
+			showToast(w, "select a room first", toastWarn)
+			return
+		}
 		userEntry := widget.NewEntry()
 		userEntry.SetPlaceHolder("username")
 		confirmBtn := widget.NewButton("Invite", nil)
@@ -206,9 +236,21 @@ func buildRoomSidebar(w fyne.Window, onRoomTap func(), onMemberTap func(string))
 			if pop != nil {
 				pop.Hide()
 			}
-			if username != "" {
-				showToast(w, "invited "+username, toastInfo)
+			if username == "" {
+				return
 			}
+			go func() {
+				_, err := commands.InviteUserDirect(username)
+				fyne.Do(func() {
+					if err != nil {
+						nitoLog("invite failed: " + err.Error())
+						showToast(w, "invite: "+err.Error(), toastError)
+						return
+					}
+					nitoLog("invited " + username + " to " + cp.currentRoomName)
+					showToast(w, "invited "+username, toastSuccess)
+				})
+			}()
 		}
 		cancelBtn.OnTapped = func() {
 			if pop != nil {
@@ -222,263 +264,241 @@ func buildRoomSidebar(w fyne.Window, onRoomTap func(), onMemberTap func(string))
 		pop = showNitoPopup("INVITE TO ROOM", body, w)
 		w.Canvas().Focus(userEntry)
 	}
-	rows = append(rows, inviteBtn)
 
-	rows = append(rows, vspace(4), txt("joined rooms", colDimMid, 11, false, true))
-	for _, r := range mockRooms {
-		if r.owner || !r.joined {
-			continue
+	// ── Voice settings ────────────────────────────────────────────────────────
+	voiceBtn := widget.NewButton("Voice", func() { showVoiceSettingsPopup(w) })
+	voiceBtn.Importance = widget.LowImportance
+	footer := container.NewVBox(hline(), voiceBtn, vspace(4))
+
+	// ── Room list section (dynamic) ───────────────────────────────────────────
+	roomSection := container.NewVBox(
+		txt("my rooms", colDimMid, 11, false, true),
+		cp.roomListBox,
+		vspace(4),
+		createBtn,
+		inviteBtn,
+	)
+
+	// ── Member list section (dynamic) ─────────────────────────────────────────
+	memberSection := container.NewVBox(
+		vspace(8), hline(), vspace(4),
+		cp.memberBox,
+	)
+
+	scrollBody := container.NewVScroll(container.NewVBox(roomSection, memberSection))
+	bg := canvas.NewRectangle(colSurface2)
+	bg.CornerRadius = 4
+	return container.NewStack(bg, container.NewPadded(
+		container.NewBorder(nil, footer, nil, nil, scrollBody),
+	))
+}
+
+// ── Dynamic update methods ────────────────────────────────────────────────────
+
+// SetRooms rebuilds the room list rows. Must be called on the Fyne thread.
+func (cp *ChatPanel) SetRooms(rooms []apitypes.RoomEntry) {
+	var rows []fyne.CanvasObject
+
+	var owned, joined []apitypes.RoomEntry
+	for _, r := range rooms {
+		if r.IsOwner {
+			owned = append(owned, r)
+		} else {
+			joined = append(joined, r)
 		}
-		icon := monoTxt("• ", colText)
-		name := monoTxt(r.name, colText)
-		row := container.NewPadded(container.NewHBox(icon, name))
-		rows = append(rows, NewHoverRow(row, onRoomTap))
-	}
-	for _, r := range mockRooms {
-		if r.joined || r.owner {
-			continue
-		}
-		icon := monoTxt("  ", colText)
-		name := monoTxt(r.name, colText)
-		row := container.NewPadded(container.NewHBox(icon, name))
-		rows = append(rows, NewHoverRow(row, onRoomTap))
 	}
 
-	// ── Members ──
-	rows = append(rows, vspace(8), hline(), vspace(4))
-	for _, m := range mockMembers {
-		memberName := m.name
+	for _, r := range owned {
+		r := r
+		icon := monoTxt("◆ ", colAccent)
+		name := txt(r.Name, colText, 13, true, true)
+		row := container.NewPadded(container.NewHBox(icon, name))
+		rows = append(rows, NewHoverRow(row, func() { cp.selectRoom(r.ID, r.Name) }))
+	}
+
+	if len(joined) > 0 {
+		rows = append(rows, vspace(4), txt("joined rooms", colDimMid, 11, false, true))
+		for _, r := range joined {
+			r := r
+			icon := monoTxt("• ", colText)
+			name := monoTxt(r.Name, colText)
+			row := container.NewPadded(container.NewHBox(icon, name))
+			rows = append(rows, NewHoverRow(row, func() { cp.selectRoom(r.ID, r.Name) }))
+		}
+	}
+
+	if len(rows) == 0 {
+		rows = append(rows, dimTxt("no rooms yet"))
+	}
+
+	cp.roomListBox.Objects = rows
+	cp.roomListBox.Refresh()
+}
+
+// SetMembers rebuilds the member rows. Must be called on the Fyne thread.
+func (cp *ChatPanel) SetMembers(members []apitypes.RoomMemberEntry) {
+	myID := connection.GetSessionUserID()
+	var rows []fyne.CanvasObject
+	for _, m := range members {
+		m := m
 		var dot *canvas.Text
-		if m.online {
+		if m.Online {
 			dot = txt("● ", colGreen, 12, false, true)
 		} else {
 			dot = txt("○ ", colDim, 12, false, true)
 		}
 		nameCol := colText
-		if !m.online {
+		if !m.Online {
 			nameCol = colDim
 		}
-		nameLabel := monoTxt(memberName, nameCol)
+		nameLabel := monoTxt(m.Username, nameCol)
 		row := container.NewPadded(container.NewHBox(dot, nameLabel))
-		if m.online {
-			rows = append(rows, NewHoverRow(row, func() {
-				if onMemberTap != nil {
-					onMemberTap(memberName)
-				}
-			}))
+		if m.Online && m.Username != myID {
+			username := m.Username
+			rows = append(rows, NewHoverRow(row, func() { cp.openDM(username) }))
 		} else {
 			rows = append(rows, row)
 		}
 	}
-
-	scrollBody := container.NewVScroll(container.NewVBox(rows...))
-
-	// Voice settings pinned to footer
-	voiceBtn := widget.NewButton("Voice Settings", func() { showVoiceSettingsPopup(w) })
-	voiceBtn.Importance = widget.LowImportance
-	footer := container.NewVBox(hline(), voiceBtn, vspace(4))
-
-	content := container.NewBorder(nil, footer, nil, nil, scrollBody)
-	bg := canvas.NewRectangle(colSurface2)
-	bg.CornerRadius = 4
-	return container.NewStack(bg, container.NewPadded(content))
+	cp.memberBox.Objects = rows
+	cp.memberBox.Refresh()
 }
 
-// ── Chat message area ─────────────────────────────────────────────────────────
+// selectRoom is called when the user clicks a room row.
+func (cp *ChatPanel) selectRoom(roomID, roomName string) {
+	go func() {
+		if err := connection.SetSessionRoom(roomID); err != nil {
+			nitoLog("join room failed: " + err.Error())
+			fyne.Do(func() { showToast(cp.w, "room: "+err.Error(), toastError) })
+			return
+		}
+		nitoLog("joined room: " + roomName)
 
-func buildChatArea(messages []mockMessage, roomName string) (fyne.CanvasObject, *fyne.Container) {
-	header := container.NewHBox(sectionBadge("# " + roomName))
+		members, _ := connection.ListRoomMembers(roomID)
 
-	var rows []fyne.CanvasObject
-	for _, m := range messages {
-		rows = append(rows, renderMessage(m))
+		// Load historical messages
+		var histMsgs []chatMessage
+		resp, err := connection.GetRoomMessages(roomID, 50)
+		if err == nil {
+			histMsgs = decryptHistoricalMessages(resp)
+		}
+
+		joinMsg := chatMessage{
+			kind:      msgSystem,
+			timestamp: time.Now().Format("15:04"),
+			body:      "— joined room: " + roomName + " —",
+		}
+		allMsgs := append(histMsgs, joinMsg)
+
+		fyne.Do(func() {
+			cp.roomHeader.Text = "# " + roomName
+			cp.roomHeader.Refresh()
+			cp.currentRoomID = roomID
+			cp.currentRoomName = roomName
+			cp.messages = allMsgs
+			cp.rebuildMsgBox()
+			cp.showRoomArea()
+			if members != nil {
+				cp.SetMembers(members)
+			}
+		})
+	}()
+}
+
+// AppendMessage adds a message to the current room view. Fyne thread.
+func (cp *ChatPanel) AppendMessage(m chatMessage) {
+	cp.messages = append(cp.messages, m)
+	cp.msgBox.Objects = append(cp.msgBox.Objects, renderMessage(m))
+	cp.msgBox.Refresh()
+	cp.msgScroll.ScrollToBottom()
+}
+
+func (cp *ChatPanel) rebuildMsgBox() {
+	var objs []fyne.CanvasObject
+	for _, m := range cp.messages {
+		objs = append(objs, renderMessage(m))
 	}
-	msgBox := container.NewVBox(rows...)
-
-	area := container.NewBorder(
-		container.NewVBox(header, vspace(2), hline()),
-		nil, nil, nil,
-		container.NewVScroll(msgBox),
-	)
-	return area, msgBox
+	cp.msgBox.Objects = objs
+	cp.msgBox.Refresh()
+	cp.msgScroll.ScrollToBottom()
 }
 
-// ── DM view (inline, replaces chat area) ─────────────────────────────────────
+// AppendDMMessage adds or creates a DM view for fromUser. Fyne thread.
+func (cp *ChatPanel) AppendDMMessage(fromUser string, m chatMessage) {
+	cp.dmMessages[fromUser] = append(cp.dmMessages[fromUser], m)
+	if _, ok := cp.dmViews[fromUser]; !ok {
+		cp.createDMView(fromUser)
+	}
+	box := cp.dmMsgBoxes[fromUser]
+	box.Objects = append(box.Objects, renderMessage(m))
+	box.Refresh()
+}
 
-func buildDMView(messages []mockMessage, username string, onBack func()) fyne.CanvasObject {
+func (cp *ChatPanel) createDMView(username string) {
+	msgBox := container.NewVBox()
+	// Populate with any already-received messages
+	for _, m := range cp.dmMessages[username] {
+		msgBox.Objects = append(msgBox.Objects, renderMessage(m))
+	}
+	cp.dmMsgBoxes[username] = msgBox
+
+	view := cp.buildDMView(msgBox, username)
+	view.Hide()
+	cp.dmViews[username] = view
+	cp.chatRight.Objects = append(cp.chatRight.Objects, view)
+	cp.chatRight.Refresh()
+}
+
+func (cp *ChatPanel) buildDMView(msgBox *fyne.Container, username string) fyne.CanvasObject {
 	backLabel := NewTappable(
 		container.NewHBox(
 			txt("← ", colAccent, 13, false, true),
-			txt("#general", colDimMid, 12, false, true),
+			txt("#"+cp.currentRoomName, colDimMid, 12, false, true),
 		),
-		onBack,
+		func() { cp.showRoomArea() },
 	)
 	header := container.NewVBox(
 		container.NewHBox(backLabel, vspace(8), sectionBadge("@ "+username)),
 		vspace(2), hline(),
 	)
-
-	var rows []fyne.CanvasObject
-	for _, m := range messages {
-		rows = append(rows, renderMessage(m))
-	}
-
 	return container.NewBorder(header, nil, nil, nil,
-		container.NewVScroll(container.NewVBox(rows...)))
+		container.NewVScroll(msgBox))
 }
 
-// ── Invites tab (used by status panel) ───────────────────────────────────────
-
-func buildInvitesTab(w fyne.Window) fyne.CanvasObject {
-	if len(mockInvites) == 0 {
-		return container.NewBorder(
-			container.NewVBox(vspace(4), hline()),
-			nil, nil, nil,
-			container.NewCenter(dimTxt("no pending invites")),
-		)
+func (cp *ChatPanel) openDM(username string) {
+	if _, ok := cp.dmViews[username]; !ok {
+		cp.createDMView(username)
 	}
-	var rows []fyne.CanvasObject
-	for _, inv := range mockInvites {
-		room := inv.room
-		acceptBtn := widget.NewButton("Accept", func() {
-			showToast(w, "joined room: "+room, toastSuccess)
-		})
-		acceptBtn.Importance = widget.HighImportance
-		declineBtn := widget.NewButton("Decline", func() {
-			showToast(w, "invite declined", toastWarn)
-		})
-		declineBtn.Importance = widget.LowImportance
-		info := container.NewHBox(
-			monoTxt(inv.from+" invited you to #"+inv.room, colText),
-		)
-		row := container.NewPadded(
-			container.NewBorder(nil, nil, info, container.NewHBox(acceptBtn, declineBtn), nil),
-		)
-		rows = append(rows, row, hline())
-	}
-	return container.NewBorder(
-		container.NewVBox(vspace(4), hline()),
-		nil, nil, nil,
-		container.NewVScroll(container.NewVBox(rows...)),
-	)
-}
-
-// ── Notif tab (used by status panel) ─────────────────────────────────────────
-
-func buildNotifTab() fyne.CanvasObject {
-	rows := []fyne.CanvasObject{
-		container.NewPadded(monoTxt("  bob invited you to room: dev", colText)),
-		hline(),
-		container.NewPadded(monoTxt("  alice sent you a DM", colText)),
-		hline(),
-	}
-	return container.NewBorder(
-		container.NewVBox(vspace(4), hline()),
-		nil, nil, nil,
-		container.NewVScroll(container.NewVBox(rows...)),
-	)
-}
-
-// ── Logs tab (used by status panel) ──────────────────────────────────────────
-
-func buildLogsTab() fyne.CanvasObject {
-	text := ""
-	for i, line := range mockLogs {
-		if i > 0 {
-			text += "\n"
-		}
-		text += line
-	}
-	entry := widget.NewMultiLineEntry()
-	entry.SetText(text)
-	entry.Wrapping = fyne.TextWrapOff
-	entry.TextStyle = fyne.TextStyle{Monospace: true}
-	// Read-only: user can select+copy but not edit
-	entry.OnChanged = func(string) { entry.SetText(text) }
-	return entry
-}
-
-// ── ChatPanel (left panel — sidebar + chat area, no tabs) ─────────────────────
-
-type ChatPanel struct {
-	widget.BaseWidget
-	content  *fyne.Container
-	msgBox   *fyne.Container
-	OnDMOpen func(username string)
-}
-
-func NewChatPanel(w fyne.Window) *ChatPanel {
-	cp := &ChatPanel{}
-
-	var roomArea fyne.CanvasObject
-	roomArea, cp.msgBox = buildChatArea(mockChatMessages, "general")
-
-	dmViews := make(map[string]fyne.CanvasObject)
-	for _, convo := range mockDMConvos {
-		name := convo.with
-		msgs := convo.messages
-		view := buildDMView(msgs, name, func() {
-			roomArea.Show()
-			for _, v := range dmViews {
-				v.Hide()
-			}
-			if cp.OnDMOpen != nil {
-				cp.OnDMOpen("")
-			}
-		})
-		view.Hide()
-		dmViews[name] = view
-	}
-
-	rightObjs := []fyne.CanvasObject{roomArea}
-	for _, v := range dmViews {
-		rightObjs = append(rightObjs, v)
-	}
-	chatRight := container.NewStack(rightObjs...)
-
-	backToRoom := func() {
-		roomArea.Show()
-		for _, v := range dmViews {
+	cp.roomArea.Hide()
+	for u, v := range cp.dmViews {
+		if u == username {
+			v.Show()
+		} else {
 			v.Hide()
 		}
-		if cp.OnDMOpen != nil {
-			cp.OnDMOpen("")
-		}
 	}
+	if cp.OnDMOpen != nil {
+		cp.OnDMOpen(username)
+	}
+}
 
-	roomSidebar := buildRoomSidebar(w, backToRoom, func(memberName string) {
-		roomArea.Hide()
-		for n, v := range dmViews {
-			if n == memberName {
-				v.Show()
-			} else {
-				v.Hide()
-			}
-		}
-		if cp.OnDMOpen != nil {
-			cp.OnDMOpen(memberName)
-		}
-	})
+func (cp *ChatPanel) showRoomArea() {
+	cp.roomArea.Show()
+	for _, v := range cp.dmViews {
+		v.Hide()
+	}
+	if cp.OnDMOpen != nil {
+		cp.OnDMOpen("")
+	}
+}
 
-	chatSplit := container.NewHSplit(roomSidebar, chatRight)
-	chatSplit.SetOffset(0.25)
-
-	cp.content = container.NewStack(chatSplit)
-	cp.ExtendBaseWidget(cp)
-	return cp
+// Refresh rebuilds the message box from cp.messages (called after external appends).
+func (cp *ChatPanel) Refresh() {
+	cp.rebuildMsgBox()
+	cp.BaseWidget.Refresh()
 }
 
 func (cp *ChatPanel) CreateRenderer() fyne.WidgetRenderer {
 	_, panel := panelStack(false, cp.content)
 	return widget.NewSimpleRenderer(panel)
-}
-
-func (cp *ChatPanel) Refresh() {
-	var rows []fyne.CanvasObject
-	for _, m := range mockChatMessages {
-		rows = append(rows, renderMessage(m))
-	}
-	cp.msgBox.Objects = rows
-	cp.msgBox.Refresh()
-	cp.BaseWidget.Refresh()
 }

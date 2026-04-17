@@ -5,7 +5,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -13,6 +13,7 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
+	"github.com/srschreiber/nito-client/shellapp/commands"
 	"github.com/srschreiber/nito-client/shellapp/connection"
 )
 
@@ -37,19 +38,46 @@ func showMainView(a fyne.App, w fyne.Window) {
 	statusPanel := NewStatusPanel(w)
 	chatPanel := NewChatPanel(w)
 
-	cmdBar := NewCommandBar(func(text string) {
-		// TODO: send real chat message; for now append locally and refresh.
-		s := connection.CurrentSession()
-		from := "you"
-		if s != nil {
-			from = s.UserID
+	var cmdBar *CommandBar
+	cmdBar = NewCommandBar(func(text string) {
+		dmTarget := cmdBar.DMTarget()
+		if dmTarget != "" {
+			// DM mode — send encrypted direct message.
+			myID := connection.GetSessionUserID()
+			m := chatMessage{
+				kind:      msgSelf,
+				timestamp: time.Now().Format("15:04"),
+				from:      myID,
+				body:      text,
+			}
+			fyne.Do(func() { chatPanel.AppendDMMessage(dmTarget, m) })
+			go func() {
+				if err := commands.SendDirectMessage(dmTarget, text); err != nil {
+					nitoLog("dm to " + dmTarget + " failed: " + err.Error())
+					fyne.Do(func() { showToast(w, "dm: "+err.Error(), toastError) })
+				} else {
+					nitoLog("dm sent to " + dmTarget)
+				}
+			}()
+		} else {
+			// Room chat mode — send encrypted room message.
+			myID := connection.GetSessionUserID()
+			m := chatMessage{
+				kind:      msgSelf,
+				timestamp: time.Now().Format("15:04"),
+				from:      myID,
+				body:      text,
+			}
+			fyne.Do(func() { chatPanel.AppendMessage(m) })
+			go func() {
+				if err := commands.SendRoomMessage(text); err != nil {
+					nitoLog("send message failed: " + err.Error())
+					fyne.Do(func() { showToast(w, "send: "+err.Error(), toastError) })
+				}
+			}()
 		}
-		mockChatMessages = append(mockChatMessages, mockMessage{
-			kind: msgSelf, timestamp: "now", from: from, body: text,
-		})
-		chatPanel.Refresh()
-		fmt.Println("cmd:", text)
 	})
+
 	chatPanel.OnDMOpen = func(username string) { cmdBar.SetDMMode(username) }
 
 	split := container.NewHSplit(chatPanel, statusPanel)
@@ -84,8 +112,9 @@ func showMainView(a fyne.App, w fyne.Window) {
 
 	w.Canvas().Focus(cmdBar.Entry)
 
-	// Start the ping/status loop in the background.
+	// Start background goroutines.
 	go pingLoop(statusPanel)
+	go startBackend(chatPanel, statusPanel, w)
 }
 
 // pingLoop pings the broker every second and updates the STATUS tab.
@@ -105,4 +134,9 @@ func pingLoop(sp *StatusPanel) {
 		}
 		sp.UpdateStatus(connected, brokerURL, userID, latencyMs)
 	}
+}
+
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	nitoLog("nito started")
 }

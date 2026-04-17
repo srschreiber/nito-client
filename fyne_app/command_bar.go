@@ -62,6 +62,15 @@ func (cb *CommandBar) SetDMMode(username string) {
 	cb.modeLabel.Refresh()
 }
 
+// DMTarget returns the username when in DM mode, otherwise "".
+func (cb *CommandBar) DMTarget() string {
+	text := cb.modeLabel.Text
+	if !strings.HasPrefix(text, "dm ") {
+		return ""
+	}
+	return strings.TrimSuffix(strings.TrimPrefix(text, "dm "), " › ")
+}
+
 func (cb *CommandBar) CreateRenderer() fyne.WidgetRenderer {
 	inputRow := container.NewBorder(nil, nil, container.NewPadded(cb.modeLabel), nil, cb.Entry)
 
