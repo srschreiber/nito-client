@@ -86,6 +86,27 @@ func (t *Tappable) Tapped(_ *fyne.PointEvent) {
 	}
 }
 func (t *Tappable) TappedSecondary(_ *fyne.PointEvent) {}
+func (t *Tappable) Cursor() desktop.Cursor             { return desktop.PointerCursor }
+
+// ── withPointerCursor ─────────────────────────────────────────────────────────
+
+// cursorLayer is a transparent overlay that makes the mouse cursor a pointer.
+// It implements only desktop.Cursorable so taps, drags, and hover events all
+// fall through to the widget underneath.
+type cursorLayer struct{ widget.BaseWidget }
+
+func (c *cursorLayer) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(canvas.NewRectangle(colTransparent))
+}
+func (c *cursorLayer) Cursor() desktop.Cursor { return desktop.PointerCursor }
+
+// withPointerCursor wraps any widget so hovering over it shows the pointer
+// cursor. Safe for buttons, selects, checks, and sliders — events pass through.
+func withPointerCursor(obj fyne.CanvasObject) fyne.CanvasObject {
+	layer := &cursorLayer{}
+	layer.ExtendBaseWidget(layer)
+	return container.NewStack(obj, layer)
+}
 
 // ── HoverRow ──────────────────────────────────────────────────────────────────
 
@@ -128,6 +149,8 @@ func (h *HoverRow) MouseOut() {
 	h.bg.FillColor = colTransparent
 	h.bg.Refresh()
 }
+
+func (h *HoverRow) Cursor() desktop.Cursor { return desktop.PointerCursor }
 
 // ── TabBar ────────────────────────────────────────────────────────────────────
 

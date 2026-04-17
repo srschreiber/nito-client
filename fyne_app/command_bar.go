@@ -24,7 +24,7 @@ func NewCommandBar(onSubmit func(string)) *CommandBar {
 	cb.modeLabel = txt("> ", colAccent, 13, false, true)
 
 	entry := widget.NewEntry()
-	entry.SetPlaceHolder("type a message  (. for audio commands)")
+	entry.SetPlaceHolder("type a message")
 	entry.TextStyle = fyne.TextStyle{Monospace: true}
 	entry.OnSubmitted = func(text string) {
 		if strings.TrimSpace(text) == "" {
@@ -74,19 +74,10 @@ func (cb *CommandBar) DMTarget() string {
 func (cb *CommandBar) CreateRenderer() fyne.WidgetRenderer {
 	inputRow := container.NewBorder(nil, nil, container.NewPadded(cb.modeLabel), nil, cb.Entry)
 
-	hints := txt(
-		"ctrl+[/]  switch tab    enter  send    esc  clear",
-		colDim, 11, false, true,
-	)
-
 	inputBg := canvas.NewRectangle(colInputBg)
 	inputBg.CornerRadius = 6
 	inputBg.StrokeColor = colBorder
 	inputBg.StrokeWidth = 1
 
-	body := container.NewVBox(
-		container.NewStack(inputBg, container.NewPadded(inputRow)),
-		container.NewPadded(hints),
-	)
-	return widget.NewSimpleRenderer(body)
+	return widget.NewSimpleRenderer(container.NewStack(inputBg, container.NewPadded(inputRow)))
 }

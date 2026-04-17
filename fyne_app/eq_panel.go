@@ -115,8 +115,12 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		return names
 	}
 
+	presetReady := false
 	var presetSel *widget.Select
 	presetSel = widget.NewSelect(allPresetNames(), func(selected string) {
+		if !presetReady {
+			return
+		}
 		// Strip the ★ prefix for custom presets
 		name := strings.TrimPrefix(selected, "★ ")
 
@@ -142,10 +146,11 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		}
 	})
 
-	// Set a sensible initial selection
+	// Set a sensible initial selection without triggering the toast.
 	if eq := voice.GetPlaybackEQSettings(); eq.BassGain == 0 && eq.MidGain == 0 {
 		presetSel.SetSelected("Flat")
 	}
+	presetReady = true
 
 	saveBtn := widget.NewButton("Save as…", nil)
 	saveBtn.Importance = widget.LowImportance
@@ -186,7 +191,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		w.Canvas().Focus(nameEntry)
 	}
 
-	presetRow := container.NewBorder(nil, nil, nil, saveBtn, presetSel)
+	presetRow := container.NewBorder(nil, nil, nil, withPointerCursor(saveBtn), withPointerCursor(presetSel))
 	presetSection := container.NewVBox(presetRow, container.NewHBox(infoLabel))
 
 	// ── Slider helpers ────────────────────────────────────────────────────────
@@ -204,7 +209,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 		}
 		return container.NewVBox(
 			container.NewHBox(monoTxt(label, colDimMid), valLabel),
-			sl,
+			withPointerCursor(sl),
 		)
 	}
 
@@ -322,7 +327,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	delayEnabled.SetChecked(del.Enabled)
 
 	delayCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("DELAY"), delayEnabled),
+		container.NewHBox(sectionBadge("DELAY"), withPointerCursor(delayEnabled)),
 		slRow("delay   ", fmtMs(del.DelayMs), 1, 500, float64(del.DelayMs), func(v float64) {
 			s := voice.GetDelaySettings()
 			s.DelayMs = float32(v)
@@ -346,7 +351,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	reverbEnabled.SetChecked(rev.Enabled)
 
 	reverbCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("REVERB"), reverbEnabled),
+		container.NewHBox(sectionBadge("REVERB"), withPointerCursor(reverbEnabled)),
 		slRow("mix  ", fmtFloat(float64(rev.Mix)), 0, 1, float64(rev.Mix), func(v float64) {
 			s := voice.GetReverbSettings()
 			s.Mix = float32(v)
@@ -382,7 +387,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	chorusEnabled.SetChecked(cho.Enabled)
 
 	chorusCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("CHORUS"), chorusEnabled),
+		container.NewHBox(sectionBadge("CHORUS"), withPointerCursor(chorusEnabled)),
 		slRow("delay", fmtMs(cho.BaseDelayMs), 5, 30, float64(cho.BaseDelayMs), func(v float64) {
 			s := voice.GetChorusSettings()
 			s.BaseDelayMs = float32(v)
@@ -422,7 +427,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	pitchEnabled.SetChecked(pit.Enabled)
 
 	pitchCard := wrapCard(container.NewVBox(
-		container.NewHBox(sectionBadge("PITCH"), pitchEnabled),
+		container.NewHBox(sectionBadge("PITCH"), withPointerCursor(pitchEnabled)),
 		slRow("semitones", fmtFloat(float64(pit.Semitones))+" st", -12, 12, float64(pit.Semitones), func(v float64) {
 			s := voice.GetPlaybackPitchSettings()
 			s.Semitones = float32(v)
@@ -447,7 +452,7 @@ func buildEQTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			voice.SetPannerSettings(s)
 			voice.SaveAudioSettings()
 		}),
-		autoPanCheck,
+		withPointerCursor(autoPanCheck),
 		slRow("rate ", fmtFloat(float64(pan.AutoPanRate))+" Hz", 0.05, 5.0, float64(pan.AutoPanRate), func(v float64) {
 			s := voice.GetPannerSettings()
 			s.AutoPanRate = float32(v)

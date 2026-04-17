@@ -30,7 +30,8 @@ const (
 
 type chatMessage struct {
 	kind      msgKind
-	timestamp string
+	timestamp string // "15:04"
+	date      string // "2006-01-02" — used for day separator injection
 	from      string
 	body      string
 }
@@ -85,6 +86,26 @@ func renderMessage(m chatMessage) fyne.CanvasObject {
 	return container.NewVBox(parts...)
 }
 
+// renderDaySep renders a muted centred date divider for the given "2006-01-02" date.
+func renderDaySep(date string) fyne.CanvasObject {
+	t, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil
+	}
+	today := time.Now().Format("2006-01-02")
+	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	var label string
+	switch date {
+	case today:
+		label = "— today —"
+	case yesterday:
+		label = "— yesterday —"
+	default:
+		label = "— " + t.Format("Monday, January 2") + " —"
+	}
+	return container.NewPadded(monoTxt("  "+label, colMuted))
+}
+
 // ── Invites / Notif / Logs tabs (rendered by StatusPanel) ────────────────────
 
 func buildNotifTab() fyne.CanvasObject {
@@ -105,13 +126,14 @@ type ChatPanel struct {
 	w fyne.Window
 
 	// Room area
-	content     *fyne.Container
-	msgBox      *fyne.Container   // VBox of room messages
-	msgScroll   *container.Scroll // VScroll wrapping msgBox
-	roomHeader  *canvas.Text      // "# roomname"
-	roomListBox *fyne.Container   // VBox of room sidebar rows
-	memberBox   *fyne.Container   // VBox of member rows
-	chatRight   *fyne.Container   // Stack: roomArea + DM views
+	content      *fyne.Container
+	msgBox       *fyne.Container   // VBox of room messages
+	msgScroll    *container.Scroll // VScroll wrapping msgBox
+	roomHeader   *canvas.Text      // "# roomname"
+	roomListBox  *fyne.Container   // VBox of room sidebar rows
+	memberBox    *fyne.Container   // VBox of member rows
+	chatRight    *fyne.Container   // Stack: roomArea + DM views
+	inputWrapper *fyne.Container   // Bottom input bar placeholder
 
 	// Current room
 	messages        []chatMessage
@@ -148,13 +170,17 @@ func NewChatPanel(w fyne.Window) *ChatPanel {
 	// ── Stack: room area + (DM views added dynamically) ──────────────────────
 	cp.chatRight = container.NewStack(cp.roomArea)
 
+	// ── Input bar placeholder (filled by SetInputBar) ─────────────────────────
+	cp.inputWrapper = container.NewVBox()
+
 	// ── Room sidebar ──────────────────────────────────────────────────────────
 	cp.roomListBox = container.NewVBox(dimTxt("loading rooms…"))
 	cp.memberBox = container.NewVBox()
 
 	sidebar := cp.buildSidebar()
 
-	split := container.NewHSplit(sidebar, cp.chatRight)
+	chatArea := container.NewBorder(nil, cp.inputWrapper, nil, nil, cp.chatRight)
+	split := container.NewHSplit(sidebar, chatArea)
 	split.SetOffset(0.18)
 
 	cp.content = container.NewStack(split)
@@ -268,15 +294,15 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 	// ── Voice settings ────────────────────────────────────────────────────────
 	voiceBtn := widget.NewButton("Voice", func() { showVoiceSettingsPopup(w) })
 	voiceBtn.Importance = widget.LowImportance
-	footer := container.NewVBox(hline(), voiceBtn, vspace(4))
+	footer := container.NewVBox(hline(), withPointerCursor(voiceBtn), vspace(4))
 
 	// ── Room list section (dynamic) ───────────────────────────────────────────
 	roomSection := container.NewVBox(
 		txt("my rooms", colDimMid, 11, false, true),
 		cp.roomListBox,
 		vspace(4),
-		createBtn,
-		inviteBtn,
+		withPointerCursor(createBtn),
+		withPointerCursor(inviteBtn),
 	)
 
 	// ── Member list section (dynamic) ─────────────────────────────────────────
@@ -386,6 +412,7 @@ func (cp *ChatPanel) selectRoom(roomID, roomName string) {
 		joinMsg := chatMessage{
 			kind:      msgSystem,
 			timestamp: time.Now().Format("15:04"),
+			date:      time.Now().Format("2006-01-02"),
 			body:      "— joined room: " + roomName + " —",
 		}
 		allMsgs := append(histMsgs, joinMsg)
@@ -407,6 +434,14 @@ func (cp *ChatPanel) selectRoom(roomID, roomName string) {
 
 // AppendMessage adds a message to the current room view. Fyne thread.
 func (cp *ChatPanel) AppendMessage(m chatMessage) {
+	if m.date != "" {
+		n := len(cp.messages)
+		if n == 0 || cp.messages[n-1].date != m.date {
+			if sep := renderDaySep(m.date); sep != nil {
+				cp.msgBox.Objects = append(cp.msgBox.Objects, sep)
+			}
+		}
+	}
 	cp.messages = append(cp.messages, m)
 	cp.msgBox.Objects = append(cp.msgBox.Objects, renderMessage(m))
 	cp.msgBox.Refresh()
@@ -415,7 +450,14 @@ func (cp *ChatPanel) AppendMessage(m chatMessage) {
 
 func (cp *ChatPanel) rebuildMsgBox() {
 	var objs []fyne.CanvasObject
+	lastDate := ""
 	for _, m := range cp.messages {
+		if m.date != "" && m.date != lastDate {
+			if sep := renderDaySep(m.date); sep != nil {
+				objs = append(objs, sep)
+			}
+			lastDate = m.date
+		}
 		objs = append(objs, renderMessage(m))
 	}
 	cp.msgBox.Objects = objs
@@ -425,7 +467,24 @@ func (cp *ChatPanel) rebuildMsgBox() {
 
 // AppendDMMessage adds or creates a DM view for fromUser. Fyne thread.
 func (cp *ChatPanel) AppendDMMessage(fromUser string, m chatMessage) {
-	cp.dmMessages[fromUser] = append(cp.dmMessages[fromUser], m)
+	msgs := cp.dmMessages[fromUser]
+	if m.date != "" {
+		n := len(msgs)
+		if n == 0 || msgs[n-1].date != m.date {
+			cp.dmMessages[fromUser] = append(msgs, m)
+			if _, ok := cp.dmViews[fromUser]; !ok {
+				cp.createDMView(fromUser)
+			}
+			box := cp.dmMsgBoxes[fromUser]
+			if sep := renderDaySep(m.date); sep != nil {
+				box.Objects = append(box.Objects, sep)
+			}
+			box.Objects = append(box.Objects, renderMessage(m))
+			box.Refresh()
+			return
+		}
+	}
+	cp.dmMessages[fromUser] = append(msgs, m)
 	if _, ok := cp.dmViews[fromUser]; !ok {
 		cp.createDMView(fromUser)
 	}
@@ -436,8 +495,15 @@ func (cp *ChatPanel) AppendDMMessage(fromUser string, m chatMessage) {
 
 func (cp *ChatPanel) createDMView(username string) {
 	msgBox := container.NewVBox()
-	// Populate with any already-received messages
+	// Populate with any already-received messages, injecting day separators.
+	lastDate := ""
 	for _, m := range cp.dmMessages[username] {
+		if m.date != "" && m.date != lastDate {
+			if sep := renderDaySep(m.date); sep != nil {
+				msgBox.Objects = append(msgBox.Objects, sep)
+			}
+			lastDate = m.date
+		}
 		msgBox.Objects = append(msgBox.Objects, renderMessage(m))
 	}
 	cp.dmMsgBoxes[username] = msgBox
@@ -490,6 +556,13 @@ func (cp *ChatPanel) showRoomArea() {
 	if cp.OnDMOpen != nil {
 		cp.OnDMOpen("")
 	}
+}
+
+// SetInputBar places bar at the bottom of the conversation area.
+// Call once after the ChatPanel is created.
+func (cp *ChatPanel) SetInputBar(bar fyne.CanvasObject) {
+	cp.inputWrapper.Objects = []fyne.CanvasObject{hline(), container.NewPadded(bar)}
+	cp.inputWrapper.Refresh()
 }
 
 // Refresh rebuilds the message box from cp.messages (called after external appends).

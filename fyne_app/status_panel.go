@@ -70,6 +70,8 @@ func (b *CircleStopBtn) MouseOut() {
 	b.circ.Refresh()
 }
 
+func (b *CircleStopBtn) Cursor() desktop.Cursor { return desktop.PointerCursor }
+
 // ── Voice settings popup ──────────────────────────────────────────────────────
 
 func fmtFloat(v float64) string {

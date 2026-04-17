@@ -72,6 +72,7 @@ func decryptHistoricalMessages(resp *apitypes.GetRoomMessagesResponse) []chatMes
 		out = append(out, chatMessage{
 			kind:      kind,
 			timestamp: msg.CreatedAt.Local().Format("15:04"),
+			date:      msg.CreatedAt.Local().Format("2006-01-02"),
 			from:      msg.SenderUsername,
 			body:      string(plaintext),
 		})
@@ -130,6 +131,7 @@ func messageReceiveLoop(cp *ChatPanel, w fyne.Window) {
 			m := chatMessage{
 				kind:      kind,
 				timestamp: time.Now().Format("15:04"),
+				date:      time.Now().Format("2006-01-02"),
 				from:      payload.FromUsername,
 				body:      string(plaintext),
 			}
@@ -162,6 +164,7 @@ func dmReceiveLoop(cp *ChatPanel, w fyne.Window) {
 			m := chatMessage{
 				kind:      msgDM,
 				timestamp: time.Now().Format("15:04"),
+				date:      time.Now().Format("2006-01-02"),
 				from:      dm.FromUsername,
 				body:      dm.PlainText,
 			}

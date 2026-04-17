@@ -149,6 +149,8 @@ func (c *ytCardWidget) MouseOut() {
 	c.bg.Refresh()
 }
 
+func (c *ytCardWidget) Cursor() desktop.Cursor { return desktop.PointerCursor }
+
 // ── buildYouTubeEmbed ─────────────────────────────────────────────────────────
 
 // buildYouTubeEmbed returns a YouTube-style card for a video URL.

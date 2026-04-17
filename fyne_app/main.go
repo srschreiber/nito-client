@@ -36,10 +36,14 @@ func main() {
 // Called after successful auth.
 func showMainView(a fyne.App, w fyne.Window) {
 	statusPanel := NewStatusPanel(w)
-	chatPanel := NewChatPanel(w)
 
+	// Create cmdBar before chatPanel so the closure captures the var reference.
+	var chatPanel *ChatPanel
 	var cmdBar *CommandBar
 	cmdBar = NewCommandBar(func(text string) {
+		if chatPanel == nil {
+			return
+		}
 		dmTarget := cmdBar.DMTarget()
 		if dmTarget != "" {
 			// DM mode — send encrypted direct message.
@@ -47,6 +51,7 @@ func showMainView(a fyne.App, w fyne.Window) {
 			m := chatMessage{
 				kind:      msgSelf,
 				timestamp: time.Now().Format("15:04"),
+				date:      time.Now().Format("2006-01-02"),
 				from:      myID,
 				body:      text,
 			}
@@ -65,6 +70,7 @@ func showMainView(a fyne.App, w fyne.Window) {
 			m := chatMessage{
 				kind:      msgSelf,
 				timestamp: time.Now().Format("15:04"),
+				date:      time.Now().Format("2006-01-02"),
 				from:      myID,
 				body:      text,
 			}
@@ -78,17 +84,14 @@ func showMainView(a fyne.App, w fyne.Window) {
 		}
 	})
 
+	chatPanel = NewChatPanel(w)
+	chatPanel.SetInputBar(cmdBar)
 	chatPanel.OnDMOpen = func(username string) { cmdBar.SetDMMode(username) }
 
 	split := container.NewHSplit(chatPanel, statusPanel)
 	split.SetOffset(0.72)
 
-	root := container.NewBorder(
-		nil,
-		container.NewPadded(cmdBar),
-		nil, nil,
-		split,
-	)
+	root := container.NewBorder(nil, nil, nil, nil, split)
 
 	bg := canvas.NewRectangle(colBg)
 	w.SetContent(container.NewStack(bg, container.NewPadded(root)))
