@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/go-mp3"
-	"github.com/srschreiber/nito-client/shellapp/clientlog"
-	"github.com/srschreiber/nito-client/shellapp/voice"
+	"github.com/srschreiber/nito-client/engine/clientlog"
+	"github.com/srschreiber/nito-client/engine/voice"
 )
 
 //go:embed enter.mp3
