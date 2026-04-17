@@ -356,7 +356,7 @@ func showToast(w fyne.Window, message string, kind toastKind) {
 
 	go func() {
 		time.Sleep(3 * time.Second)
-		pop.Hide()
+		fyne.Do(pop.Hide)
 	}()
 }
 

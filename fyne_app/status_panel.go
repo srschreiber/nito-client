@@ -89,8 +89,10 @@ func (b *CircleStopBtn) Tapped(_ *fyne.PointEvent) {
 	b.circ.Refresh()
 	go func() {
 		time.Sleep(120 * time.Millisecond)
-		b.circ.FillColor = colAccentDark
-		b.circ.Refresh()
+		fyne.Do(func() {
+			b.circ.FillColor = colAccentDark
+			b.circ.Refresh()
+		})
 		if b.onTap != nil {
 			b.onTap()
 		}
@@ -261,31 +263,69 @@ func showIdleTrackPopup(w fyne.Window, idx int) {
 
 // ── STATUS tab ────────────────────────────────────────────────────────────────
 
-func buildStatusTab() fyne.CanvasObject {
+// buildStatusTab returns the status tab content and an update function that
+// mutates the live labels. The update function must be called on the Fyne thread.
+func buildStatusTab() (fyne.CanvasObject, func(connected bool, brokerURL, userID string, latencyMs int64)) {
+	dot := txt("○ ", colDim, 13, false, true)
+	statusLabel := monoTxt("offline", colDim)
+	pingLabel := monoTxt("--", colDim)
+	brokerLabel := monoTxt("--", colDim)
+	userLabel := monoTxt("--", colDim)
+
 	connSection := container.NewVBox(
 		vspace(4),
-		container.NewHBox(txt("● ", colGreen, 13, false, true), monoTxt("online", colText)),
-		container.NewHBox(monoTxt("  ping    ", colDimMid), monoTxt("42ms", colText)),
-		container.NewHBox(monoTxt("  broker  ", colDimMid), monoTxt("nito.example.com", colText)),
-		container.NewHBox(monoTxt("  user    ", colDimMid), monoTxt("alice", colText)),
+		container.NewHBox(dot, statusLabel),
+		container.NewHBox(monoTxt("  ping    ", colDimMid), pingLabel),
+		container.NewHBox(monoTxt("  broker  ", colDimMid), brokerLabel),
+		container.NewHBox(monoTxt("  user    ", colDimMid), userLabel),
 	)
 
 	statsContent := container.NewVBox(
-		container.NewHBox(monoTxt("voice pkt/s  ", colDimMid), monoTxt("42", colText)),
-		container.NewHBox(monoTxt("voice loss   ", colDimMid), monoTxt("1.0%", colText)),
-		container.NewHBox(monoTxt("rtt          ", colDimMid), monoTxt("38ms", colText)),
-		container.NewHBox(monoTxt("jitter       ", colDimMid), monoTxt("4ms", colText)),
-		container.NewHBox(monoTxt("opus bitrate ", colDimMid), monoTxt("32 kbps", colText)),
+		container.NewHBox(monoTxt("voice pkt/s  ", colDimMid), monoTxt("--", colDim)),
+		container.NewHBox(monoTxt("voice loss   ", colDimMid), monoTxt("--", colDim)),
 	)
 
 	accordion := NewCollapseSection("STATS", container.NewVBox(statsContent), false)
-
 	sep := func() fyne.CanvasObject { return container.NewVBox(vspace(8), hline(), vspace(8)) }
 
-	return container.NewVScroll(container.NewVBox(
-		connSection, sep(),
-		accordion,
-	))
+	area := container.NewVScroll(container.NewVBox(connSection, sep(), accordion))
+
+	update := func(connected bool, brokerURL, userID string, latencyMs int64) {
+		if connected {
+			dot.Color = colGreen
+			dot.Text = "● "
+			statusLabel.Text = "online"
+			statusLabel.Color = colText
+			pingLabel.Text = itoa(int(latencyMs)) + "ms"
+			pingLabel.Color = colText
+			host := brokerURL
+			for _, pfx := range []string{"https://", "http://", "ws://", "wss://"} {
+				host = strings.TrimPrefix(host, pfx)
+			}
+			brokerLabel.Text = host
+			brokerLabel.Color = colText
+			userLabel.Text = userID
+			userLabel.Color = colText
+		} else {
+			dot.Color = colDim
+			dot.Text = "○ "
+			statusLabel.Text = "offline"
+			statusLabel.Color = colDim
+			pingLabel.Text = "--"
+			pingLabel.Color = colDim
+			brokerLabel.Text = "--"
+			brokerLabel.Color = colDim
+			userLabel.Text = "--"
+			userLabel.Color = colDim
+		}
+		dot.Refresh()
+		statusLabel.Refresh()
+		pingLabel.Refresh()
+		brokerLabel.Refresh()
+		userLabel.Refresh()
+	}
+
+	return area, update
 }
 
 // ── TRACKS tab ────────────────────────────────────────────────────────────────
@@ -506,17 +546,30 @@ func buildEQTab(w fyne.Window) fyne.CanvasObject {
 
 type StatusPanel struct {
 	widget.BaseWidget
-	TabBar  *TabBar
-	content *fyne.Container
-	tabs    []fyne.CanvasObject
+	TabBar    *TabBar
+	content   *fyne.Container
+	tabs      []fyne.CanvasObject
+	setStatus func(connected bool, brokerURL, userID string, latencyMs int64)
+}
+
+// UpdateStatus refreshes the STATUS tab with live connection data.
+// Safe to call from any goroutine.
+func (sp *StatusPanel) UpdateStatus(connected bool, brokerURL, userID string, latencyMs int64) {
+	if sp.setStatus == nil {
+		return
+	}
+	fyne.Do(func() { sp.setStatus(connected, brokerURL, userID, latencyMs) })
 }
 
 func NewStatusPanel(w fyne.Window) *StatusPanel {
 	sp := &StatusPanel{}
 
+	statusArea, setStatus := buildStatusTab()
+	sp.setStatus = setStatus
+
 	tabNames := []string{"STATUS", "TRACKS", "TRACK EQ", "INVITES", "NOTIF", "LOGS"}
 	tabs := []fyne.CanvasObject{
-		buildStatusTab(),
+		statusArea,
 		buildTracksTab(w),
 		buildEQTab(w),
 		buildInvitesTab(w),

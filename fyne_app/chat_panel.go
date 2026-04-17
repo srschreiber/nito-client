@@ -112,22 +112,31 @@ func renderMessage(m mockMessage) fyne.CanvasObject {
 	case msgSystem:
 		return container.NewPadded(monoTxt("  "+m.body, colMuted))
 	case msgSelf:
+		body := widget.NewLabel(m.body)
+		body.Selectable = true
+		body.TextStyle = fyne.TextStyle{Monospace: true}
 		return container.NewPadded(container.NewHBox(
 			txt(m.timestamp+" ", colDim, 12, false, true),
 			txt("you  ", colCyan, 13, false, true),
-			monoTxt(m.body, colText),
+			body,
 		))
 	case msgDM:
+		body := widget.NewLabel(m.body)
+		body.Selectable = true
+		body.TextStyle = fyne.TextStyle{Monospace: true}
 		return container.NewPadded(container.NewHBox(
 			txt(m.timestamp+" ", colDim, 12, false, true),
 			txt(m.from+"  ", colLavender, 13, false, true),
-			monoTxt(m.body, colText),
+			body,
 		))
 	default:
+		body := widget.NewLabel(m.body)
+		body.Selectable = true
+		body.TextStyle = fyne.TextStyle{Monospace: true}
 		return container.NewPadded(container.NewHBox(
 			txt(m.timestamp+" ", colDim, 12, false, true),
 			txt(m.from+"  ", colLavender, 13, false, true),
-			monoTxt(m.body, colText),
+			body,
 		))
 	}
 }
@@ -277,27 +286,21 @@ func buildRoomSidebar(w fyne.Window, onRoomTap func(), onMemberTap func(string))
 
 // ── Chat message area ─────────────────────────────────────────────────────────
 
-func buildChatArea(messages []mockMessage, roomName string) fyne.CanvasObject {
-	header := container.NewHBox(
-		sectionBadge("# " + roomName),
-	)
+func buildChatArea(messages []mockMessage, roomName string) (fyne.CanvasObject, *fyne.Container) {
+	header := container.NewHBox(sectionBadge("# " + roomName))
 
-	list := widget.NewList(
-		func() int { return len(messages) },
-		func() fyne.CanvasObject {
-			return container.NewPadded(widget.NewLabel(""))
-		},
-		func(id widget.ListItemID, obj fyne.CanvasObject) {
-			obj.(*fyne.Container).Objects[0] = renderMessage(messages[id])
-			obj.Refresh()
-		},
-	)
+	var rows []fyne.CanvasObject
+	for _, m := range messages {
+		rows = append(rows, renderMessage(m))
+	}
+	msgBox := container.NewVBox(rows...)
 
-	return container.NewBorder(
+	area := container.NewBorder(
 		container.NewVBox(header, vspace(2), hline()),
 		nil, nil, nil,
-		list,
+		container.NewVScroll(msgBox),
 	)
+	return area, msgBox
 }
 
 // ── DM view (inline, replaces chat area) ─────────────────────────────────────
@@ -315,16 +318,13 @@ func buildDMView(messages []mockMessage, username string, onBack func()) fyne.Ca
 		vspace(2), hline(),
 	)
 
-	list := widget.NewList(
-		func() int { return len(messages) },
-		func() fyne.CanvasObject { return container.NewPadded(widget.NewLabel("")) },
-		func(id widget.ListItemID, obj fyne.CanvasObject) {
-			obj.(*fyne.Container).Objects[0] = renderMessage(messages[id])
-			obj.Refresh()
-		},
-	)
+	var rows []fyne.CanvasObject
+	for _, m := range messages {
+		rows = append(rows, renderMessage(m))
+	}
 
-	return container.NewBorder(header, nil, nil, nil, list)
+	return container.NewBorder(header, nil, nil, nil,
+		container.NewVScroll(container.NewVBox(rows...)))
 }
 
 // ── Invites tab (used by status panel) ───────────────────────────────────────
@@ -403,13 +403,15 @@ func buildLogsTab() fyne.CanvasObject {
 type ChatPanel struct {
 	widget.BaseWidget
 	content  *fyne.Container
+	msgBox   *fyne.Container
 	OnDMOpen func(username string)
 }
 
 func NewChatPanel(w fyne.Window) *ChatPanel {
 	cp := &ChatPanel{}
 
-	roomArea := buildChatArea(mockChatMessages, "general")
+	var roomArea fyne.CanvasObject
+	roomArea, cp.msgBox = buildChatArea(mockChatMessages, "general")
 
 	dmViews := make(map[string]fyne.CanvasObject)
 	for _, convo := range mockDMConvos {
@@ -469,4 +471,14 @@ func NewChatPanel(w fyne.Window) *ChatPanel {
 func (cp *ChatPanel) CreateRenderer() fyne.WidgetRenderer {
 	_, panel := panelStack(false, cp.content)
 	return widget.NewSimpleRenderer(panel)
+}
+
+func (cp *ChatPanel) Refresh() {
+	var rows []fyne.CanvasObject
+	for _, m := range mockChatMessages {
+		rows = append(rows, renderMessage(m))
+	}
+	cp.msgBox.Objects = rows
+	cp.msgBox.Refresh()
+	cp.BaseWidget.Refresh()
 }
