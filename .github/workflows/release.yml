@@ -33,12 +33,12 @@ jobs:
           echo "PKG_CONFIG_PATH=$(brew --prefix opus)/lib/pkgconfig:/usr/local/lib/pkgconfig" >> $GITHUB_ENV
       - name: Build
         run: |
-          cd shellapp
-          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o ../dist/shellapp-darwin-arm64 .
+          cd ui
+          CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o nito-darwin-arm64 .
       - uses: actions/upload-artifact@v4
         with:
-          name: shellapp-darwin-arm64
-          path: dist/shellapp-darwin-arm64
+          name: nito-darwin-arm64
+          path: ui/nito-darwin-arm64
 
   build-linux-amd64:
     runs-on: ubuntu-latest
@@ -50,7 +50,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libopus-dev libasound2-dev pkg-config autoconf automake libtool meson ninja-build
+          sudo apt-get install -y \
+            libopus-dev libasound2-dev pkg-config autoconf automake libtool \
+            meson ninja-build \
+            xorg-dev libgl1-mesa-dev
           # Build vendored rnnoise as a static lib.
           cd rnnoise
           ./autogen.sh
@@ -67,12 +70,12 @@ jobs:
           sudo rm -f /usr/lib/x86_64-linux-gnu/libopus.so*
       - name: Build
         run: |
-          cd shellapp
-          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o ../dist/shellapp-linux-amd64 .
+          cd ui
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o nito-linux-amd64 .
       - uses: actions/upload-artifact@v4
         with:
-          name: shellapp-linux-amd64
-          path: dist/shellapp-linux-amd64
+          name: nito-linux-amd64
+          path: ui/nito-linux-amd64
 
   build-windows-amd64:
     runs-on: windows-latest
@@ -91,6 +94,8 @@ jobs:
             mingw-w64-ucrt-x86_64-rnnoise
             mingw-w64-ucrt-x86_64-meson
             mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-freetype
+            mingw-w64-ucrt-x86_64-mesa
       - name: Build
         shell: msys2 {0}
         run: |
@@ -99,7 +104,6 @@ jobs:
           export PATH=/ucrt64/bin:$GOROOT/bin:$PATH
           # Build vendored webrtc-audio-processing as a static lib.
           cd webrtc-audio-processing
-          # meson setup extracts the Abseil subproject; patch must happen after.
           meson setup build --default-library=static -Dbuildtype=release
           # Patch Abseil cctz: <winstring.h> is not included by <windows.h> on
           # MinGW but time_zone_lookup.cc uses decltype(&WindowsCreateStringReference)
@@ -107,51 +111,36 @@ jobs:
           python3 -c "f='subprojects/abseil-cpp-20240722.0/absl/time/internal/cctz/src/time_zone_lookup.cc'; c=open(f).read(); [open(f,'w').write('#ifndef _WIN32_WINNT\n#define _WIN32_WINNT 0x0A00\n#endif\n#include <winstring.h>\n'+c)] if '<winstring.h>' not in c else None"
           ninja -C build
           cd ..
-          mkdir -p dist
-          cd shellapp
+          cd ui
           CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build \
             -ldflags="-linkmode external -extldflags '-static -lpthread'" \
-            -o ../dist/shellapp-windows-amd64.exe .
+            -o nito-windows-amd64.exe .
       - uses: actions/upload-artifact@v4
         with:
-          name: shellapp-windows-amd64
-          path: dist/shellapp-windows-amd64.exe
+          name: nito-windows-amd64
+          path: ui/nito-windows-amd64.exe
 
   release:
     needs: [build-darwin-arm64, build-linux-amd64, build-windows-amd64]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
-      - name: Make binaries executable
-        run: chmod +x dist/shellapp-darwin-arm64 dist/shellapp-linux-amd64
       - name: Generate checksums
         run: |
           cd dist
-          sha256sum shellapp-darwin-arm64 > shellapp-darwin-arm64.sha256
-          sha256sum shellapp-linux-amd64  > shellapp-linux-amd64.sha256
-          sha256sum shellapp-windows-amd64.exe > shellapp-windows-amd64.exe.sha256
-      - name: Commit dist to main
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git update-index --chmod=+x dist/shellapp-darwin-arm64 dist/shellapp-linux-amd64
-          git add dist/
-          git diff --staged --quiet || git commit -m "release: dist binaries for ${{ github.ref_name }}"
-          git push
+          sha256sum nito-darwin-arm64        > nito-darwin-arm64.sha256
+          sha256sum nito-linux-amd64         > nito-linux-amd64.sha256
+          sha256sum nito-windows-amd64.exe   > nito-windows-amd64.exe.sha256
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/shellapp-darwin-arm64
-            dist/shellapp-darwin-arm64.sha256
-            dist/shellapp-linux-amd64
-            dist/shellapp-linux-amd64.sha256
-            dist/shellapp-windows-amd64.exe
-            dist/shellapp-windows-amd64.exe.sha256
+            dist/nito-darwin-arm64
+            dist/nito-darwin-arm64.sha256
+            dist/nito-linux-amd64
+            dist/nito-linux-amd64.sha256
+            dist/nito-windows-amd64.exe
+            dist/nito-windows-amd64.exe.sha256

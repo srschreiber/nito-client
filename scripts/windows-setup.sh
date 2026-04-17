@@ -29,7 +29,9 @@ pacman -S --needed --noconfirm \
   mingw-w64-ucrt-x86_64-make \
   mingw-w64-ucrt-x86_64-pkgconf \
   mingw-w64-ucrt-x86_64-opus \
-  mingw-w64-ucrt-x86_64-rnnoise
+  mingw-w64-ucrt-x86_64-rnnoise \
+  mingw-w64-ucrt-x86_64-freetype \
+  mingw-w64-ucrt-x86_64-mesa
 
 echo "==> Configuring Go environment..."
 source /ucrt64/etc/profile.d/go.sh
@@ -56,6 +58,6 @@ fi
 
 echo ""
 echo "Setup complete. Run the app with:"
-echo "    make run-shell"
+echo "    make run-ui"
 echo ""
 echo "If this is a fresh shell, run 'source ~/.bashrc' first."

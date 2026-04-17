@@ -12,7 +12,7 @@ if (-not $Tag) {
 }
 Write-Host "Latest release: $Tag"
 
-$AssetName   = "shellapp-windows-amd64.exe"
+$AssetName   = "nito-windows-amd64.exe"
 $DownloadUrl = "https://github.com/$Repo/releases/download/$Tag/$AssetName"
 $ChecksumUrl = "$DownloadUrl.sha256"
 

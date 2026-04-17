@@ -32,7 +32,7 @@ go env -w CGO_ENABLED=1
 
 echo ""
 echo "Setup complete. Build and run the app with:"
-echo "    make run-shell"
+echo "    make run-ui"
 echo ""
 echo "Or build only:"
-echo "    cd shellapp && go build ."
+echo "    cd ui && go build -o nito ."

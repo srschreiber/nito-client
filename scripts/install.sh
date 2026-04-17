@@ -10,7 +10,7 @@ case "$(uname -s)" in
   Darwin) OS="darwin" ;;
   *)
     echo "Unsupported operating system: $(uname -s)" >&2
-    echo "Windows users: download shellapp-windows-amd64.exe from https://github.com/${REPO}/releases" >&2
+    echo "Windows users: download nito-windows-amd64.exe from https://github.com/${REPO}/releases" >&2
     exit 1
     ;;
 esac
@@ -25,7 +25,7 @@ case "$(uname -m)" in
     ;;
 esac
 
-ASSET_NAME="shellapp-${OS}-${ARCH}"
+ASSET_NAME="nito-${OS}-${ARCH}"
 
 echo "Fetching latest nito release..."
 LATEST_TAG="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
