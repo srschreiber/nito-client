@@ -105,7 +105,7 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 		var decSrc io.Reader = dec
 		eqRate := dec.SampleRate()
 		if dec.SampleRate() != 48000 {
-			decSrc = newResampler(bufio.NewReaderSize(dec, 8192), dec.SampleRate(), 48000)
+			decSrc = newResampler(bufio.NewReaderSize(dec, 65536), dec.SampleRate(), 48000)
 			eqRate = 48000
 		}
 
@@ -116,7 +116,7 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 
 		player := otoCtx.NewPlayer(eq)
 		if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
-			bss.SetBufferSize(48000 / 5 * 4) // ~200 ms at 48 kHz
+			bss.SetBufferSize(48000 * 2 / 5 * 4) // ~400 ms at 48 kHz
 		}
 		player.SetVolume(voice.EffectivePlaybackVolume())
 		defer player.Close()
@@ -425,7 +425,7 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 	var decSrc io.Reader = dec
 	eqRate := dec.SampleRate()
 	if dec.SampleRate() != 48000 {
-		decSrc = newResampler(bufio.NewReaderSize(dec, 8192), dec.SampleRate(), 48000)
+		decSrc = newResampler(bufio.NewReaderSize(dec, 65536), dec.SampleRate(), 48000)
 		eqRate = 48000
 	}
 
@@ -435,7 +435,7 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 	defer voice.ClearTrackEQBandLevels(track) // zero the EQ graph when playback ends
 	player := otoCtx.NewPlayer(eq)
 	if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
-		bufSize := 48000 / 5 * 4 // ~200 ms at 48 kHz
+		bufSize := 48000 * 2 / 5 * 4 // ~400 ms at 48 kHz
 		if isLive {
 			bufSize = 48000 * 4 * 5 // ~5 s for live streams
 		}
