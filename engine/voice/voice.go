@@ -218,14 +218,6 @@ var (
 	otoOnce sync.Once
 	otoCtx  *oto.Context
 
-	// musicOtoOnce / musicOtoCtx is a separate oto context used exclusively for
-	// .play music playback. It uses a 500ms hardware buffer so that GC or
-	// scheduler pauses longer than the 20ms voice buffer don't cause pops in
-	// music while voice latency stays low.
-	musicOtoOnce sync.Once
-	musicOtoCtx  *oto.Context
-	musicOtoRate int // sample rate the music context was initialised with
-
 	sendPacketCount atomic.Uint64
 	sendByteCount   atomic.Uint64
 	recvPacketCount atomic.Uint64
@@ -953,28 +945,12 @@ type voiceSession struct {
 func GetOtoCtx() (*oto.Context, error) { return getOtoCtx() }
 
 // GetMusicOtoCtx returns a dedicated oto context for .play music playback,
-// initializing it on first call at the given sample rate. The 500ms hardware
-// buffer absorbs GC/scheduler jitter that would cause pops through the 20ms
-// voice context. Passing the MP3 decoder's sample rate ensures playback speed
-// matches the source — using the voice rate (48000 Hz) with a 44100 Hz MP3
-// would cause ~8% speed-up.
-func GetMusicOtoCtx(sr int) (*oto.Context, error) {
-	var initErr error
-	musicOtoOnce.Do(func() {
-		musicOtoRate = sr
-		var ready chan struct{}
-		musicOtoCtx, ready, initErr = oto.NewContextWithOptions(&oto.NewContextOptions{
-			SampleRate:   sr,
-			ChannelCount: 2,
-			Format:       oto.FormatSignedInt16LE,
-			BufferSize:   500 * time.Millisecond,
-		})
-		if initErr == nil {
-			<-ready
-		}
-	})
-	return musicOtoCtx, initErr
-}
+// GetMusicOtoCtx returns the shared voice oto context (48 kHz). The sr
+// parameter is ignored — callers that source audio at a different rate must
+// resample before writing to the player. Using a single context prevents the
+// CoreAudio crash that occurs when two output AudioUnits coexist on macOS, and
+// eliminates the 500 ms block-read stutter on Windows.
+func GetMusicOtoCtx(_ int) (*oto.Context, error) { return getOtoCtx() }
 
 func getOtoCtx() (*oto.Context, error) {
 	var initErr error

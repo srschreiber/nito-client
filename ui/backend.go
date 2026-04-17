@@ -13,6 +13,7 @@ import (
 	"github.com/srschreiber/nito-client/engine/keys"
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
+	"github.com/srschreiber/nito-client/sounds"
 
 	"fyne.io/fyne/v2"
 )
@@ -201,8 +202,15 @@ func notifLoop(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 					}
 				}()
 
-			case wstypes.NotificationTypeUserJoinedRoom, wstypes.NotificationTypeUserLeftRoom:
-				// Refresh members for the current room.
+			case wstypes.NotificationTypeUserJoinedRoom:
+				username := notif.Username
+				nitoLog(username + " joined the room")
+				sounds.PlayEnter()
+				fyne.Do(func() {
+					if username != "" {
+						showToast(w, username+" joined the room", toastInfo)
+					}
+				})
 				go func() {
 					var roomID string
 					fyne.DoAndWait(func() { roomID = cp.currentRoomID })
@@ -214,6 +222,47 @@ func notifLoop(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 						fyne.Do(func() { cp.SetMembers(members) })
 					}
 				}()
+
+			case wstypes.NotificationTypeUserLeftRoom:
+				username := notif.Username
+				nitoLog(username + " left the room")
+				sounds.PlayExit()
+				fyne.Do(func() {
+					if username != "" {
+						showToast(w, username+" left the room", toastInfo)
+					}
+				})
+				go func() {
+					var roomID string
+					fyne.DoAndWait(func() { roomID = cp.currentRoomID })
+					if roomID == "" {
+						return
+					}
+					members, err := connection.ListRoomMembers(roomID)
+					if err == nil {
+						fyne.Do(func() { cp.SetMembers(members) })
+					}
+				}()
+
+			case wstypes.NotificationTypeUserJoinedVoiceChat:
+				username := notif.Username
+				nitoLog(username + " joined voice chat")
+				sounds.PlayEnter()
+				fyne.Do(func() {
+					if username != "" {
+						showToast(w, username+" joined voice", toastInfo)
+					}
+				})
+
+			case wstypes.NotificationTypeUserLeftVoiceChat:
+				username := notif.Username
+				nitoLog(username + " left voice chat")
+				sounds.PlayExit()
+				fyne.Do(func() {
+					if username != "" {
+						showToast(w, username+" left voice", toastInfo)
+					}
+				})
 
 			case wstypes.NotificationTypeRoomKeyRotated:
 				nitoLog("room key rotated")

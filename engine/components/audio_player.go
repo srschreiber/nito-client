@@ -104,9 +104,13 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 		defer voice.ClearTrackBandLevels(track)
 		defer voice.ClearTrackEQBandLevels(track)
 
-		player := otoCtx.NewPlayer(eq)
+		var src io.Reader = eq
+		if dec.SampleRate() != 48000 {
+			src = newResampler(eq, dec.SampleRate(), 48000)
+		}
+		player := otoCtx.NewPlayer(src)
 		if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
-			bss.SetBufferSize(dec.SampleRate() / 5 * 4) // ~200 ms
+			bss.SetBufferSize(48000 / 5 * 4) // ~200 ms at 48 kHz
 		}
 		player.SetVolume(voice.EffectivePlaybackVolume())
 		defer player.Close()
@@ -414,11 +418,15 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 	defer eq.Close()
 	defer voice.ClearTrackBandLevels(track)   // zero the status-bar meter when playback ends
 	defer voice.ClearTrackEQBandLevels(track) // zero the EQ graph when playback ends
-	player := otoCtx.NewPlayer(eq)
+	var src io.Reader = eq
+	if dec.SampleRate() != 48000 {
+		src = newResampler(eq, dec.SampleRate(), 48000)
+	}
+	player := otoCtx.NewPlayer(src)
 	if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
-		bufSize := dec.SampleRate() / 5 * 4 // ~200 ms
+		bufSize := 48000 / 5 * 4 // ~200 ms at 48 kHz
 		if isLive {
-			bufSize = dec.SampleRate() * 4 * 5 // ~5 s for live streams
+			bufSize = 48000 * 4 * 5 // ~5 s for live streams
 		}
 		bss.SetBufferSize(bufSize)
 	}
@@ -1023,6 +1031,71 @@ func decodeID3Text(data []byte) string {
 		return strings.TrimSpace(b.String())
 	}
 	return ""
+}
+
+// ── Linear resampler ─────────────────────────────────────────────────────────
+//
+// resampler converts stereo int16-LE PCM from srcRate to dstRate using linear
+// interpolation. It is used when music source audio (typically 44100 Hz) must
+// be fed into the shared 48000 Hz voice oto context.
+
+type resampler struct {
+	src   io.Reader
+	step  float64 // source frames consumed per output frame = srcRate/dstRate
+	phase float64 // fractional position in [0,1) between aL/aR and bL/bR
+	aL, aR,
+	bL, bR float64
+	init bool
+	tmp  [4]byte
+}
+
+func newResampler(src io.Reader, srcRate, dstRate int) *resampler {
+	return &resampler{src: src, step: float64(srcRate) / float64(dstRate)}
+}
+
+func (r *resampler) readFrame() (float64, float64, error) {
+	_, err := io.ReadFull(r.src, r.tmp[:4])
+	if err != nil {
+		return 0, 0, err
+	}
+	l := float64(int16(binary.LittleEndian.Uint16(r.tmp[0:2])))
+	rv := float64(int16(binary.LittleEndian.Uint16(r.tmp[2:4])))
+	return l, rv, nil
+}
+
+func (r *resampler) Read(p []byte) (int, error) {
+	if !r.init {
+		var err error
+		r.aL, r.aR, err = r.readFrame()
+		if err != nil {
+			return 0, err
+		}
+		r.bL, r.bR, _ = r.readFrame() // second frame; ignore EOF on very short files
+		r.init = true
+	}
+	n := 0
+	for n+4 <= len(p) {
+		// Advance source frames while phase >= 1.
+		for r.phase >= 1.0 {
+			r.phase -= 1.0
+			r.aL, r.aR = r.bL, r.bR
+			var err error
+			r.bL, r.bR, err = r.readFrame()
+			if err != nil {
+				if n > 0 {
+					return n, nil
+				}
+				return 0, err
+			}
+		}
+		outL := int16(r.aL + (r.bL-r.aL)*r.phase)
+		outR := int16(r.aR + (r.bR-r.aR)*r.phase)
+		binary.LittleEndian.PutUint16(p[n:], uint16(outL))
+		binary.LittleEndian.PutUint16(p[n+2:], uint16(outR))
+		n += 4
+		r.phase += r.step
+	}
+	return n, nil
 }
 
 // buildTrackDisplayTitle formats artist and title into a single display string.

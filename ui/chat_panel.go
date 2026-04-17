@@ -300,7 +300,13 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 	cp.voiceBtn = newBtn("Join Voice", func() {
 		if voice.IsActive() {
 			go func() {
-				if err := commands.VoiceLeaveDirect(); err != nil {
+				var err error
+				if voice.ActiveRoomID() == voice.SelfRoomID {
+					err = commands.VoiceLeaveTestAudioDirect()
+				} else {
+					err = commands.VoiceLeaveDirect()
+				}
+				if err != nil {
 					fyne.Do(func() { showToast(w, "voice: "+err.Error(), toastError) })
 				} else {
 					nitoLog("left voice chat")
