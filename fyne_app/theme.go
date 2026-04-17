@@ -50,7 +50,7 @@ func (nitoTheme) Color(n fyne.ThemeColorName, v fyne.ThemeVariant) color.Color {
 	case theme.ColorNamePrimary:
 		return colAccent
 	case theme.ColorNameFocus:
-		return colAccent // bright violet cursor
+		return colText // keep slider thumb and selection highlight white
 	case theme.ColorNameHover:
 		return colHover
 	case theme.ColorNameInputBackground:
@@ -87,6 +87,8 @@ func (nitoTheme) Size(name fyne.ThemeSizeName) float32 {
 		return 5
 	case theme.SizeNameInnerPadding:
 		return 6
+	case theme.SizeNameInlineIcon:
+		return 22 // slightly larger slider thumb
 	case theme.SizeNameScrollBar:
 		return 5
 	case theme.SizeNameScrollBarSmall:

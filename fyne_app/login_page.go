@@ -55,9 +55,10 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 
 	isLogin := true
 
+	// ── Fields ────────────────────────────────────────────────────────────────
 	brokerEntry := widget.NewEntry()
 	brokerEntry.SetText(prefs.Broker)
-	brokerEntry.SetPlaceHolder("broker URL (e.g. localhost:8080)")
+	brokerEntry.SetPlaceHolder("broker URL")
 
 	usernameEntry := widget.NewEntry()
 	usernameEntry.SetText(prefs.Username)
@@ -66,36 +67,41 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 	passwordEntry := widget.NewPasswordEntry()
 	passwordEntry.SetPlaceHolder("password")
 
-	rememberCheck := widget.NewCheck("Remember me", nil)
+	rememberCheck := widget.NewCheck("remember me", nil)
 	rememberCheck.SetChecked(prefs.Broker != "" || prefs.Username != "")
 
-	errLabel := txt("", color.NRGBA{R: 0xf8, G: 0x71, B: 0x71, A: 0xff}, 12, false, true)
+	// ── Error / loading state ─────────────────────────────────────────────────
+	errLabel := canvas.NewText("", color.NRGBA{R: 0xf8, G: 0x71, B: 0x71, A: 0xff})
+	errLabel.TextSize = 12
+	errLabel.TextStyle = fyne.TextStyle{Monospace: true}
 	errLabel.Hide()
 
+	loadingLabel := txt("connecting…", colDimMid, 12, false, true)
+	loadingLabel.Hide()
+
 	var submitBtn *widget.Button
-	var loadingLabel *canvas.Text
 
 	submitFn := func() {
 		broker := normalizeBrokerURL(strings.TrimSpace(brokerEntry.Text))
 		username := strings.TrimSpace(usernameEntry.Text)
 		password := passwordEntry.Text
 
-		if broker == "" {
-			errLabel.Text = "broker URL is required"
+		showErr := func(msg string) {
+			errLabel.Text = msg
 			errLabel.Show()
 			errLabel.Refresh()
+		}
+
+		if broker == "" {
+			showErr("broker URL is required")
 			return
 		}
 		if username == "" {
-			errLabel.Text = "username is required"
-			errLabel.Show()
-			errLabel.Refresh()
+			showErr("username is required")
 			return
 		}
 		if password == "" {
-			errLabel.Text = "password is required"
-			errLabel.Show()
-			errLabel.Refresh()
+			showErr("password is required")
 			return
 		}
 
@@ -143,54 +149,64 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 		}()
 	}
 
-	submitBtn = widget.NewButton("Submit", submitFn)
+	submitBtn = widget.NewButton("Continue", submitFn)
 	submitBtn.Importance = widget.HighImportance
 
-	loadingLabel = txt("connecting...", colDimMid, 12, false, true)
-	loadingLabel.Hide()
+	// Enter to advance / submit
+	brokerEntry.OnSubmitted = func(string) { w.Canvas().Focus(usernameEntry) }
+	usernameEntry.OnSubmitted = func(string) { w.Canvas().Focus(passwordEntry) }
+	passwordEntry.OnSubmitted = func(string) { submitFn() }
 
+	// ── Mode toggle ───────────────────────────────────────────────────────────
 	modeTabBar := NewTabBar([]string{"LOGIN", "REGISTER"}, 0, func(i int) {
 		isLogin = i == 0
 	})
 
-	aboutBtn := widget.NewButton("About / Licenses", func() { showAboutWindow(a) })
+	// ── Brand area ────────────────────────────────────────────────────────────
+	titleText := txt("nito", colAccent, 30, true, true)
+	subtitleText := txt("encrypted voice & chat", colDim, 11, false, true)
+	brandArea := container.NewVBox(
+		container.NewCenter(titleText),
+		vspace(2),
+		container.NewCenter(subtitleText),
+	)
+
+	// ── About link ────────────────────────────────────────────────────────────
+	aboutBtn := widget.NewButton("about & licenses", func() { showAboutWindow(a) })
 	aboutBtn.Importance = widget.LowImportance
 
-	// Allow submitting with Enter in the password field.
-	passwordEntry.OnSubmitted = func(string) { submitFn() }
-	usernameEntry.OnSubmitted = func(string) { w.Canvas().Focus(passwordEntry) }
-	brokerEntry.OnSubmitted = func(string) { w.Canvas().Focus(usernameEntry) }
+	// ── Min-width spacer ──────────────────────────────────────────────────────
+	minW := canvas.NewRectangle(colTransparent)
+	minW.SetMinSize(fyne.NewSize(340, 0))
 
-	minWidth := canvas.NewRectangle(colTransparent)
-	minWidth.SetMinSize(fyne.NewSize(380, 0))
-
+	// ── Assemble ──────────────────────────────────────────────────────────────
 	form := container.NewVBox(
-		modeTabBar,
-		vspace(12),
-		monoTxt("Broker URL", colDimMid), brokerEntry,
-		vspace(6),
-		monoTxt("Username", colDimMid), usernameEntry,
-		vspace(6),
-		monoTxt("Password", colDimMid), passwordEntry,
-		vspace(8),
-		rememberCheck,
-		vspace(10),
-		submitBtn,
-		loadingLabel,
-		errLabel,
+		minW,
+		brandArea,
 		vspace(16),
 		hline(),
-		vspace(6),
-		aboutBtn,
+		vspace(10),
+		modeTabBar,
+		vspace(14),
+		monoTxt("broker", colDimMid), brokerEntry,
+		vspace(8),
+		monoTxt("username", colDimMid), usernameEntry,
+		vspace(8),
+		monoTxt("password", colDimMid), passwordEntry,
+		vspace(12),
+		withPointerCursor(rememberCheck),
+		vspace(12),
+		withPointerCursor(submitBtn),
+		loadingLabel,
+		errLabel,
+		vspace(14),
+		hline(),
+		vspace(8),
+		container.NewCenter(withPointerCursor(aboutBtn)),
 	)
 
 	bg := canvas.NewRectangle(colBg)
-	_, card := panelStack(false, container.NewVBox(
-		sectionBadge("NITO"),
-		vspace(10),
-		minWidth,
-		form,
-	))
+	_, card := panelStack(false, container.NewPadded(form))
 
 	w.SetContent(container.NewStack(bg, container.NewCenter(card)))
 

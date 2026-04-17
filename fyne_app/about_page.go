@@ -75,16 +75,14 @@ func showAboutWindow(a fyne.App) {
 	w.Resize(fyne.NewSize(760, 520))
 
 	selected := 0
-	var textEntry *widget.Entry
 	var listWidget *widget.List
 
-	textEntry = widget.NewMultiLineEntry()
-	textEntry.Wrapping = fyne.TextWrapOff
-	textEntry.TextStyle = fyne.TextStyle{Monospace: true}
-	// read-only but copyable
-	originalText := allLicenses[0].text
-	textEntry.SetText(originalText)
-	textEntry.OnChanged = func(string) { textEntry.SetText(originalText) }
+	// Selectable label in a scroll container gives both H and V scrollbars.
+	textLabel := widget.NewLabel(allLicenses[0].text)
+	textLabel.TextStyle = fyne.TextStyle{Monospace: true}
+	textLabel.Wrapping = fyne.TextWrapOff
+	textLabel.Selectable = true
+	rightScroll := container.NewScroll(textLabel)
 
 	listWidget = widget.NewList(
 		func() int { return len(allLicenses) },
@@ -93,26 +91,23 @@ func showAboutWindow(a fyne.App) {
 		},
 		func(id widget.ListItemID, obj fyne.CanvasObject) {
 			label := obj.(*fyne.Container).Objects[0].(*canvas.Text)
-			col := colText
 			if id == selected {
-				col = colAccent
+				label.Color = colAccent
 			} else {
-				col = colDimMid
+				label.Color = colDimMid
 			}
 			label.Text = allLicenses[id].name
-			label.Color = col
 			label.Refresh()
 		},
 	)
 	listWidget.OnSelected = func(id widget.ListItemID) {
 		selected = id
-		originalText = allLicenses[id].text
-		textEntry.SetText(originalText)
-		textEntry.OnChanged = func(string) { textEntry.SetText(originalText) }
+		textLabel.SetText(allLicenses[id].text)
+		rightScroll.ScrollToTop()
 		listWidget.Refresh()
 	}
 
-	split := container.NewHSplit(listWidget, textEntry)
+	split := container.NewHSplit(listWidget, rightScroll)
 	split.SetOffset(0.25)
 
 	header := container.NewVBox(
