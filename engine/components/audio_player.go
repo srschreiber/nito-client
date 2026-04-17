@@ -247,7 +247,7 @@ type prefetchReader struct {
 
 const (
 	prefetchChunkSize = 16 * 1024 // 16 KB per chunk
-	prefetchChunks    = 8         // 128 KB read-ahead — enough to smooth network jitter
+	prefetchChunks    = 16        // 256 KB read-ahead — enough to smooth network jitter
 )
 
 // newPrefetchReader creates a prefetchReader with an asynchronous read-ahead buffer to optimize streaming I/O operations.
