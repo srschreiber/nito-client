@@ -119,7 +119,10 @@ func showVoiceSettingsPopup(w fyne.Window) {
 		}
 	}
 
-	inputSel := widget.NewSelect(deviceLabels, func(selected string) {
+	deviceStatusLabel := monoTxt("", liveDimMid)
+
+	var inputSel *widget.Select
+	inputSel = widget.NewSelect(deviceLabels, func(selected string) {
 		for i, lbl := range deviceLabels {
 			if lbl == selected {
 				if deviceIDs[i] == voice.SelectedInputDevice() {
@@ -127,7 +130,18 @@ func showVoiceSettingsPopup(w fyne.Window) {
 				}
 				voice.SetInputDevice(deviceIDs[i])
 				clientlog.Info("selected input device: " + deviceLabels[i])
-				go voice.RestartCapture()
+				inputSel.Disable()
+				deviceStatusLabel.Text = "please wait while we switch your input device…"
+				deviceStatusLabel.Refresh()
+				go func() {
+					voice.RestartCapture()
+					time.Sleep(4 * time.Second)
+					fyne.Do(func() {
+						deviceStatusLabel.Text = ""
+						deviceStatusLabel.Refresh()
+						inputSel.Enable()
+					})
+				}()
 				return
 			}
 		}
@@ -166,6 +180,7 @@ func showVoiceSettingsPopup(w fyne.Window) {
 				testBtn.Importance = widget.LowImportance
 				testBtn.Disable()
 				testBtn.Refresh()
+				inputSel.Disable()
 			})
 			done := make(chan struct{})
 			go func() {
@@ -192,6 +207,7 @@ func showVoiceSettingsPopup(w fyne.Window) {
 				close(done)
 				fyne.Do(func() {
 					testBtn.Enable()
+					inputSel.Enable()
 					if err != nil {
 						showToast(w, "test audio: "+err.Error(), toastError)
 						testBtn.Text = "Test Voice"
@@ -217,7 +233,9 @@ func showVoiceSettingsPopup(w fyne.Window) {
 
 	body := container.NewVBox(
 		minWidth,
-		monoTxt("Input device", liveDimMid), withPointerCursor(inputSel), vspace(4),
+		monoTxt("Input device", liveDimMid),
+		withPointerCursor(inputSel),
+		deviceStatusLabel, vspace(4),
 		hline(), vspace(4),
 		withPointerCursor(noiseCheck),
 		withPointerCursor(aecCheck),
