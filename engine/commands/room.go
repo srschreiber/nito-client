@@ -98,7 +98,7 @@ func roomInviteCmd(args []Argument) (string, error) {
 	keyPEM := ""
 	if rec, ok := keys.LoadPeerPublicKey(username); ok {
 		if !rec.Verified {
-			clientlog.Warn("inviting user with unverified key: " + username)
+			clientlog.Warn("inviting user with unverified key: %s", username)
 		}
 		keyPEM = rec.PublicKey
 	} else {

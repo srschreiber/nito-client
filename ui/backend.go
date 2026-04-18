@@ -89,6 +89,7 @@ func startBackend(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 	go notifLoop(cp, sp, w)
 	go roomPollLoop(cp, sp)
 	go keyVerifyChallengeLoop(sp, w)
+	go lateVerifyResponseLoop(w)
 }
 
 // keyVerifyChallengeLoop forwards incoming key-verification challenges to the
@@ -112,13 +113,35 @@ func keyVerifyChallengeLoop(sp *StatusPanel, w fyne.Window) {
 			if payload.ExpiresAt > 0 {
 				expiresAt = time.Unix(payload.ExpiresAt, 0)
 				if time.Now().After(expiresAt) {
-					clientlog.Info("keyVerifyChallengeLoop: dropping stale challenge from " + fromUsername)
+					clientlog.Warn("verify: dropping stale challenge from %s (session %s)", fromUsername, sessionID)
 					continue
 				}
 			}
+			clientlog.Info("verify: received challenge from %s (session %s)", fromUsername, sessionID)
 			fyne.Do(func() {
 				sp.AddVerifyRequest(fromUsername, sessionID, expiresAt)
-				showToast(w, fromUsername+" wants to verify your key — see REQUESTS tab", toastInfo)
+				showToast(w, "⚠️ "+fromUsername+" wants to verify your key — see REQUESTS tab", toastInfo)
+			})
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+// lateVerifyResponseLoop surfaces KeyVerifyResponse messages that arrived after
+// the local verify session was cancelled/timed out. Shows a warning toast so
+// the user is alerted that a peer responded to a now-invalid challenge.
+func lateVerifyResponseLoop(w fyne.Window) {
+	for {
+		ch := connection.LateVerifyResponseChan()
+		if ch == nil {
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		for fromUsername := range ch {
+			fromUsername := fromUsername
+			clientlog.Warn("verify: late response received for cancelled/expired session (peer %s)", fromUsername)
+			fyne.Do(func() {
+				showToast(w, "⚠️ "+fromUsername+" responded to an expired verify request — ignored; start a new one", toastWarn)
 			})
 		}
 		time.Sleep(500 * time.Millisecond)

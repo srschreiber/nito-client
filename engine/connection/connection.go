@@ -63,6 +63,7 @@ var (
 	roomMessageChan    chan []byte // incoming room messages (raw JSON for the TUI model to dispatch)
 	dmChan             chan []byte // incoming direct messages, already decrypted (JSON-encoded decryptedDM)
 	keyVerifyChallChan chan []byte // incoming key-verify challenges (raw payload JSON)
+	lateVerifyRespChan chan string // fromUsername of responses that arrived after the session was cancelled/timed out
 
 	// pendingVerifications maps sessionID → chan KeyVerifyResponsePayload for in-flight verify waits.
 	pendingVerifications sync.Map
@@ -237,6 +238,7 @@ func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	echoChan = make(chan []byte, 16)
 	dmChan = make(chan []byte, 16)
 	keyVerifyChallChan = make(chan []byte, 8)
+	lateVerifyRespChan = make(chan string, 8)
 	conn = c
 	session = &Session{UserID: userID, BrokerURL: brokerURL, JWTToken: jwtToken, KeyManager: map[string]*keys.RoomKeyChain{}}
 	notifChan = nc
@@ -371,6 +373,13 @@ func readLoop(c *websocket.Conn, echoChan, roomMessageChan, dmChan, nc, kvChalCh
 				case respCh <- resp:
 				default:
 				}
+			} else if lateVerifyRespChan != nil {
+				// Session is no longer being waited on — cancelled, timed out,
+				// or the sender restarted. Surface it so the UI can warn.
+				select {
+				case lateVerifyRespChan <- resp.ToUsername:
+				default:
+				}
 			}
 			continue
 		}
@@ -445,6 +454,16 @@ func KeyVerifyChallengeChan() <-chan []byte {
 	mu.Lock()
 	defer mu.Unlock()
 	return keyVerifyChallChan
+}
+
+// LateVerifyResponseChan returns a channel of `fromUsername` values for
+// KeyVerifyResponse messages that arrived after the local session was
+// cancelled/timed out. UI should warn the user so they know not to trust any
+// resumed flow for that peer. Returns nil when not connected.
+func LateVerifyResponseChan() <-chan string {
+	mu.Lock()
+	defer mu.Unlock()
+	return lateVerifyRespChan
 }
 
 // sendWsRPC marshals payload as a ToBrokerWsMessage with a fresh nonce/timestamp and sends it.

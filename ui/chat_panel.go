@@ -698,15 +698,17 @@ func showTrustPopup(username string, w fyne.Window, existing *keys.TrustedKey) {
 	var pop *widget.PopUp
 
 	// Tailor messaging to whether we've seen this key before.
-	var title, desc, continueLabel string
+	var title, headline, desc, continueLabel string
 	if existing != nil {
 		title = "UNVERIFIED KEY — " + strings.ToUpper(username)
-		desc = "A key for " + username + " is on disk but was never verified. A compromised or malicious broker could have substituted a fake key, gaining access to all encrypted messages and room keys sent to " + username + ". Verify out-of-band to rule this out."
-		continueLabel = "Continue unverified"
+		headline = "⚠  YOU HAVE NOT VERIFIED " + strings.ToUpper(username) + "'S KEY"
+		desc = "A key for " + username + " is on disk but was never verified out-of-band. If the broker was compromised the very first time you saw this user, the stored key may belong to an attacker — not " + username + ". Continuing will expose every message and room key you send them to whoever controls that key. Verify out-of-band (voice, in person, trusted channel) before trusting this identity."
+		continueLabel = "Continue unverified (risky)"
 	} else {
 		title = "UNKNOWN KEY — " + strings.ToUpper(username)
-		desc = "No trusted key found for " + username + ". The broker will provide one if the user exists, but without verification you cannot confirm it belongs to the real " + username + ". A malicious broker could supply its own key and silently read everything you encrypt for them."
-		continueLabel = "Trust without verification"
+		headline = "⚠  " + strings.ToUpper(username) + " IS NOT VERIFIED"
+		desc = "No trusted key is on record for " + username + ". The broker will provide one if the user exists — but a malicious broker can silently substitute its own key, decrypt everything you send, re-encrypt it, and forward it to the real user without either of you noticing. Without out-of-band verification, you cannot tell the difference. This is the attack E2EE is designed to prevent."
+		continueLabel = "Trust without verification (risky)"
 	}
 
 	continueBtn := newBtn(continueLabel, nil)
@@ -769,10 +771,11 @@ func showTrustPopup(username string, w fyne.Window, existing *keys.TrustedKey) {
 	}
 
 	body := container.NewVBox(
-		popupDescLabel(desc), vspace(8),
-		continueBtn, verifyBtn, cancelBtn,
+		alertRichText(headline), vspace(6),
+		popupDescLabel(desc), vspace(10),
+		verifyBtn, continueBtn, cancelBtn,
 	)
-	pop = showNitoPopup(title, body, w)
+	pop = showNitoPopupSized(title, body, w, 0.33)
 }
 
 // showVerifyPopup starts the cryptographic verification flow.
@@ -788,10 +791,15 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 	expiresAt := time.Now().Add(verifyTTL)
 	ctx, cancel := context.WithDeadline(context.Background(), expiresAt)
 
+	clientlog.Info("verify: starting flow for %s (session %s, expires in %s)", username, sessionID, verifyTTL)
+
 	var pop *widget.PopUp
+	cancelled := false
 	cancelBtn := newBtn("Cancel", nil)
 	cancelBtn.Importance = widget.LowImportance
 	cancelBtn.OnTapped = func() {
+		cancelled = true
+		clientlog.Info("verify: user cancelled flow for %s (session %s)", username, sessionID)
 		cancel()
 		if pop != nil {
 			pop.Hide()
@@ -809,6 +817,7 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 	go func() {
 		defer cancel()
 		if err := connection.SendKeyVerifyChallenge(username, sessionID, expiresAt.Unix()); err != nil {
+			clientlog.Error("verify: send challenge failed for %s: %v", username, err)
 			fyne.Do(func() {
 				if pop != nil {
 					pop.Hide()
@@ -819,6 +828,10 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 		}
 		resp, err := connection.WaitForKeyVerifyResponse(ctx, sessionID)
 		if err != nil {
+			if cancelled {
+				return // user already saw the popup close; no extra toast needed
+			}
+			clientlog.Warn("verify: wait failed for %s: %v", username, err)
 			fyne.Do(func() {
 				if pop != nil {
 					pop.Hide()
@@ -828,6 +841,7 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 			return
 		}
 		if err := keys.VerifyPeerSignature(code, sessionID, resp.PublicKeyPEM, resp.Signature); err != nil {
+			clientlog.Error("verify: signature check failed for %s: %v", username, err)
 			fyne.Do(func() {
 				if pop != nil {
 					pop.Hide()
@@ -841,6 +855,7 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 			Verified:  true,
 			Method:    keys.TrustMethodVerified,
 		})
+		clientlog.Info("verify: successfully verified and pinned key for %s", username)
 		fyne.Do(func() {
 			if pop != nil {
 				pop.Hide()

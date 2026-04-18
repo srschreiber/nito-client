@@ -613,9 +613,50 @@ func popupDescLabel(s string) *widget.Label {
 	return lbl
 }
 
+// alertRichText returns a word-wrapping rich-text block that renders s in the
+// profile-independent colAlert colour with bold monospace. Use for text that
+// must convey "this is dangerous" regardless of the user's accent profile.
+func alertRichText(s string) *widget.RichText {
+	rt := widget.NewRichText(&widget.TextSegment{
+		Text: s,
+		Style: widget.RichTextStyle{
+			ColorName: colorNameAlert,
+			TextStyle: fyne.TextStyle{Bold: true, Monospace: true},
+		},
+	})
+	rt.Wrapping = fyne.TextWrapWord
+	return rt
+}
+
+// minWidthSpacer is an invisible layout element that forces a container to be
+// at least w pixels wide. Used by wide popup helpers.
+type minWidthSpacer struct {
+	widget.BaseWidget
+	w float32
+}
+
+func newMinWidthSpacer(w float32) *minWidthSpacer {
+	s := &minWidthSpacer{w: w}
+	s.ExtendBaseWidget(s)
+	return s
+}
+
+func (s *minWidthSpacer) CreateRenderer() fyne.WidgetRenderer {
+	r := canvas.NewRectangle(colTransparent)
+	r.SetMinSize(fyne.NewSize(s.w, 0))
+	return widget.NewSimpleRenderer(r)
+}
+
 // showNitoPopup shows a styled floating popup that auto-dismisses when the user
 // clicks outside it. Clicks inside are consumed so the popup stays open.
 func showNitoPopup(title string, body fyne.CanvasObject, w fyne.Window) *widget.PopUp {
+	return showNitoPopupSized(title, body, w, 0)
+}
+
+// showNitoPopupSized is like showNitoPopup but forces the popup to be at least
+// minWidthFraction of the canvas width (0 = natural min-size). Use 0.33 for
+// wide dialogs where wrapped prose needs room to breathe.
+func showNitoPopupSized(title string, body fyne.CanvasObject, w fyne.Window, minWidthFraction float32) *widget.PopUp {
 	bg := canvas.NewRectangle(liveSurface)
 	bg.CornerRadius = 16
 	bg.StrokeColor = liveBorderFocus
@@ -626,6 +667,11 @@ func showNitoPopup(title string, body fyne.CanvasObject, w fyne.Window) *widget.
 		vspace(8),
 		body,
 	)
+	if minWidthFraction > 0 {
+		cs := w.Canvas().Size()
+		targetW := cs.Width * minWidthFraction
+		content.Add(newMinWidthSpacer(targetW))
+	}
 	inner := container.NewPadded(container.NewPadded(container.NewPadded(content)))
 	card := newTappableCard(container.NewStack(bg, inner))
 

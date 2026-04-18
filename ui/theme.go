@@ -30,6 +30,7 @@ var (
 	colLavender    = color.NRGBA{R: 0xc4, G: 0xb5, B: 0xfd, A: 0xff} // other users in chat
 	colGreen       = color.NRGBA{R: 0x34, G: 0xd3, B: 0x99, A: 0xff} // online / success (soft emerald)
 	colAmber       = color.NRGBA{R: 0xfb, G: 0xbf, B: 0x24, A: 0xff} // warning
+	colAlert       = color.NRGBA{R: 0xff, G: 0x3b, B: 0x30, A: 0xff} // "you're about to hurt yourself" — profile-independent; saturated enough to stand out against red/pink profiles
 	colMuted       = color.NRGBA{R: 0x6b, G: 0x72, B: 0x80, A: 0xff} // system messages
 	colTransparent = color.NRGBA{A: 0x00}
 	colTabActive   = color.NRGBA{R: 0x2c, G: 0x24, B: 0x38, A: 0xff} // active tab bg
@@ -66,10 +67,16 @@ var (
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 
+// colorNameAlert is a custom theme color name resolved by nitoTheme. Used by
+// RichText segments that should render in the profile-independent colAlert.
+const colorNameAlert fyne.ThemeColorName = "nitoAlert"
+
 type nitoTheme struct{}
 
 func (nitoTheme) Color(n fyne.ThemeColorName, v fyne.ThemeVariant) color.Color {
 	switch n {
+	case colorNameAlert:
+		return colAlert
 	case theme.ColorNameBackground:
 		return colBg
 	case theme.ColorNameForeground:

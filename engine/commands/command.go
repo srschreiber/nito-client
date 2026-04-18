@@ -42,6 +42,9 @@ type CommandDef struct {
 var Registry = []CommandDef{
 	{Name: CmdClear, Desc: "clear the screen"},
 	{Name: CmdExit, Desc: "exit the shell"},
+	{Name: CmdHistory, Desc: "show previously-run shell commands", Args: []ArgDef{
+		{Short: "n", Long: "count", Desc: "number of entries to show"},
+	}},
 	{Name: CmdRegister, Desc: "register a user ID with a broker (must be done before connect)", Args: []ArgDef{
 		{Short: "b", Long: "broker", Desc: "broker base URL (e.g. localhost:7070)"},
 		{Short: "u", Long: "user", Desc: "user ID to register"},
