@@ -123,15 +123,28 @@ func sendRoomMessageWithType(text, msgType string) error {
 }
 
 // SendDirectMessage sends an RSA-encrypted direct message to toUsername.
+// The recipient's key is read from the local trust store; a TOFU cache entry is
+// created on first contact if no record exists yet.
 func SendDirectMessage(toUsername, text string) error {
 	s := connection.CurrentSession()
 	if s == nil {
 		return errors.New("dm: not connected (use login first)")
 	}
 
-	toPEM, err := connection.GetUserPublicKey(toUsername)
-	if err != nil {
-		return fmt.Errorf("dm: get user public key: %w", err)
+	var toPEM string
+	if rec, ok := keys.LoadPeerPublicKey(toUsername); ok {
+		toPEM = rec.PublicKey
+	} else {
+		fetched, err := connection.GetUserPublicKey(toUsername)
+		if err != nil {
+			return fmt.Errorf("dm: get user public key: %w", err)
+		}
+		_ = keys.SavePeerPublicKey(toUsername, keys.TrustedKey{
+			PublicKey: fetched,
+			Verified:  false,
+			Method:    keys.TrustMethodTOFU,
+		})
+		toPEM = fetched
 	}
 
 	encryptedText, err := keys.EncryptDataWithPEM([]byte(text), toPEM)

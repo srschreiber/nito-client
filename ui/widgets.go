@@ -270,9 +270,10 @@ func (b *PillPlayBtn) Cursor() desktop.Cursor { return desktop.PointerCursor }
 // HoverRow is a tappable row that highlights its background on hover.
 type HoverRow struct {
 	widget.BaseWidget
-	content fyne.CanvasObject
-	bg      *canvas.Rectangle
-	OnTap   func()
+	content        fyne.CanvasObject
+	bg             *canvas.Rectangle
+	OnTap          func()
+	OnSecondaryTap func(pos fyne.Position)
 }
 
 func NewHoverRow(content fyne.CanvasObject, onTap func()) *HoverRow {
@@ -293,7 +294,11 @@ func (h *HoverRow) Tapped(_ *fyne.PointEvent) {
 	}
 }
 
-func (h *HoverRow) TappedSecondary(_ *fyne.PointEvent) {}
+func (h *HoverRow) TappedSecondary(e *fyne.PointEvent) {
+	if h.OnSecondaryTap != nil {
+		h.OnSecondaryTap(e.AbsolutePosition)
+	}
+}
 
 func (h *HoverRow) MouseIn(_ *desktop.MouseEvent) {
 	h.bg.FillColor = liveHover

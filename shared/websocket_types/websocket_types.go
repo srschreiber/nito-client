@@ -24,12 +24,14 @@ type ToClientWsMessage struct {
 }
 
 const (
-	RPCEcho           = "echo"
-	RPCRoomMessage    = "room_message"
-	RPCNotification   = "notification"
-	RPCMembersUpdated = "members_updated"
-	RPCDirectMessage  = "direct_message"
-	PlayAudio         = "play_audio"
+	RPCEcho               = "echo"
+	RPCKeyVerifyChallenge = "key_verify_challenge" // A → broker → B: initiate verification session
+	RPCKeyVerifyResponse  = "key_verify_response"  // B → broker → A: signed proof of key ownership
+	RPCRoomMessage        = "room_message"
+	RPCNotification       = "notification"
+	RPCMembersUpdated     = "members_updated"
+	RPCDirectMessage      = "direct_message"
+	PlayAudio             = "play_audio"
 
 	// Room presence RPCs.
 	RPCRoomEnter = "room_enter" // client → broker: user is now viewing this room
@@ -145,6 +147,23 @@ type DirectMessagePayload struct {
 	FromUsername string `json:"fromUsername"`
 	CipherText   string `json:"cipherText" validate:"required"`
 	MessageType  string `json:"messageType,omitempty"`
+}
+
+// KeyVerifyChallengePayload is sent by A to B to start a verification session.
+// The session ID is routed through the broker; the secret code is shared out-of-band.
+type KeyVerifyChallengePayload struct {
+	SessionID    string `json:"sessionId"`
+	FromUsername string `json:"fromUsername"`
+	ToUsername   string `json:"toUsername"`
+}
+
+// KeyVerifyResponsePayload is sent by B back to A as proof of key ownership.
+// Signature = Sign(sk_B, SHA-256(code|sessionId|publicKeyPem)).
+type KeyVerifyResponsePayload struct {
+	SessionID    string `json:"sessionId"`
+	ToUsername   string `json:"toUsername"` // A's username
+	PublicKeyPEM string `json:"publicKeyPem"`
+	Signature    string `json:"signature"` // base64-encoded RSA-PSS signature
 }
 
 type PlayAudioPayload struct {

@@ -88,6 +88,32 @@ func startBackend(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 	go dmReceiveLoop(cp, w)
 	go notifLoop(cp, sp, w)
 	go roomPollLoop(cp, sp)
+	go keyVerifyChallengeLoop(w)
+}
+
+// keyVerifyChallengeLoop forwards incoming key-verification challenges to the UI.
+// Runs until the program exits; restarts automatically on reconnect.
+func keyVerifyChallengeLoop(w fyne.Window) {
+	for {
+		ch := connection.KeyVerifyChallengeChan()
+		if ch == nil {
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		for data := range ch {
+			var payload wstypes.KeyVerifyChallengePayload
+			if err := json.Unmarshal(data, &payload); err != nil {
+				clientlog.Error("keyVerifyChallengeLoop: unmarshal: %v", err)
+				continue
+			}
+			fromUsername := payload.FromUsername
+			sessionID := payload.SessionID
+			fyne.Do(func() {
+				ShowVerificationRequestPopup(fromUsername, sessionID, w)
+			})
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
 }
 
 // messageReceiveLoop reads incoming room messages, decrypts them, and appends

@@ -223,3 +223,118 @@ func TestKeyPairConsistency(t *testing.T) {
 		t.Errorf("stored public key does not match private key: %v", err)
 	}
 }
+
+// ── TOFU / verification protocol ─────────────────────────────────────────────
+
+// signVerifyPayload signs H(code|sessionID|pubKeyPEM) with priv and returns a base64 sig.
+func signVerifyPayload(t *testing.T, priv *rsa.PrivateKey, code, sessionID, pubKeyPEM string) string {
+	t.Helper()
+	h := sha256.Sum256([]byte(code + "|" + sessionID + "|" + pubKeyPEM))
+	sig, err := rsa.SignPSS(rand.Reader, priv, crypto.SHA256, h[:], nil)
+	if err != nil {
+		t.Fatalf("SignPSS: %v", err)
+	}
+	return base64.StdEncoding.EncodeToString(sig)
+}
+
+func TestVerificationChallengeUnique(t *testing.T) {
+	c1, s1, err := keys.GenerateVerificationChallenge()
+	if err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	c2, s2, err := keys.GenerateVerificationChallenge()
+	if err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	if s1 == s2 {
+		t.Error("two consecutive session IDs are identical")
+	}
+	// Code is 6 digits; sessions may collide rarely by chance — just check format.
+	for _, c := range []string{c1, c2} {
+		if len(c) != 6 {
+			t.Errorf("code %q is not 6 digits", c)
+		}
+	}
+}
+
+func TestVerifyPeerSignatureValid(t *testing.T) {
+	priv, pubPEM := genKeyPair(t)
+	code, sessionID := "123456", "test-session"
+	sig := signVerifyPayload(t, priv, code, sessionID, pubPEM)
+
+	if err := keys.VerifyPeerSignature(code, sessionID, pubPEM, sig); err != nil {
+		t.Errorf("valid signature rejected: %v", err)
+	}
+}
+
+func TestVerifyPeerSignatureWrongCode(t *testing.T) {
+	priv, pubPEM := genKeyPair(t)
+	code, sessionID := "123456", "test-session"
+	sig := signVerifyPayload(t, priv, code, sessionID, pubPEM)
+
+	if err := keys.VerifyPeerSignature("999999", sessionID, pubPEM, sig); err == nil {
+		t.Error("wrong code should fail verification")
+	}
+}
+
+func TestVerifyPeerSignatureWrongSession(t *testing.T) {
+	priv, pubPEM := genKeyPair(t)
+	code, sessionID := "123456", "test-session"
+	sig := signVerifyPayload(t, priv, code, sessionID, pubPEM)
+
+	if err := keys.VerifyPeerSignature(code, "other-session", pubPEM, sig); err == nil {
+		t.Error("wrong session ID should fail verification")
+	}
+}
+
+func TestVerifyPeerSignatureWrongKey(t *testing.T) {
+	priv, pubPEM := genKeyPair(t)
+	_, differentPubPEM := genKeyPair(t)
+	code, sessionID := "123456", "test-session"
+	sig := signVerifyPayload(t, priv, code, sessionID, pubPEM)
+
+	// Signature was computed over pubPEM, but we pass differentPubPEM.
+	if err := keys.VerifyPeerSignature(code, sessionID, differentPubPEM, sig); err == nil {
+		t.Error("signature for wrong key should fail verification")
+	}
+}
+
+func TestPeerPublicKeyRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	keys.SetActiveBroker(dir)
+	t.Cleanup(func() { keys.SetActiveBroker("") })
+
+	_, pubPEM := genKeyPair(t)
+	rec := keys.TrustedKey{
+		PublicKey: pubPEM,
+		Verified:  true,
+		Method:    keys.TrustMethodVerified,
+	}
+	if err := keys.SavePeerPublicKey("alice", rec); err != nil {
+		t.Fatalf("SavePeerPublicKey: %v", err)
+	}
+	loaded, ok := keys.LoadPeerPublicKey("alice")
+	if !ok {
+		t.Fatal("LoadPeerPublicKey returned false after save")
+	}
+	if loaded.PublicKey != pubPEM {
+		t.Error("loaded public key does not match saved")
+	}
+	if !loaded.Verified {
+		t.Error("loaded record should be marked verified")
+	}
+	if loaded.Method != keys.TrustMethodVerified {
+		t.Errorf("method: got %q, want %q", loaded.Method, keys.TrustMethodVerified)
+	}
+}
+
+func TestPeerPublicKeyAbsent(t *testing.T) {
+	dir := t.TempDir()
+	keys.SetActiveBroker(dir)
+	t.Cleanup(func() { keys.SetActiveBroker("") })
+
+	_, ok := keys.LoadPeerPublicKey("nobody")
+	if ok {
+		t.Error("LoadPeerPublicKey should return false for unknown user")
+	}
+}

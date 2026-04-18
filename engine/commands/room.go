@@ -11,6 +11,7 @@ import (
 	"github.com/srschreiber/nito-client/engine/connection"
 	"github.com/srschreiber/nito-client/engine/keys"
 	"github.com/srschreiber/nito-client/shared/utils"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 func roomCreateCmd(args []Argument) (string, error) {
@@ -92,6 +93,33 @@ func roomInviteCmd(args []Argument) (string, error) {
 	if username == "" {
 		return "", errors.New("room-invite: -u/--user <username> is required")
 	}
+
+	// Check the local trust store first; fall back to broker with TOFU caching.
+	keyPEM := ""
+	if rec, ok := keys.LoadPeerPublicKey(username); ok {
+		if !rec.Verified {
+			clientlog.Warn("inviting user with unverified key: " + username)
+		}
+		keyPEM = rec.PublicKey
+	} else {
+		inviteePub, err := connection.GetUserPublicKey(username)
+		if err != nil {
+			return "", fmt.Errorf("room-invite: get invitee public key: %w", err)
+		}
+		_ = keys.SavePeerPublicKey(username, keys.TrustedKey{
+			PublicKey: inviteePub,
+			Verified:  false,
+			Method:    keys.TrustMethodTOFU,
+		})
+		keyPEM = inviteePub
+	}
+
+	return InviteUserWithKey(username, keyPEM)
+}
+
+// InviteUserWithKey encrypts the current room key with keyPEM and sends the invite.
+// The caller is responsible for obtaining and trusting keyPEM before calling this.
+func InviteUserWithKey(username, keyPEM string) (string, error) {
 	roomID := utils.DerefOrZero(connection.GetSessionRoomID())
 	if roomID == "" {
 		return "", errors.New("room-invite: no room selected (use room-select or select in UI)")
@@ -107,12 +135,7 @@ func roomInviteCmd(args []Argument) (string, error) {
 		return "", fmt.Errorf("room-invite: decrypt room key: %w", err)
 	}
 
-	inviteePub, err := connection.GetUserPublicKey(username)
-	if err != nil {
-		return "", fmt.Errorf("room-invite: get invitee public key: %w", err)
-	}
-
-	encryptedForInvitee, err := keys.EncryptDataWithPEM(roomKey, inviteePub)
+	encryptedForInvitee, err := keys.EncryptDataWithPEM(roomKey, keyPEM)
 	if err != nil {
 		return "", fmt.Errorf("room-invite: encrypt for invitee: %w", err)
 	}
@@ -129,7 +152,7 @@ func CreateRoomDirect(name string) (string, error) {
 	return roomCreateCmd([]Argument{{Name: "n", Values: []string{name}}})
 }
 
-// InviteUserDirect invites a user to the currently selected room.
+// InviteUserDirect invites a user using the cached key (TOFU fallback if unknown).
 func InviteUserDirect(username string) (string, error) {
 	return roomInviteCmd([]Argument{{Name: "u", Values: []string{username}}})
 }
