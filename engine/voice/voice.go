@@ -1500,17 +1500,29 @@ func RestartCapture() {
 		return
 	}
 	clientlog.Info("RestartCapture: restarting capture for room=%s device=%q", sess.roomID, SelectedInputDevice())
+	newDone := make(chan struct{})
 	sess.captureMu.Lock()
 	old := sess.captureCancel
+	oldDone := sess.captureDone
 	captureCtx, newCancel := context.WithCancel(sess.ctx)
 	sess.captureCancel = newCancel
+	sess.captureDone = newDone
 	sess.captureMu.Unlock()
 	if old != nil {
 		old()
 	}
-	// Give the old goroutine one audio-chunk duration to exit and release the device.
-	time.Sleep(50 * time.Millisecond)
-	go captureAndSend(captureCtx, sess.aead, sess.sendTrack, sess.roomID == SelfRoomID, sess.apm, sess.delayEst)
+	// Wait for the old goroutine to release the device before opening a new stream.
+	if oldDone != nil {
+		select {
+		case <-oldDone:
+		case <-time.After(300 * time.Millisecond):
+			clientlog.Warn("RestartCapture: timed out waiting for old capture goroutine")
+		}
+	}
+	go func() {
+		captureAndSend(captureCtx, sess.aead, sess.sendTrack, sess.roomID == SelfRoomID, sess.apm, sess.delayEst)
+		close(newDone)
+	}()
 }
 
 // handleIncoming is the voice message handler registered with connection.SetVoiceMessageHandler.
