@@ -859,9 +859,8 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 			})
 			return
 		}
-		// A produces a matching signature under sk_A with role tag "A".
-		// This signature is the confirm message — it proves to B that A also
-		// knows the out-of-band code and sk_A, closing the mutual handshake.
+		// The "A" byte inside the hash tags this signature as the initiator's,
+		// keeping it distinct from any other signature sk_A produces.
 		confirmSig, err := keys.SignVerificationConfirm(code, sessionID, initiatorPubPEM, resp.PublicKeyPEM, myUsername)
 		if err != nil {
 			clientlog.Error("verify: sign confirm failed for %s: %v", username, err)
