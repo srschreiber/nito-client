@@ -99,19 +99,14 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 			return
 		}
 
-		// Buffer decoded PCM ahead of the EQ reader so file I/O and MP3 decode
-		// latency never starve oto. EQ runs synchronously at oto's read rate so
-		// EQ changes and band meters stay in sync with what the hardware plays.
 		var decSrc io.Reader = dec
 		eqRate := dec.SampleRate()
 		if dec.SampleRate() != 48000 {
 			decSrc = newResampler(bufio.NewReaderSize(dec, 65536), dec.SampleRate(), 48000)
 			eqRate = 48000
 		}
-		pre := newEQDecoupleReader(ctx, decSrc, 48000*4*2*3) // ~3 s PCM buffer at 48 kHz stereo
-		defer pre.close()
 
-		eq := newEQReader(pre, eqRate, track)
+		eq := newEQReader(decSrc, eqRate, track)
 		defer eq.Close()
 		defer sounds.ClearTrackBandLevels(track)
 		defer sounds.ClearTrackEQBandLevels(track)
@@ -1150,71 +1145,3 @@ func buildTrackDisplayTitle(artist, title string) string {
 		return artist
 	}
 }
-
-// eqDecoupleReader wraps an io.Reader and decodes it ahead of time in a
-// goroutine, buffering into a channel. oto reads from this reader; when the
-// channel is momentarily empty (decode/EQ/GC stall) it returns silence instead
-// of blocking, preventing hardware buffer underruns and audio pops.
-type eqDecoupleReader struct {
-	ch   chan []byte
-	tail []byte
-	stop context.CancelFunc
-}
-
-const eqDecoupleChunk = 4096
-
-func newEQDecoupleReader(ctx context.Context, src io.Reader, bufferBytes int) *eqDecoupleReader {
-	ctx, cancel := context.WithCancel(ctx)
-	nchunks := bufferBytes/eqDecoupleChunk + 1
-	pr := &eqDecoupleReader{ch: make(chan []byte, nchunks), stop: cancel}
-	go func() {
-		defer close(pr.ch)
-		buf := make([]byte, eqDecoupleChunk)
-		for {
-			n, err := src.Read(buf)
-			if n > 0 {
-				chunk := make([]byte, n)
-				copy(chunk, buf[:n])
-				select {
-				case pr.ch <- chunk:
-				case <-ctx.Done():
-					return
-				}
-			}
-			if err != nil {
-				return
-			}
-		}
-	}()
-	return pr
-}
-
-func (pr *eqDecoupleReader) Read(p []byte) (int, error) {
-	n := 0
-	for n < len(p) {
-		if len(pr.tail) == 0 {
-			select {
-			case chunk, ok := <-pr.ch:
-				if !ok {
-					if n == 0 {
-						return 0, io.EOF
-					}
-					return n, nil
-				}
-				pr.tail = chunk
-			default:
-				// Decode goroutine is momentarily behind — return silence.
-				for i := n; i < len(p); i++ {
-					p[i] = 0
-				}
-				return len(p), nil
-			}
-		}
-		copied := copy(p[n:], pr.tail)
-		n += copied
-		pr.tail = pr.tail[copied:]
-	}
-	return n, nil
-}
-
-func (pr *eqDecoupleReader) close() { pr.stop() }
