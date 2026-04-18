@@ -114,7 +114,12 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 		defer sounds.ClearTrackBandLevels(track)
 		defer sounds.ClearTrackEQBandLevels(track)
 
-		player := otoCtx.NewPlayer(eq)
+		// Decouple decode/EQ from oto's read loop so a slow FFT pass or GC
+		// pause never starves the hardware buffer and causes a pop.
+		pre := newEQDecoupleReader(ctx, eq, 48000*4*2) // ~2 s silence-returning buffer at 48 kHz stereo
+		defer pre.close()
+
+		player := otoCtx.NewPlayer(pre)
 		if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
 			bss.SetBufferSize(48000 * 2 / 5 * 4) // ~400 ms at 48 kHz
 		}
@@ -1148,3 +1153,71 @@ func buildTrackDisplayTitle(artist, title string) string {
 		return artist
 	}
 }
+
+// eqDecoupleReader wraps an io.Reader and decodes it ahead of time in a
+// goroutine, buffering into a channel. oto reads from this reader; when the
+// channel is momentarily empty (decode/EQ/GC stall) it returns silence instead
+// of blocking, preventing hardware buffer underruns and audio pops.
+type eqDecoupleReader struct {
+	ch   chan []byte
+	tail []byte
+	stop context.CancelFunc
+}
+
+const eqDecoupleChunk = 4096
+
+func newEQDecoupleReader(ctx context.Context, src io.Reader, bufferBytes int) *eqDecoupleReader {
+	ctx, cancel := context.WithCancel(ctx)
+	nchunks := bufferBytes/eqDecoupleChunk + 1
+	pr := &eqDecoupleReader{ch: make(chan []byte, nchunks), stop: cancel}
+	go func() {
+		defer close(pr.ch)
+		buf := make([]byte, eqDecoupleChunk)
+		for {
+			n, err := src.Read(buf)
+			if n > 0 {
+				chunk := make([]byte, n)
+				copy(chunk, buf[:n])
+				select {
+				case pr.ch <- chunk:
+				case <-ctx.Done():
+					return
+				}
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	return pr
+}
+
+func (pr *eqDecoupleReader) Read(p []byte) (int, error) {
+	n := 0
+	for n < len(p) {
+		if len(pr.tail) == 0 {
+			select {
+			case chunk, ok := <-pr.ch:
+				if !ok {
+					if n == 0 {
+						return 0, io.EOF
+					}
+					return n, nil
+				}
+				pr.tail = chunk
+			default:
+				// Decode goroutine is momentarily behind — return silence.
+				for i := n; i < len(p); i++ {
+					p[i] = 0
+				}
+				return len(p), nil
+			}
+		}
+		copied := copy(p[n:], pr.tail)
+		n += copied
+		pr.tail = pr.tail[copied:]
+	}
+	return n, nil
+}
+
+func (pr *eqDecoupleReader) close() { pr.stop() }

@@ -381,7 +381,9 @@ func showPlayPopup(w fyne.Window, idx int) {
 		container.NewHBox(playBtn, cancelBtn),
 	)
 
-	body := container.NewVBox(bodyItems...)
+	minW := canvas.NewRectangle(color.Transparent)
+	minW.SetMinSize(fyne.NewSize(560, 0))
+	body := container.NewStack(minW, container.NewVBox(bodyItems...))
 	pop = showNitoPopup("TRACK "+itoa(idx+1), body, w)
 	w.Canvas().Focus(urlEntry)
 }
