@@ -116,12 +116,12 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 
 		// Decouple decode/EQ from oto's read loop so a slow FFT pass or GC
 		// pause never starves the hardware buffer and causes a pop.
-		pre := newEQDecoupleReader(ctx, eq, 48000*4*2) // ~2 s silence-returning buffer at 48 kHz stereo
+		pre := newEQDecoupleReader(ctx, eq, 48000*4*2*3) // ~3 s silence-returning buffer at 48 kHz stereo
 		defer pre.close()
 
 		player := otoCtx.NewPlayer(pre)
 		if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
-			bss.SetBufferSize(48000 * 2 / 5 * 4) // ~400 ms at 48 kHz
+			bss.SetBufferSize(48000 * 4 * 2 / 2) // ~500 ms at 48 kHz stereo
 		}
 		player.SetVolume(sounds.EffectivePlaybackVolume())
 		defer player.Close()
