@@ -99,27 +99,24 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 			return
 		}
 
-		// Resample before the EQ reader so the EQ reader is called with large
-		// buffers (by oto) rather than 4-byte frame reads (by the resampler).
-		// This keeps the band-level smoothing well-behaved.
+		// Buffer decoded PCM ahead of the EQ reader so file I/O and MP3 decode
+		// latency never starve oto. EQ runs synchronously at oto's read rate so
+		// EQ changes and band meters stay in sync with what the hardware plays.
 		var decSrc io.Reader = dec
 		eqRate := dec.SampleRate()
 		if dec.SampleRate() != 48000 {
 			decSrc = newResampler(bufio.NewReaderSize(dec, 65536), dec.SampleRate(), 48000)
 			eqRate = 48000
 		}
+		pre := newEQDecoupleReader(ctx, decSrc, 48000*4*2*3) // ~3 s PCM buffer at 48 kHz stereo
+		defer pre.close()
 
-		eq := newEQReader(decSrc, eqRate, track)
+		eq := newEQReader(pre, eqRate, track)
 		defer eq.Close()
 		defer sounds.ClearTrackBandLevels(track)
 		defer sounds.ClearTrackEQBandLevels(track)
 
-		// Decouple decode/EQ from oto's read loop so a slow FFT pass or GC
-		// pause never starves the hardware buffer and causes a pop.
-		pre := newEQDecoupleReader(ctx, eq, 48000*4*2*3) // ~3 s silence-returning buffer at 48 kHz stereo
-		defer pre.close()
-
-		player := otoCtx.NewPlayer(pre)
+		player := otoCtx.NewPlayer(eq)
 		if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
 			bss.SetBufferSize(48000 * 4 * 2 / 2) // ~500 ms at 48 kHz stereo
 		}
