@@ -469,8 +469,9 @@ func sendWsRPC(rpcName string, userID string, payload any) error {
 }
 
 // SendKeyVerifyChallenge sends a verification challenge to toUsername via the broker.
+// expiresAt is a unix timestamp the receiver uses to discard stale challenges.
 // The secret code is never transmitted — it is shared out-of-band by the caller.
-func SendKeyVerifyChallenge(toUsername, sessionID string) error {
+func SendKeyVerifyChallenge(toUsername, sessionID string, expiresAt int64) error {
 	s := CurrentSession()
 	if s == nil {
 		return errors.New("not connected")
@@ -479,6 +480,7 @@ func SendKeyVerifyChallenge(toUsername, sessionID string) error {
 		SessionID:    sessionID,
 		FromUsername: s.UserID,
 		ToUsername:   toUsername,
+		ExpiresAt:    expiresAt,
 	})
 }
 
@@ -496,17 +498,20 @@ func SendKeyVerifyResponse(toUsername, sessionID, pubKeyPEM, sig string) error {
 	})
 }
 
-// WaitForKeyVerifyResponse blocks until A receives B's signed response for the given
-// session, or until timeout elapses.
-func WaitForKeyVerifyResponse(sessionID string, timeout time.Duration) (wstypes.KeyVerifyResponsePayload, error) {
+// WaitForKeyVerifyResponse blocks until A receives B's signed response for the
+// given session or until ctx is cancelled/deadline exceeded.
+func WaitForKeyVerifyResponse(ctx context.Context, sessionID string) (wstypes.KeyVerifyResponsePayload, error) {
 	ch := make(chan wstypes.KeyVerifyResponsePayload, 1)
 	pendingVerifications.Store(sessionID, ch)
 	defer pendingVerifications.Delete(sessionID)
 	select {
 	case resp := <-ch:
 		return resp, nil
-	case <-time.After(timeout):
-		return wstypes.KeyVerifyResponsePayload{}, errors.New("verification timed out")
+	case <-ctx.Done():
+		if ctx.Err() == context.DeadlineExceeded {
+			return wstypes.KeyVerifyResponsePayload{}, errors.New("verification timed out")
+		}
+		return wstypes.KeyVerifyResponsePayload{}, errors.New("verification cancelled")
 	}
 }
 

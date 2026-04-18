@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"image/color"
 	"strings"
 	"time"
@@ -700,17 +701,11 @@ func showTrustPopup(username string, w fyne.Window, existing *keys.TrustedKey) {
 	var title, desc, continueLabel string
 	if existing != nil {
 		title = "UNVERIFIED KEY — " + strings.ToUpper(username)
-		desc = "A key for " + username + " is on disk but was never verified.\n" +
-			"A compromised or malicious broker could have substituted a fake key,\n" +
-			"gaining access to all encrypted messages and room keys sent to " + username + ".\n\n" +
-			"Verify out-of-band to rule this out."
+		desc = "A key for " + username + " is on disk but was never verified. A compromised or malicious broker could have substituted a fake key, gaining access to all encrypted messages and room keys sent to " + username + ". Verify out-of-band to rule this out."
 		continueLabel = "Continue unverified"
 	} else {
 		title = "UNKNOWN KEY — " + strings.ToUpper(username)
-		desc = "No trusted key found for " + username + ".\n" +
-			"The broker will provide one, but without verification you cannot confirm\n" +
-			"it belongs to the real " + username + ". A malicious broker could supply\n" +
-			"its own key and silently read everything you encrypt for them."
+		desc = "No trusted key found for " + username + ". The broker will provide one if the user exists, but without verification you cannot confirm it belongs to the real " + username + ". A malicious broker could supply its own key and silently read everything you encrypt for them."
 		continueLabel = "Trust without verification"
 	}
 
@@ -774,7 +769,7 @@ func showTrustPopup(username string, w fyne.Window, existing *keys.TrustedKey) {
 	}
 
 	body := container.NewVBox(
-		monoTxt(desc, colAmber), vspace(8),
+		popupDescLabel(desc), vspace(8),
 		continueBtn, verifyBtn, cancelBtn,
 	)
 	pop = showNitoPopup(title, body, w)
@@ -789,10 +784,15 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 		return
 	}
 
+	const verifyTTL = 5 * time.Minute
+	expiresAt := time.Now().Add(verifyTTL)
+	ctx, cancel := context.WithDeadline(context.Background(), expiresAt)
+
 	var pop *widget.PopUp
 	cancelBtn := newBtn("Cancel", nil)
 	cancelBtn.Importance = widget.LowImportance
 	cancelBtn.OnTapped = func() {
+		cancel()
 		if pop != nil {
 			pop.Hide()
 		}
@@ -807,7 +807,8 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 	pop = showNitoPopup("VERIFY "+strings.ToUpper(username), body, w)
 
 	go func() {
-		if err := connection.SendKeyVerifyChallenge(username, sessionID); err != nil {
+		defer cancel()
+		if err := connection.SendKeyVerifyChallenge(username, sessionID, expiresAt.Unix()); err != nil {
 			fyne.Do(func() {
 				if pop != nil {
 					pop.Hide()
@@ -816,7 +817,7 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 			})
 			return
 		}
-		resp, err := connection.WaitForKeyVerifyResponse(sessionID, 5*time.Minute)
+		resp, err := connection.WaitForKeyVerifyResponse(ctx, sessionID)
 		if err != nil {
 			fyne.Do(func() {
 				if pop != nil {
@@ -847,54 +848,4 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 		})
 		onSuccess(resp.PublicKeyPEM)
 	}()
-}
-
-// ShowVerificationRequestPopup is shown when this client receives a key verify challenge.
-// Called from the backend loop on the Fyne thread.
-func ShowVerificationRequestPopup(fromUsername, sessionID string, w fyne.Window) {
-	var pop *widget.PopUp
-	codeEntry := widget.NewEntry()
-	codeEntry.SetPlaceHolder("6-digit code")
-
-	submitBtn := newBtn("Submit", nil)
-	dismissBtn := newBtn("Dismiss", nil)
-	dismissBtn.Importance = widget.LowImportance
-
-	submitBtn.OnTapped = func() {
-		code := strings.TrimSpace(codeEntry.Text)
-		if code == "" {
-			return
-		}
-		if pop != nil {
-			pop.Hide()
-		}
-		myUsername := connection.GetSessionUserID()
-		go func() {
-			pubKeyPEM, sig, err := keys.SignVerificationResponse(code, sessionID, myUsername)
-			if err != nil {
-				fyne.Do(func() { showToast(w, "sign verification: "+err.Error(), toastError) })
-				return
-			}
-			if err := connection.SendKeyVerifyResponse(fromUsername, sessionID, pubKeyPEM, sig); err != nil {
-				fyne.Do(func() { showToast(w, "send verification: "+err.Error(), toastError) })
-				return
-			}
-			fyne.Do(func() { showToast(w, "verification response sent", toastInfo) })
-		}()
-	}
-
-	dismissBtn.OnTapped = func() {
-		if pop != nil {
-			pop.Hide()
-		}
-	}
-
-	body := container.NewVBox(
-		monoTxt(fromUsername+" wants to verify your key.", liveDimMid),
-		monoTxt("Ask them for their 6-digit code:", liveDimMid), vspace(6),
-		codeEntry, vspace(6),
-		container.NewHBox(submitBtn, dismissBtn),
-	)
-	pop = showNitoPopup("KEY VERIFICATION REQUEST", body, w)
-	w.Canvas().Focus(codeEntry)
 }

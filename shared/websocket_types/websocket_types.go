@@ -151,10 +151,12 @@ type DirectMessagePayload struct {
 
 // KeyVerifyChallengePayload is sent by A to B to start a verification session.
 // The session ID is routed through the broker; the secret code is shared out-of-band.
+// ExpiresAt is a unix timestamp; B must ignore the challenge if it has already passed.
 type KeyVerifyChallengePayload struct {
 	SessionID    string `json:"sessionId"`
 	FromUsername string `json:"fromUsername"`
 	ToUsername   string `json:"toUsername"`
+	ExpiresAt    int64  `json:"expiresAt"`
 }
 
 // KeyVerifyResponsePayload is sent by B back to A as proof of key ownership.

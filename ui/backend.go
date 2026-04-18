@@ -88,12 +88,12 @@ func startBackend(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 	go dmReceiveLoop(cp, w)
 	go notifLoop(cp, sp, w)
 	go roomPollLoop(cp, sp)
-	go keyVerifyChallengeLoop(w)
+	go keyVerifyChallengeLoop(sp, w)
 }
 
-// keyVerifyChallengeLoop forwards incoming key-verification challenges to the UI.
-// Runs until the program exits; restarts automatically on reconnect.
-func keyVerifyChallengeLoop(w fyne.Window) {
+// keyVerifyChallengeLoop forwards incoming key-verification challenges to the
+// REQUESTS tab and shows a toast. Runs until the program exits.
+func keyVerifyChallengeLoop(sp *StatusPanel, w fyne.Window) {
 	for {
 		ch := connection.KeyVerifyChallengeChan()
 		if ch == nil {
@@ -108,8 +108,17 @@ func keyVerifyChallengeLoop(w fyne.Window) {
 			}
 			fromUsername := payload.FromUsername
 			sessionID := payload.SessionID
+			var expiresAt time.Time
+			if payload.ExpiresAt > 0 {
+				expiresAt = time.Unix(payload.ExpiresAt, 0)
+				if time.Now().After(expiresAt) {
+					clientlog.Info("keyVerifyChallengeLoop: dropping stale challenge from " + fromUsername)
+					continue
+				}
+			}
 			fyne.Do(func() {
-				ShowVerificationRequestPopup(fromUsername, sessionID, w)
+				sp.AddVerifyRequest(fromUsername, sessionID, expiresAt)
+				showToast(w, fromUsername+" wants to verify your key — see REQUESTS tab", toastInfo)
 			})
 		}
 		time.Sleep(500 * time.Millisecond)

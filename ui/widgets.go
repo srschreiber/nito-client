@@ -583,8 +583,38 @@ func (c *CollapseSection) Refresh() {
 
 // ── Popup helper ──────────────────────────────────────────────────────────────
 
+// tappableCard wraps any CanvasObject and implements fyne.Tappable with a no-op
+// so that clicks on non-interactive areas of a popup are consumed rather than
+// falling through to the PopUp's own Tapped handler (which would dismiss it).
+type tappableCard struct {
+	widget.BaseWidget
+	content fyne.CanvasObject
+}
+
+func newTappableCard(content fyne.CanvasObject) *tappableCard {
+	c := &tappableCard{content: content}
+	c.ExtendBaseWidget(c)
+	return c
+}
+
+func (c *tappableCard) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(c.content)
+}
+
+func (c *tappableCard) Tapped(*fyne.PointEvent) {} // consume; keep popup open
+
+// popupDescLabel returns a word-wrapping monospace label suitable for multi-line
+// popup descriptions. Use this instead of monoTxt for any text containing newlines
+// or long prose — canvas.Text does not wrap and renders \n as a replacement char.
+func popupDescLabel(s string) *widget.Label {
+	lbl := widget.NewLabel(s)
+	lbl.Wrapping = fyne.TextWrapWord
+	lbl.TextStyle = fyne.TextStyle{Monospace: true}
+	return lbl
+}
+
 // showNitoPopup shows a styled floating popup that auto-dismisses when the user
-// clicks outside it (uses widget.PopUp, not a modal dialog).
+// clicks outside it. Clicks inside are consumed so the popup stays open.
 func showNitoPopup(title string, body fyne.CanvasObject, w fyne.Window) *widget.PopUp {
 	bg := canvas.NewRectangle(liveSurface)
 	bg.CornerRadius = 16
@@ -597,7 +627,7 @@ func showNitoPopup(title string, body fyne.CanvasObject, w fyne.Window) *widget.
 		body,
 	)
 	inner := container.NewPadded(container.NewPadded(container.NewPadded(content)))
-	card := container.NewStack(bg, inner)
+	card := newTappableCard(container.NewStack(bg, inner))
 
 	pop := widget.NewPopUp(card, w.Canvas())
 	pop.Show()

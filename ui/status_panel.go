@@ -9,6 +9,7 @@ import (
 
 	"github.com/srschreiber/nito-client/engine/commands"
 	"github.com/srschreiber/nito-client/engine/connection"
+	"github.com/srschreiber/nito-client/engine/keys"
 	"github.com/srschreiber/nito-client/engine/sounds"
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	"github.com/srschreiber/nito-client/ui/clientlog"
@@ -404,18 +405,28 @@ func buildStatusTab() (fyne.CanvasObject, func(connected bool, brokerURL, userID
 	return area, update
 }
 
-// ── Invites tab ───────────────────────────────────────────────────────────────
+// ── Requests tab ─────────────────────────────────────────────────────────────
 
-// buildInvitesTab builds the INVITES tab. Returns the tab canvas object and a
-// list box container that can be updated via SetInvites.
-func buildInvitesTab(w fyne.Window) (fyne.CanvasObject, *fyne.Container) {
-	listBox := container.NewVBox(dimTxt("no pending invites"))
+// buildRequestsTab builds the REQUESTS tab. Returns the tab canvas object and
+// two list-box containers: one for room invites, one for key-verify requests.
+func buildRequestsTab(w fyne.Window) (fyne.CanvasObject, *fyne.Container, *fyne.Container) {
+	inviteListBox := container.NewVBox()
+	verifyListBox := container.NewVBox()
+
+	listBox := container.NewVBox(
+		monoTxt("ROOM INVITES", liveAccent), vspace(2),
+		inviteListBox,
+		vspace(8),
+		monoTxt("VERIFICATION REQUESTS", liveAccent), vspace(2),
+		verifyListBox,
+	)
+
 	area := container.NewBorder(
 		container.NewVBox(vspace(4), hline()),
 		nil, nil, nil,
 		container.NewVScroll(listBox),
 	)
-	return area, listBox
+	return area, inviteListBox, verifyListBox
 }
 
 // ── StatusPanel ───────────────────────────────────────────────────────────────
@@ -427,6 +438,7 @@ type StatusPanel struct {
 	tabs          []fyne.CanvasObject
 	setStatus     func(connected bool, brokerURL, userID string, latencyMs int64)
 	inviteListBox *fyne.Container
+	verifyListBox *fyne.Container
 	w             fyne.Window
 	cp            *ChatPanel
 }
@@ -444,7 +456,7 @@ func (sp *StatusPanel) UpdateStatus(connected bool, brokerURL, userID string, la
 	fyne.Do(func() { sp.setStatus(connected, brokerURL, userID, latencyMs) })
 }
 
-// SetInvites rebuilds the INVITES tab rows. Must be called on the Fyne thread.
+// SetInvites rebuilds the room-invite rows in the REQUESTS tab. Must be called on the Fyne thread.
 func (sp *StatusPanel) SetInvites(invites []apitypes.PendingInvite) {
 	if sp.inviteListBox == nil {
 		return
@@ -466,7 +478,6 @@ func (sp *StatusPanel) SetInvites(invites []apitypes.PendingInvite) {
 					}
 					clientlog.Info("accepted invite, joined " + inv.RoomName)
 					showToast(sp.w, "joined "+inv.RoomName, toastSuccess)
-					// Refresh both room list and invite list immediately.
 					go func() {
 						if sp.cp != nil {
 							if rooms, e := connection.ListRooms(); e == nil {
@@ -491,22 +502,112 @@ func (sp *StatusPanel) SetInvites(invites []apitypes.PendingInvite) {
 	sp.inviteListBox.Refresh()
 }
 
+// AddVerifyRequest appends a key-verification request row to the REQUESTS tab.
+// The row auto-removes itself when expiresAt passes; if expiresAt is already in
+// the past, the request is silently dropped. Must be called on the Fyne thread.
+func (sp *StatusPanel) AddVerifyRequest(fromUsername, sessionID string, expiresAt time.Time) {
+	if sp.verifyListBox == nil {
+		return
+	}
+	if !expiresAt.IsZero() && time.Now().After(expiresAt) {
+		return
+	}
+
+	codeEntry := widget.NewEntry()
+	codeEntry.SetPlaceHolder("6-digit code")
+
+	var row *fyne.Container
+
+	submitBtn := newBtn("Submit", nil)
+	submitBtn.Importance = widget.LowImportance
+	submitBtn.OnTapped = func() {
+		code := strings.TrimSpace(codeEntry.Text)
+		if code == "" {
+			return
+		}
+		if !expiresAt.IsZero() && time.Now().After(expiresAt) {
+			showToast(sp.w, "verification request expired", toastWarn)
+			if row != nil {
+				sp.removeVerifyRow(row)
+			}
+			return
+		}
+		myUsername := connection.GetSessionUserID()
+		go func() {
+			pubKeyPEM, sig, err := keys.SignVerificationResponse(code, sessionID, myUsername)
+			if err != nil {
+				fyne.Do(func() { showToast(sp.w, "sign verification: "+err.Error(), toastError) })
+				return
+			}
+			if err := connection.SendKeyVerifyResponse(fromUsername, sessionID, pubKeyPEM, sig); err != nil {
+				fyne.Do(func() { showToast(sp.w, "send verification: "+err.Error(), toastError) })
+				return
+			}
+			fyne.Do(func() {
+				showToast(sp.w, "verification response sent to "+fromUsername, toastInfo)
+				if row != nil {
+					sp.removeVerifyRow(row)
+				}
+			})
+		}()
+	}
+
+	dismissBtn := newBtn("Dismiss", nil)
+	dismissBtn.Importance = widget.LowImportance
+	dismissBtn.OnTapped = func() {
+		if row != nil {
+			sp.removeVerifyRow(row)
+		}
+	}
+
+	row = container.NewVBox(
+		container.NewHBox(monoTxt("◆ ", liveAccent), monoTxt(fromUsername+" wants to verify your key", colText)),
+		container.NewHBox(codeEntry, submitBtn, dismissBtn),
+		vspace(4),
+	)
+
+	sp.verifyListBox.Add(row)
+	sp.verifyListBox.Refresh()
+
+	if !expiresAt.IsZero() {
+		time.AfterFunc(time.Until(expiresAt), func() {
+			fyne.Do(func() {
+				if row != nil {
+					sp.removeVerifyRow(row)
+				}
+			})
+		})
+	}
+}
+
+func (sp *StatusPanel) removeVerifyRow(row *fyne.Container) {
+	objs := sp.verifyListBox.Objects
+	for i, o := range objs {
+		if o == row {
+			sp.verifyListBox.Objects = append(objs[:i], objs[i+1:]...)
+			sp.verifyListBox.Refresh()
+			return
+		}
+	}
+}
+
 func NewStatusPanel(w fyne.Window) *StatusPanel {
 	sp := &StatusPanel{w: w}
 
 	statusArea, setStatus := buildStatusTab()
 	sp.setStatus = setStatus
 
-	invitesArea, inviteListBox := buildInvitesTab(w)
+	requestsArea, inviteListBox, verifyListBox := buildRequestsTab(w)
 	sp.inviteListBox = inviteListBox
+	sp.verifyListBox = verifyListBox
 
 	tracksArea, tracksTick := buildTracksTab(w)
 
-	tabNames := []string{"STATUS", "TRACKS", "INVITES", "LOGS"}
+	tabNames := []string{"STATUS", "TRACKS", "REQUESTS", "LOGS"}
 	tabs := []fyne.CanvasObject{
 		statusArea,
 		tracksArea,
-		invitesArea,
+		requestsArea,
 		buildLogsTab(),
 	}
 
