@@ -15,6 +15,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/srschreiber/nito-client/engine/components"
 	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 // ── SpectrumWidget ────────────────────────────────────────────────────────────
@@ -211,7 +212,7 @@ func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 				showToast(w, "save preset: "+err.Error(), toastError)
 				return
 			}
-			nitoLog("saved preset: " + name)
+			clientlog.Info("saved preset: " + name)
 			presetSel.Options = allPresetNames()
 			presetSel.Refresh()
 			showToast(w, "saved preset: "+name, toastSuccess)

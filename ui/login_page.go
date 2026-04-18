@@ -16,6 +16,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/srschreiber/nito-client/engine/commands"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 // normalizeBrokerURL ensures public hosts always use https; local/private hosts
@@ -128,7 +129,7 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 					if !isLoginCopy {
 						action = "register"
 					}
-					nitoLog(action + " failed for " + username + ": " + err.Error())
+					clientlog.Error(action + " failed for " + username + ": " + err.Error())
 					errLabel.Text = err.Error()
 					errLabel.Show()
 					errLabel.Refresh()
@@ -138,7 +139,7 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 				if !isLoginCopy {
 					action = "registered"
 				}
-				nitoLog(action + " as " + username + " @ " + broker)
+				clientlog.Info(action + " as " + username + " @ " + broker)
 				if rememberCheck.Checked {
 					saveLoginPrefs(loginPrefs{Broker: broker, Username: username})
 				} else {

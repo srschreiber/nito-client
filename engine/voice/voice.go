@@ -40,9 +40,9 @@ import (
 	"github.com/pion/mediadevices/pkg/wave"
 	rtppkg "github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
-	"github.com/srschreiber/nito-client/engine/clientlog"
 	"github.com/srschreiber/nito-client/engine/connection"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -938,6 +938,10 @@ type voiceSession struct {
 	iceRestartCh chan string // receives the SDP answer after an ICE restart
 	restarting   atomic.Bool
 	onTrackCh    chan struct{} // closed when the first remote track arrives
+
+	captureMu     sync.Mutex
+	captureCancel context.CancelFunc // cancels only the capture goroutine; child of ctx
+	captureDone   chan struct{}      // closed when the current captureAndSend goroutine exits
 }
 
 // GetOtoCtx returns the shared oto audio context, initializing it on first call.
@@ -1408,7 +1412,16 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		return fmt.Errorf("voice join: timeout waiting for broker answer")
 	}
 
-	go captureAndSend(ctx, aead, sendTrack, roomID == SelfRoomID, apm, de)
+	captureCtx, captureCancel := context.WithCancel(ctx)
+	captureDone := make(chan struct{})
+	sess.captureMu.Lock()
+	sess.captureCancel = captureCancel
+	sess.captureDone = captureDone
+	sess.captureMu.Unlock()
+	go func() {
+		captureAndSend(captureCtx, aead, sendTrack, roomID == SelfRoomID, apm, de)
+		close(captureDone)
+	}()
 	return nil
 }
 
@@ -1472,6 +1485,32 @@ func Leave(roomID string) error {
 	}
 	data, _ := json.Marshal(wsMsg)
 	return connection.Send(data)
+}
+
+// RestartCapture cancels the running microphone capture goroutine and starts a
+// fresh one using the currently selected input device. No-op when no voice
+// session is active. Call this after SetInputDevice to apply the new device
+// immediately without tearing down the whole call.
+func RestartCapture() {
+	mu.Lock()
+	sess := activeSession
+	mu.Unlock()
+	if sess == nil {
+		clientlog.Info("RestartCapture: no active session, skipping")
+		return
+	}
+	clientlog.Info("RestartCapture: restarting capture for room=%s device=%q", sess.roomID, SelectedInputDevice())
+	sess.captureMu.Lock()
+	old := sess.captureCancel
+	captureCtx, newCancel := context.WithCancel(sess.ctx)
+	sess.captureCancel = newCancel
+	sess.captureMu.Unlock()
+	if old != nil {
+		old()
+	}
+	// Give the old goroutine one audio-chunk duration to exit and release the device.
+	time.Sleep(50 * time.Millisecond)
+	go captureAndSend(captureCtx, sess.aead, sess.sendTrack, sess.roomID == SelfRoomID, sess.apm, sess.delayEst)
 }
 
 // handleIncoming is the voice message handler registered with connection.SetVoiceMessageHandler.

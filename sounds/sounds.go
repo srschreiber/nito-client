@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/go-mp3"
-	"github.com/srschreiber/nito-client/engine/clientlog"
 	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 //go:embed enter.mp3
@@ -22,6 +22,9 @@ var boopMP3 []byte
 
 //go:embed exit.mp3
 var exitMP3 []byte
+
+//go:embed message_received.mp3
+var messageReceived []byte
 
 func playSound(name string, data []byte) {
 	go func() {
@@ -50,6 +53,8 @@ func PlayEnter() { playSound("enter.mp3", enterMP3) }
 
 // PlayExit plays the room-exit notification sound. Non-blocking.
 func PlayExit() { playSound("exit.mp3", exitMP3) }
+
+func PlayMessageReceived() { playSound("message_received.mp3", messageReceived) }
 
 // PlayPreview plays the entry sound at an explicit volume [0,1]. Used by the
 // Audio Settings sliders so the preview always reflects the slider being moved,

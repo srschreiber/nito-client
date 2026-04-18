@@ -6,11 +6,11 @@ package main
 import (
 	"strings"
 	"sync"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 var (
@@ -19,17 +19,22 @@ var (
 	logRefresh func()
 )
 
+func initLogging() {
+	nitoLogReceive := func(msg clientlog.Msg) {
+		nitoLog(msg.String())
+	}
+	clientlog.Init(nitoLogReceive)
+}
+
 // nitoLog appends a timestamped line to the in-app log and refreshes the LOGS
 // tab if it is currently visible.  Safe to call from any goroutine.
 func nitoLog(msg string) {
-	ts := time.Now().Format("15:04:05")
-	line := ts + "  " + msg
-
 	logMu.Lock()
-	logLines = append(logLines, line)
+	logLines = append(logLines, msg)
 	if len(logLines) > 1000 {
 		logLines = logLines[len(logLines)-1000:]
 	}
+
 	logMu.Unlock()
 
 	if logRefresh != nil {
@@ -41,7 +46,7 @@ func nitoLog(msg string) {
 // so that nitoLog calls update the view live.
 func buildLogsTab() fyne.CanvasObject {
 	entry := widget.NewMultiLineEntry()
-	entry.Wrapping = fyne.TextWrapOff
+	entry.Wrapping = fyne.TextWrapWord
 	entry.TextStyle = fyne.TextStyle{Monospace: true}
 
 	refresh := func() {

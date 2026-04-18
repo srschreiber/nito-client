@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/srschreiber/nito-client/engine/clientlog"
 	"github.com/srschreiber/nito-client/engine/connection"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 func sendPresence(rpcName string, payload any) {

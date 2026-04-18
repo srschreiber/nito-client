@@ -41,16 +41,20 @@ type Msg struct {
 	At    time.Time
 }
 
+func (m Msg) String() string {
+	return fmt.Sprintf("%s [%s] %s", m.At.Format("15:04:05"), m.Level, m.Text)
+}
+
 var (
 	mu      sync.RWMutex
-	sender  func(any)
+	sender  func(msg Msg)
 	logFile *os.File
 )
 
 // Init registers the sender that the logger will use to forward entries to the TUI.
 // It also opens logs.txt in the current working directory for append-only writing.
-// Call this once from main after the bubbletea program is created, passing p.Send.
-func Init(s func(any)) {
+// Call this once from main after the program is created
+func Init(s func(msg Msg)) {
 	mu.Lock()
 	sender = s
 	f, err := os.OpenFile("logs.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
@@ -66,12 +70,12 @@ func send(level Level, text string) {
 	s := sender
 	f := logFile
 	mu.RUnlock()
+	m := Msg{Level: level, Text: text, At: now}
 	if s != nil {
-		s(Msg{Level: level, Text: text, At: now})
+		s(m)
 	}
 	if f != nil {
-		line := fmt.Sprintf("%s [%s] %s\n", now.Format("15:04:05"), level, text)
-		_, _ = f.WriteString(line)
+		_, _ = f.WriteString(m.String() + "\n")
 	}
 }
 

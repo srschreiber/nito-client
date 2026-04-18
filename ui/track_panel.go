@@ -18,6 +18,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/srschreiber/nito-client/engine/components"
 	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 // ── Package-level track cancel management ─────────────────────────────────────
@@ -285,7 +286,7 @@ func newTrackRowBundle(idx int, w fyne.Window) *trackRowBundle {
 	statusLabel.Importance = widget.MediumImportance
 	stopBtn := newCircleStop(func() {
 		stopTrack(idx)
-		nitoLog("stopped track " + itoa(idx))
+		clientlog.Info("stopped track " + itoa(idx))
 	})
 
 	noteIcon := txt("♪ ", liveAccent, 11, false, true)
@@ -354,7 +355,7 @@ func showPlayPopup(w fyne.Window, idx int) {
 			return
 		}
 		startTrackLocal(idx, target)
-		nitoLog("play track " + itoa(idx) + ": " + target)
+		clientlog.Info("play track " + itoa(idx) + ": " + target)
 	}
 	cancelBtn.OnTapped = func() {
 		if pop != nil {
@@ -408,7 +409,7 @@ func showAddAliasPopup(w fyne.Window, onAdded func()) {
 			showToast(w, "save alias: "+err.Error(), toastError)
 			return
 		}
-		nitoLog("saved alias: " + name)
+		clientlog.Info("saved alias: " + name)
 		showToast(w, "alias saved: "+name, toastSuccess)
 		if aliasRefreshHook != nil {
 			aliasRefreshHook()
@@ -461,7 +462,7 @@ func showAddAliasPopupPrefilled(w fyne.Window, initName, initURL string, onAdded
 			showToast(w, "save alias: "+err.Error(), toastError)
 			return
 		}
-		nitoLog("saved alias: " + name)
+		clientlog.Info("saved alias: " + name)
 		showToast(w, "alias saved: "+name, toastSuccess)
 		if aliasRefreshHook != nil {
 			aliasRefreshHook()
@@ -518,7 +519,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 				if err := voice.DeleteAudioAlias(n); err != nil {
 					showToast(w, "remove alias: "+err.Error(), toastError)
 				} else {
-					nitoLog("deleted alias: " + n)
+					clientlog.Info("deleted alias: " + n)
 					fyne.Do(rebuildAliases)
 				}
 			})
@@ -527,7 +528,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 			playBtn := newPillPlayBtn("♪", func() {
 				showToast(w, "playing alias: "+n, toastInfo)
 				startTrackLocal(0, u)
-				nitoLog("alias play: " + n)
+				clientlog.Info("alias play: " + n)
 			})
 
 			copyBtn := newBtn("copy", func() {
@@ -569,7 +570,7 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 	// ── Stop All footer ───────────────────────────────────────────────────────
 	stopAllBtn := newBtn("■  Stop All", func() {
 		stopAllTracks()
-		nitoLog("stopped all tracks")
+		clientlog.Info("stopped all tracks")
 	})
 	stopAllBtn.Importance = widget.LowImportance
 	_, footerCard := panelStack(false, stopAllBtn)

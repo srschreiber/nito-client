@@ -6,7 +6,6 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"log"
 	"time"
 
 	"github.com/srschreiber/nito-client/engine/connection"
@@ -14,6 +13,7 @@ import (
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
 	"github.com/srschreiber/nito-client/sounds"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 
 	"fyne.io/fyne/v2"
 )
@@ -102,25 +102,25 @@ func messageReceiveLoop(cp *ChatPanel, w fyne.Window) {
 		for data := range ch {
 			var payload wstypes.RoomMessagePayload
 			if err := json.Unmarshal(data, &payload); err != nil {
-				log.Printf("messageReceiveLoop: unmarshal: %v", err)
+				clientlog.Error("messageReceiveLoop: unmarshal: %v", err)
 				continue
 			}
 
 			chain, err := connection.GetOrCreateRoomKeyChain()
 			if err != nil {
-				log.Printf("messageReceiveLoop: get key chain: %v", err)
+				clientlog.Error("messageReceiveLoop: get key chain: %v", err)
 				continue
 			}
 
 			ct, err := base64.StdEncoding.DecodeString(payload.EncryptedText)
 			if err != nil {
-				log.Printf("messageReceiveLoop: decode ciphertext: %v", err)
+				clientlog.Error("messageReceiveLoop: decode ciphertext: %v", err)
 				continue
 			}
 
 			plaintext, err := chain.DecryptMessageWithRoomKey(ct, payload.FromUsername, &payload.SenderMessageCount)
 			if err != nil {
-				log.Printf("messageReceiveLoop: decrypt: %v", err)
+				clientlog.Error("messageReceiveLoop: decrypt: %v", err)
 				continue
 			}
 
@@ -136,7 +136,12 @@ func messageReceiveLoop(cp *ChatPanel, w fyne.Window) {
 				from:      payload.FromUsername,
 				body:      string(plaintext),
 			}
-			fyne.Do(func() { cp.AppendMessage(m) })
+
+			appendAndPlay := func() {
+				cp.AppendMessage(m)
+				sounds.PlayMessageReceived()
+			}
+			fyne.Do(appendAndPlay)
 		}
 		// Channel was closed; brief pause before re-checking.
 		time.Sleep(500 * time.Millisecond)
@@ -159,7 +164,7 @@ func dmReceiveLoop(cp *ChatPanel, w fyne.Window) {
 		for data := range ch {
 			var dm decryptedDM
 			if err := json.Unmarshal(data, &dm); err != nil {
-				log.Printf("dmReceiveLoop: unmarshal: %v", err)
+				clientlog.Error("dmReceiveLoop: unmarshal: %v", err)
 				continue
 			}
 			m := chatMessage{
@@ -190,7 +195,7 @@ func notifLoop(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 			}
 			switch notif.Type {
 			case wstypes.NotificationTypeUserAddedToRoom:
-				nitoLog("received room invite")
+				clientlog.Info("received room invite")
 				fyne.Do(func() {
 					showToast(w, "you were invited to a room", toastInfo)
 				})
@@ -204,7 +209,7 @@ func notifLoop(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 
 			case wstypes.NotificationTypeUserJoinedRoom:
 				username := notif.Username
-				nitoLog(username + " joined the room")
+				clientlog.Info(username + " joined the room")
 				sounds.PlayEnter()
 				fyne.Do(func() {
 					if username != "" {
@@ -225,7 +230,7 @@ func notifLoop(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 
 			case wstypes.NotificationTypeUserLeftRoom:
 				username := notif.Username
-				nitoLog(username + " left the room")
+				clientlog.Info(username + " left the room")
 				sounds.PlayExit()
 				fyne.Do(func() {
 					if username != "" {
@@ -246,7 +251,7 @@ func notifLoop(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 
 			case wstypes.NotificationTypeUserJoinedVoiceChat:
 				username := notif.Username
-				nitoLog(username + " joined voice chat")
+				clientlog.Info(username + " joined voice chat")
 				sounds.PlayEnter()
 				fyne.Do(func() {
 					if username != "" {
@@ -256,7 +261,7 @@ func notifLoop(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 
 			case wstypes.NotificationTypeUserLeftVoiceChat:
 				username := notif.Username
-				nitoLog(username + " left voice chat")
+				clientlog.Info(username + " left voice chat")
 				sounds.PlayExit()
 				fyne.Do(func() {
 					if username != "" {
@@ -265,7 +270,7 @@ func notifLoop(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 				})
 
 			case wstypes.NotificationTypeRoomKeyRotated:
-				nitoLog("room key rotated")
+				clientlog.Warn("room key rotated")
 				fyne.Do(func() {
 					showToast(w, "room key rotated", toastInfo)
 				})
@@ -274,7 +279,7 @@ func notifLoop(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 				// Broker echoes this to all room members (including sender) so
 				// everyone hears the broadcast at the same time.
 				if payload, ok := decodeSoundClipPayload(notif); ok {
-					nitoLog("soundclip from " + payload.FromUsername + ": " + payload.AudioURL)
+					clientlog.Info("soundclip from " + payload.FromUsername + ": " + payload.AudioURL)
 					track := payload.Track
 					audioURL := payload.AudioURL
 					go startTrackLocal(track, audioURL)

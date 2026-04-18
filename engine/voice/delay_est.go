@@ -20,7 +20,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/srschreiber/nito-client/engine/clientlog"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 const (

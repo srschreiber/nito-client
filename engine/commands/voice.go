@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/srschreiber/nito-client/engine/clientlog"
 	"github.com/srschreiber/nito-client/engine/connection"
 	"github.com/srschreiber/nito-client/engine/voice"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 func voiceJoinCmd() (string, error) {

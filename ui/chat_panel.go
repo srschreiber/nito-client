@@ -12,6 +12,7 @@ import (
 	"github.com/srschreiber/nito-client/engine/connection"
 	"github.com/srschreiber/nito-client/engine/voice"
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -207,11 +208,11 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 				_, err := commands.CreateRoomDirect(name)
 				fyne.Do(func() {
 					if err != nil {
-						nitoLog("create room failed: " + err.Error())
+						clientlog.Error("create room failed: " + err.Error())
 						showToast(w, "create room: "+err.Error(), toastError)
 						return
 					}
-					nitoLog("created room: " + name)
+					clientlog.Info("created room: " + name)
 					showToast(w, "room created: "+name, toastSuccess)
 					go func() {
 						rooms, err := connection.ListRooms()
@@ -261,11 +262,11 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 				_, err := commands.InviteUserDirect(username)
 				fyne.Do(func() {
 					if err != nil {
-						nitoLog("invite failed: " + err.Error())
+						clientlog.Error("invite failed: " + err.Error())
 						showToast(w, "invite: "+err.Error(), toastError)
 						return
 					}
-					nitoLog("invited " + username + " to " + cp.currentRoomName)
+					clientlog.Info("invited " + username + " to " + cp.currentRoomName)
 					showToast(w, "invited "+username, toastSuccess)
 				})
 			}()
@@ -296,7 +297,7 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 				if err != nil {
 					fyne.Do(func() { showToast(w, "voice: "+err.Error(), toastError) })
 				} else {
-					nitoLog("left voice chat")
+					clientlog.Info("left voice chat")
 				}
 			}()
 		} else if !voice.IsConnecting() {
@@ -304,7 +305,7 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 				if err := commands.VoiceJoinDirect(); err != nil {
 					fyne.Do(func() { showToast(w, "voice: "+err.Error(), toastError) })
 				} else {
-					nitoLog("joined voice chat")
+					clientlog.Info("joined voice chat")
 				}
 			}()
 		}
@@ -420,13 +421,13 @@ func (cp *ChatPanel) selectRoom(roomID, roomName string) {
 		}
 
 		if err := connection.SetSessionRoom(roomID); err != nil {
-			nitoLog("join room failed: " + err.Error())
+			clientlog.Error("join room failed: " + err.Error())
 			fyne.Do(func() { showToast(cp.w, "room: "+err.Error(), toastError) })
 			return
 		}
 		// Notify broker we are now viewing this room so it routes messages here.
 		commands.SendRoomEnter(roomID)
-		nitoLog("joined room: " + roomName)
+		clientlog.Info("joined room: " + roomName)
 
 		members, _ := connection.ListRoomMembers(roomID)
 

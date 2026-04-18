@@ -16,11 +16,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/srschreiber/nito-client/engine/clientlog"
 	"github.com/srschreiber/nito-client/engine/keys"
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	"github.com/srschreiber/nito-client/shared/utils"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 // RoomInfo holds per-room state fetched on room selection and updated locally.

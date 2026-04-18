@@ -11,6 +11,7 @@ import (
 	"github.com/srschreiber/nito-client/engine/connection"
 	"github.com/srschreiber/nito-client/engine/voice"
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -121,7 +122,12 @@ func showVoiceSettingsPopup(w fyne.Window) {
 	inputSel := widget.NewSelect(deviceLabels, func(selected string) {
 		for i, lbl := range deviceLabels {
 			if lbl == selected {
+				if deviceIDs[i] == voice.SelectedInputDevice() {
+					return
+				}
 				voice.SetInputDevice(deviceIDs[i])
+				clientlog.Info("selected input device: " + deviceLabels[i])
+				go voice.RestartCapture()
 				return
 			}
 		}
@@ -435,11 +441,11 @@ func (sp *StatusPanel) SetInvites(invites []apitypes.PendingInvite) {
 				err := connection.AcceptInvite(inv.RoomID)
 				fyne.Do(func() {
 					if err != nil {
-						nitoLog("accept invite failed: " + err.Error())
+						clientlog.Error("accept invite failed: " + err.Error())
 						showToast(sp.w, "accept invite: "+err.Error(), toastError)
 						return
 					}
-					nitoLog("accepted invite, joined " + inv.RoomName)
+					clientlog.Info("accepted invite, joined " + inv.RoomName)
 					showToast(sp.w, "joined "+inv.RoomName, toastSuccess)
 					// Refresh both room list and invite list immediately.
 					go func() {

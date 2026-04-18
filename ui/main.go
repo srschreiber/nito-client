@@ -16,9 +16,11 @@ import (
 	"github.com/srschreiber/nito-client/engine/commands"
 	"github.com/srschreiber/nito-client/engine/connection"
 	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 func main() {
+	clientlog.Info("nito starting up...")
 	a := app.NewWithID("com.srschreiber.nito")
 	loadSavedProfile() // apply saved palette before first draw
 	a.Settings().SetTheme(nitoTheme{})
@@ -65,10 +67,10 @@ func showMainView(a fyne.App, w fyne.Window) {
 			fyne.Do(func() { chatPanel.AppendDMMessage(dmTarget, m) })
 			go func() {
 				if err := commands.SendDirectMessage(dmTarget, text); err != nil {
-					nitoLog("dm to " + dmTarget + " failed: " + err.Error())
+					clientlog.Error("dm to " + dmTarget + " failed: " + err.Error())
 					fyne.Do(func() { showToast(w, "dm: "+err.Error(), toastError) })
 				} else {
-					nitoLog("dm sent to " + dmTarget)
+					clientlog.Info("dm sent to " + dmTarget)
 				}
 			}()
 		} else {
@@ -84,7 +86,7 @@ func showMainView(a fyne.App, w fyne.Window) {
 			fyne.Do(func() { chatPanel.AppendMessage(m) })
 			go func() {
 				if err := commands.SendRoomMessage(text); err != nil {
-					nitoLog("send message failed: " + err.Error())
+					clientlog.Error("send message failed: " + err.Error())
 					fyne.Do(func() { showToast(w, "send: "+err.Error(), toastError) })
 				}
 			}()
@@ -148,7 +150,8 @@ func pingLoop(sp *StatusPanel) {
 }
 
 func init() {
+	initLogging()
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	voice.LoadAudioSettings()
-	nitoLog("nito started")
+	clientlog.Info("nito started")
 }

@@ -19,8 +19,8 @@ import (
 	"time"
 
 	mp3 "github.com/hajimehoshi/go-mp3"
-	"github.com/srschreiber/nito-client/engine/clientlog"
 	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 // PlayAudioFromURL returns a tea.Cmd that streams and plays the MP3 (or M3U
