@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Sam Schreiber
 // SPDX-License-Identifier: LicenseRef-nito
 
-package voice
+package sounds
 
 // PlaybackPitchSettings configures the playback-path pitch shift effect.
 type PlaybackPitchSettings struct {

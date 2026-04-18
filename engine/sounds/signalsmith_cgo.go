@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Sam Schreiber
 // SPDX-License-Identifier: LicenseRef-nito
 
-package voice
+package sounds
 
 // CGo wrapper around signalsmith-stretch (MIT) for real-time pitch shifting.
 // Header-only C++ library vendored in signalsmith/.

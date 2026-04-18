@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-nito
 
 // CGo bridge to the WebRTC AEC3 wrapper (apm_wrap.cpp / apm_wrap.h).
-// Provides echo cancellation for voice capture and playback paths.
+// Provides echo cancellation for sounds capture and playback paths.
 
-package voice
+package sounds
 
 /*
 #cgo CXXFLAGS: -std=c++17

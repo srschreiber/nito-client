@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Sam Schreiber
 // SPDX-License-Identifier: LicenseRef-nito
 
-package voice
+package sounds
 
 // AudioEffect processes a frame of float32 samples in-place.
 // Implementations must not retain the frame slice between calls.
@@ -32,7 +32,7 @@ func (p EffectPipeline) Apply(frame []float32) {
 }
 
 // InboundGain is an AudioEffect that multiplies every sample by a fixed gain.
-// Used on the inbound voice path to keep the closed-loop gain below 1.
+// Used on the inbound sounds path to keep the closed-loop gain below 1.
 type InboundGain struct {
 	Gain float32 // linear gain, e.g. 0.75 for −2.5 dB
 }

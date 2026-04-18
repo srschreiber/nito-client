@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Sam Schreiber
 // SPDX-License-Identifier: LicenseRef-nito
 
-package voice
+package sounds
 
 /*
 Peak limiter — always-on, zero-latency, transparent at normal levels.

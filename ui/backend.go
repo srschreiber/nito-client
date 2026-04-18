@@ -10,9 +10,9 @@ import (
 
 	"github.com/srschreiber/nito-client/engine/connection"
 	"github.com/srschreiber/nito-client/engine/keys"
+	"github.com/srschreiber/nito-client/engine/sounds"
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
-	"github.com/srschreiber/nito-client/sounds"
 	"github.com/srschreiber/nito-client/ui/clientlog"
 
 	"fyne.io/fyne/v2"
@@ -251,21 +251,21 @@ func notifLoop(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 
 			case wstypes.NotificationTypeUserJoinedVoiceChat:
 				username := notif.Username
-				clientlog.Info(username + " joined voice chat")
+				clientlog.Info(username + " joined sounds chat")
 				sounds.PlayEnter()
 				fyne.Do(func() {
 					if username != "" {
-						showToast(w, username+" joined voice", toastInfo)
+						showToast(w, username+" joined sounds", toastInfo)
 					}
 				})
 
 			case wstypes.NotificationTypeUserLeftVoiceChat:
 				username := notif.Username
-				clientlog.Info(username + " left voice chat")
+				clientlog.Info(username + " left sounds chat")
 				sounds.PlayExit()
 				fyne.Do(func() {
 					if username != "" {
-						showToast(w, username+" left voice", toastInfo)
+						showToast(w, username+" left sounds", toastInfo)
 					}
 				})
 

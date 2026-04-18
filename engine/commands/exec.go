@@ -27,8 +27,8 @@ const (
 	CmdRoomAccept  = "room-accept"
 	CmdSay         = "say"
 	CmdJump        = "jump"
-	CmdVoiceJoin   = "voice-join"
-	CmdVoiceLeave  = "voice-leave"
+	CmdVoiceJoin   = "sounds-join"
+	CmdVoiceLeave  = "sounds-leave"
 	CmdDM          = "dm"
 )
 

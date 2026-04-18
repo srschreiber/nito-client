@@ -36,9 +36,9 @@ const (
 	RPCRoomLeave = "room_leave" // client → broker: user navigated away from the room
 
 	// Voice signaling RPCs.
-	RPCVoiceJoin             = "voice_join"               // client → broker: join voice call, carries SDP offer
+	RPCVoiceJoin             = "voice_join"               // client → broker: join sounds call, carries SDP offer
 	RPCVoiceAnswer           = "voice_answer"             // broker → client: SDP answer for initial join
-	RPCVoiceLeave            = "voice_leave"              // client → broker: leave voice call
+	RPCVoiceLeave            = "voice_leave"              // client → broker: leave sounds call
 	RPCVoiceOffer            = "voice_offer"              // broker → client: renegotiation offer (new participant joined)
 	RPCVoiceRenegAnswer      = "voice_reneg_answer"       // client → broker: answer to broker renegotiation offer
 	RPCVoiceICERestart       = "voice_ice_restart"        // client → broker: ICE restart offer
@@ -56,7 +56,7 @@ type RoomLeavePayload struct {
 }
 
 type VoiceJoinPayload struct {
-	RoomID   string `json:"roomId"` // special value of "self" to relay voice to self
+	RoomID   string `json:"roomId"` // special value of "self" to relay sounds to self
 	SDPOffer string `json:"sdpOffer"`
 }
 
@@ -136,8 +136,8 @@ const (
 type NotificationPayload struct {
 	Type     NotificationType `json:"type"`
 	Text     string           `json:"text"`
-	Username string           `json:"username,omitempty"` // populated for voice chat notifications
-	Data     any              `json:"data,omitempty"`     // additional data depending on notification type, e.g. audio URL for sound clip notifications
+	Username string           `json:"username,omitempty"` // populated for sounds chat notifications
+	Data     any              `json:"data,omitempty"`     // additional data depending on notification type, e.g. audio URL for sounds clip notifications
 }
 
 type DirectMessagePayload struct {

@@ -3,7 +3,7 @@
 
 // Package clientlog provides a lightweight structured logger that forwards
 // log entries to the Client Logs tab in the TUI via a pluggable sender.
-// It is safe to call from any goroutine, including the voice and connection
+// It is safe to call from any goroutine, including the sounds and connection
 // packages, because they cannot import components without a circular import.
 package clientlog
 

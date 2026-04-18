@@ -14,14 +14,14 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/srschreiber/nito-client/engine/components"
-	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/engine/sounds"
 	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 // ── SpectrumWidget ────────────────────────────────────────────────────────────
 
 // SpectrumWidget renders the live 16-band EQ spectrum as a bar graph overlay.
-// Call Tick() every ~50 ms to animate it. It reads voice.GetTrackEQBandLevel
+// Call Tick() every ~50 ms to animate it. It reads sounds.GetTrackEQBandLevel
 // directly so no state is stored here.
 type SpectrumWidget struct {
 	widget.BaseWidget
@@ -46,7 +46,7 @@ func (sw *SpectrumWidget) CreateRenderer() fyne.WidgetRenderer {
 func (sw *SpectrumWidget) Tick() { sw.raster.Refresh() }
 
 func (sw *SpectrumWidget) pixelAt(px, py, pw, ph int) color.Color {
-	n := voice.NumEQBands
+	n := sounds.NumEQBands
 	if pw <= 0 || ph <= 0 || n <= 0 {
 		return colTransparent
 	}
@@ -62,7 +62,7 @@ func (sw *SpectrumWidget) pixelAt(px, py, pw, ph int) color.Color {
 		return colTransparent
 	}
 
-	level := voice.GetTrackEQBandLevel(0, b)
+	level := sounds.GetTrackEQBandLevel(0, b)
 	// Match bar-graph visual treatment: 3× scale, sqrt compression, wobble.
 	scaled := math.Sqrt(float64(level) * 3.0)
 	if level > 0 {
@@ -114,7 +114,7 @@ func showEQPopup(w fyne.Window) {
 	}()
 }
 
-// buildEQContent builds the TRACK EQ panel with real voice settings.
+// buildEQContent builds the TRACK EQ panel with real sounds settings.
 // Returns the canvas object and a tick func for the spectrum widget.
 func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 	// ── Spectrum / EQ graph ───────────────────────────────────────────────────
@@ -123,7 +123,7 @@ func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 
 	// Reload graph from current settings
 	syncGraph := func() {
-		eq := voice.GetPlaybackEQSettings()
+		eq := sounds.GetPlaybackEQSettings()
 		graph.UpdateSettings(eqGraphSettings{
 			BassGain: float64(eq.BassGain), BassHz: float64(eq.BassHz),
 			MidGain: float64(eq.MidGain), MidHz: float64(eq.MidHz), MidQ: float64(eq.MidQ),
@@ -144,7 +144,7 @@ func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 		for _, p := range components.ListBuiltinPresets() {
 			names = append(names, p.Name)
 		}
-		custom, _ := voice.LoadCustomPresets()
+		custom, _ := sounds.LoadCustomPresets()
 		for _, p := range custom {
 			names = append(names, "★ "+p.Name)
 		}
@@ -171,7 +171,7 @@ func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 			return
 		}
 		// Try custom
-		custom, _ := voice.LoadCustomPresets()
+		custom, _ := sounds.LoadCustomPresets()
 		for _, p := range custom {
 			if p.Name == name {
 				p.Apply()
@@ -186,7 +186,7 @@ func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 	})
 
 	// Set a sensible initial selection without triggering the toast.
-	if eq := voice.GetPlaybackEQSettings(); eq.BassGain == 0 && eq.MidGain == 0 {
+	if eq := sounds.GetPlaybackEQSettings(); eq.BassGain == 0 && eq.MidGain == 0 {
 		presetSel.SetSelected("Flat")
 	}
 	presetReady = true
@@ -208,7 +208,7 @@ func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 			if name == "" {
 				return
 			}
-			if err := voice.SaveCurrentAsPreset(name); err != nil {
+			if err := sounds.SaveCurrentAsPreset(name); err != nil {
 				showToast(w, "save preset: "+err.Error(), toastError)
 				return
 			}
@@ -258,93 +258,93 @@ func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 	}
 
 	// ── Read current settings ─────────────────────────────────────────────────
-	eq := voice.GetPlaybackEQSettings()
-	del := voice.GetDelaySettings()
-	rev := voice.GetReverbSettings()
-	cho := voice.GetChorusSettings()
-	pit := voice.GetPlaybackPitchSettings()
-	pan := voice.GetPannerSettings()
-	vol := voice.GetPlaybackEQVolume()
+	eq := sounds.GetPlaybackEQSettings()
+	del := sounds.GetDelaySettings()
+	rev := sounds.GetReverbSettings()
+	cho := sounds.GetChorusSettings()
+	pit := sounds.GetPlaybackPitchSettings()
+	pan := sounds.GetPannerSettings()
+	vol := sounds.GetPlaybackEQVolume()
 
 	// ── 4-band EQ cards ───────────────────────────────────────────────────────
 	bassCard := wrapCard(NewCollapseSection("BASS", container.NewVBox(
 		slRow("gain", fmtDB(eq.BassGain), -18, 18, float64(eq.BassGain), func(v float64) {
-			s := voice.GetPlaybackEQSettings()
+			s := sounds.GetPlaybackEQSettings()
 			s.BassGain = float32(v)
-			voice.SetPlaybackEQSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQSettings(s)
+			sounds.SaveAudioSettings()
 			syncGraph()
 		}),
 		slRow("freq", fmtHz(eq.BassHz), 40, 500, float64(eq.BassHz), func(v float64) {
-			s := voice.GetPlaybackEQSettings()
+			s := sounds.GetPlaybackEQSettings()
 			s.BassHz = float32(v)
-			voice.SetPlaybackEQSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQSettings(s)
+			sounds.SaveAudioSettings()
 			syncGraph()
 		}),
 	), false))
 
 	midCard := wrapCard(NewCollapseSection("MID", container.NewVBox(
 		slRow("gain", fmtDB(eq.MidGain), -18, 18, float64(eq.MidGain), func(v float64) {
-			s := voice.GetPlaybackEQSettings()
+			s := sounds.GetPlaybackEQSettings()
 			s.MidGain = float32(v)
-			voice.SetPlaybackEQSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQSettings(s)
+			sounds.SaveAudioSettings()
 			syncGraph()
 		}),
 		slRow("freq", fmtHz(eq.MidHz), 200, 8000, float64(eq.MidHz), func(v float64) {
-			s := voice.GetPlaybackEQSettings()
+			s := sounds.GetPlaybackEQSettings()
 			s.MidHz = float32(v)
-			voice.SetPlaybackEQSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQSettings(s)
+			sounds.SaveAudioSettings()
 			syncGraph()
 		}),
 		slRow("Q   ", fmtFloat(float64(eq.MidQ)), 0.3, 6.0, float64(eq.MidQ), func(v float64) {
-			s := voice.GetPlaybackEQSettings()
+			s := sounds.GetPlaybackEQSettings()
 			s.MidQ = float32(v)
-			voice.SetPlaybackEQSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQSettings(s)
+			sounds.SaveAudioSettings()
 			syncGraph()
 		}),
 	), false))
 
 	trebCard := wrapCard(NewCollapseSection("TREBLE", container.NewVBox(
 		slRow("gain", fmtDB(eq.TrebleGain), -18, 18, float64(eq.TrebleGain), func(v float64) {
-			s := voice.GetPlaybackEQSettings()
+			s := sounds.GetPlaybackEQSettings()
 			s.TrebleGain = float32(v)
-			voice.SetPlaybackEQSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQSettings(s)
+			sounds.SaveAudioSettings()
 			syncGraph()
 		}),
 		slRow("freq", fmtHz(eq.TrebleHz), 1000, 16000, float64(eq.TrebleHz), func(v float64) {
-			s := voice.GetPlaybackEQSettings()
+			s := sounds.GetPlaybackEQSettings()
 			s.TrebleHz = float32(v)
-			voice.SetPlaybackEQSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQSettings(s)
+			sounds.SaveAudioSettings()
 			syncGraph()
 		}),
 	), false))
 
 	presCard := wrapCard(NewCollapseSection("PRESENCE", container.NewVBox(
 		slRow("gain", fmtDB(eq.PresenceGain), -18, 18, float64(eq.PresenceGain), func(v float64) {
-			s := voice.GetPlaybackEQSettings()
+			s := sounds.GetPlaybackEQSettings()
 			s.PresenceGain = float32(v)
-			voice.SetPlaybackEQSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQSettings(s)
+			sounds.SaveAudioSettings()
 			syncGraph()
 		}),
 		slRow("freq", fmtHz(eq.PresenceHz), 2000, 5000, float64(eq.PresenceHz), func(v float64) {
-			s := voice.GetPlaybackEQSettings()
+			s := sounds.GetPlaybackEQSettings()
 			s.PresenceHz = float32(v)
-			voice.SetPlaybackEQSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQSettings(s)
+			sounds.SaveAudioSettings()
 			syncGraph()
 		}),
 		slRow("Q   ", fmtFloat(float64(eq.PresenceQ)), 0.3, 6.0, float64(eq.PresenceQ), func(v float64) {
-			s := voice.GetPlaybackEQSettings()
+			s := sounds.GetPlaybackEQSettings()
 			s.PresenceQ = float32(v)
-			voice.SetPlaybackEQSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQSettings(s)
+			sounds.SaveAudioSettings()
 			syncGraph()
 		}),
 	), false))
@@ -354,98 +354,98 @@ func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 	// ── Effects cards ─────────────────────────────────────────────────────────
 
 	delayEnabled := widget.NewCheck("enabled", func(b bool) {
-		s := voice.GetDelaySettings()
+		s := sounds.GetDelaySettings()
 		s.Enabled = b
-		voice.SetDelaySettings(s)
-		voice.SaveAudioSettings()
+		sounds.SetDelaySettings(s)
+		sounds.SaveAudioSettings()
 	})
 	delayEnabled.SetChecked(del.Enabled)
 
 	delayCard := wrapCard(NewCollapseSection("DELAY", container.NewVBox(
 		withPointerCursor(delayEnabled),
 		slRow("delay   ", fmtMs(del.DelayMs), 1, 500, float64(del.DelayMs), func(v float64) {
-			s := voice.GetDelaySettings()
+			s := sounds.GetDelaySettings()
 			s.DelayMs = float32(v)
-			voice.SetDelaySettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetDelaySettings(s)
+			sounds.SaveAudioSettings()
 		}),
 		slRow("feedback", fmtFloat(float64(del.Feedback)), 0, 0.95, float64(del.Feedback), func(v float64) {
-			s := voice.GetDelaySettings()
+			s := sounds.GetDelaySettings()
 			s.Feedback = float32(v)
-			voice.SetDelaySettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetDelaySettings(s)
+			sounds.SaveAudioSettings()
 		}),
 	), false))
 
 	reverbEnabled := widget.NewCheck("enabled", func(b bool) {
-		s := voice.GetReverbSettings()
+		s := sounds.GetReverbSettings()
 		s.Enabled = b
-		voice.SetReverbSettings(s)
-		voice.SaveAudioSettings()
+		sounds.SetReverbSettings(s)
+		sounds.SaveAudioSettings()
 	})
 	reverbEnabled.SetChecked(rev.Enabled)
 
 	reverbCard := wrapCard(NewCollapseSection("REVERB", container.NewVBox(
 		withPointerCursor(reverbEnabled),
 		slRow("mix  ", fmtFloat(float64(rev.Mix)), 0, 1, float64(rev.Mix), func(v float64) {
-			s := voice.GetReverbSettings()
+			s := sounds.GetReverbSettings()
 			s.Mix = float32(v)
-			voice.SetReverbSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetReverbSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 		slRow("size ", fmtFloat(float64(rev.Size)), 0.5, 2.0, float64(rev.Size), func(v float64) {
-			s := voice.GetReverbSettings()
+			s := sounds.GetReverbSettings()
 			s.Size = float32(v)
-			voice.SetReverbSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetReverbSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 		slRow("decay", fmtFloat(float64(rev.Decay)), 0, 1, float64(rev.Decay), func(v float64) {
-			s := voice.GetReverbSettings()
+			s := sounds.GetReverbSettings()
 			s.Decay = float32(v)
-			voice.SetReverbSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetReverbSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 		slRow("tone ", fmtFloat(float64(rev.Tone)), 0, 1, float64(rev.Tone), func(v float64) {
-			s := voice.GetReverbSettings()
+			s := sounds.GetReverbSettings()
 			s.Tone = float32(v)
-			voice.SetReverbSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetReverbSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 	), false))
 
 	chorusEnabled := widget.NewCheck("enabled", func(b bool) {
-		s := voice.GetChorusSettings()
+		s := sounds.GetChorusSettings()
 		s.Enabled = b
-		voice.SetChorusSettings(s)
-		voice.SaveAudioSettings()
+		sounds.SetChorusSettings(s)
+		sounds.SaveAudioSettings()
 	})
 	chorusEnabled.SetChecked(cho.Enabled)
 
 	chorusCard := wrapCard(NewCollapseSection("CHORUS", container.NewVBox(
 		withPointerCursor(chorusEnabled),
 		slRow("delay", fmtMs(cho.BaseDelayMs), 5, 30, float64(cho.BaseDelayMs), func(v float64) {
-			s := voice.GetChorusSettings()
+			s := sounds.GetChorusSettings()
 			s.BaseDelayMs = float32(v)
-			voice.SetChorusSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetChorusSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 		slRow("rate ", fmtHz(cho.RateHz), 0.1, 5.0, float64(cho.RateHz), func(v float64) {
-			s := voice.GetChorusSettings()
+			s := sounds.GetChorusSettings()
 			s.RateHz = float32(v)
-			voice.SetChorusSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetChorusSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 		slRow("depth", fmtMs(cho.DepthMs), 0, 15, float64(cho.DepthMs), func(v float64) {
-			s := voice.GetChorusSettings()
+			s := sounds.GetChorusSettings()
 			s.DepthMs = float32(v)
-			voice.SetChorusSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetChorusSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 		slRow("mix  ", fmtFloat(float64(cho.Mix)), 0, 1, float64(cho.Mix), func(v float64) {
-			s := voice.GetChorusSettings()
+			s := sounds.GetChorusSettings()
 			s.Mix = float32(v)
-			voice.SetChorusSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetChorusSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 	), false))
 
@@ -454,57 +454,57 @@ func buildEQContent(w fyne.Window) (fyne.CanvasObject, func()) {
 	// ── Pitch / Pan / Output cards ────────────────────────────────────────────
 
 	pitchEnabled := widget.NewCheck("enabled", func(b bool) {
-		s := voice.GetPlaybackPitchSettings()
+		s := sounds.GetPlaybackPitchSettings()
 		s.Enabled = b
-		voice.SetPlaybackPitchSettings(s)
-		voice.SaveAudioSettings()
+		sounds.SetPlaybackPitchSettings(s)
+		sounds.SaveAudioSettings()
 	})
 	pitchEnabled.SetChecked(pit.Enabled)
 
 	pitchCard := wrapCard(NewCollapseSection("PITCH", container.NewVBox(
 		withPointerCursor(pitchEnabled),
 		slRow("semitones", fmtFloat(float64(pit.Semitones))+" st", -12, 12, float64(pit.Semitones), func(v float64) {
-			s := voice.GetPlaybackPitchSettings()
+			s := sounds.GetPlaybackPitchSettings()
 			s.Semitones = float32(v)
-			voice.SetPlaybackPitchSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackPitchSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 	), false))
 
 	autoPanCheck := widget.NewCheck("auto pan", func(b bool) {
-		s := voice.GetPannerSettings()
+		s := sounds.GetPannerSettings()
 		s.AutoPanEnabled = b
-		voice.SetPannerSettings(s)
-		voice.SaveAudioSettings()
+		sounds.SetPannerSettings(s)
+		sounds.SaveAudioSettings()
 	})
 	autoPanCheck.SetChecked(pan.AutoPanEnabled)
 
 	panCard := wrapCard(NewCollapseSection("PAN", container.NewVBox(
 		slRow("balance", fmtPan(pan.Balance), -1, 1, float64(pan.Balance), func(v float64) {
-			s := voice.GetPannerSettings()
+			s := sounds.GetPannerSettings()
 			s.Balance = float32(v)
-			voice.SetPannerSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPannerSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 		withPointerCursor(autoPanCheck),
 		slRow("rate ", fmtFloat(float64(pan.AutoPanRate))+" Hz", 0.05, 5.0, float64(pan.AutoPanRate), func(v float64) {
-			s := voice.GetPannerSettings()
+			s := sounds.GetPannerSettings()
 			s.AutoPanRate = float32(v)
-			voice.SetPannerSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPannerSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 		slRow("depth", fmtPct(pan.AutoPanDepth), 0, 1, float64(pan.AutoPanDepth), func(v float64) {
-			s := voice.GetPannerSettings()
+			s := sounds.GetPannerSettings()
 			s.AutoPanDepth = float32(v)
-			voice.SetPannerSettings(s)
-			voice.SaveAudioSettings()
+			sounds.SetPannerSettings(s)
+			sounds.SaveAudioSettings()
 		}),
 	), false))
 
 	outputCard := wrapCard(NewCollapseSection("OUTPUT", container.NewVBox(
 		slRow("volume", fmtPct(float32(vol)/100), 0, 800, float64(vol), func(v float64) {
-			voice.SetPlaybackEQVolume(int(v))
-			voice.SaveAudioSettings()
+			sounds.SetPlaybackEQVolume(int(v))
+			sounds.SaveAudioSettings()
 		}),
 	), false))
 

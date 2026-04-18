@@ -19,7 +19,7 @@ import (
 	"time"
 
 	mp3 "github.com/hajimehoshi/go-mp3"
-	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/engine/sounds"
 	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
@@ -29,7 +29,7 @@ import (
 // abort early.
 func PlayAudioFromURL(ctx context.Context, roomID, audioURL string, track int) func() {
 	return func() {
-		if roomID != voice.SelfRoomID && voice.ActiveRoomID() != roomID {
+		if roomID != sounds.SelfRoomID && sounds.ActiveRoomID() != roomID {
 			return
 		}
 		entries, err := resolveAudioURLs(ctx, audioURL)
@@ -50,7 +50,7 @@ func PlayAudioFromURL(ctx context.Context, roomID, audioURL string, track int) f
 }
 
 // PlayAudioFromFile returns a tea.Cmd that plays a local MP3 file on the given
-// track slot. It never broadcasts and does not require an active voice call.
+// track slot. It never broadcasts and does not require an active sounds call.
 // Supports absolute paths and paths beginning with ~/ (expanded to home dir).
 func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 	return func() {
@@ -74,14 +74,14 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 		peek = peek[:n]
 		title, artist := parseID3Title(peek)
 		if title != "" || artist != "" {
-			voice.SetTrackTitle(track, buildTrackDisplayTitle(artist, title))
+			sounds.SetTrackTitle(track, buildTrackDisplayTitle(artist, title))
 		} else {
 			// Fall back to the filename (without extension) so the status panel
 			// always shows something useful for local files.
 			base := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-			voice.SetTrackTitle(track, base)
+			sounds.SetTrackTitle(track, base)
 		}
-		defer voice.ClearTrackTitle(track)
+		defer sounds.ClearTrackTitle(track)
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			audioPlaybackErr(track, "seek", err)
 			return
@@ -93,7 +93,7 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 			return
 		}
 
-		otoCtx, err := voice.GetMusicOtoCtx(dec.SampleRate())
+		otoCtx, err := sounds.GetMusicOtoCtx(dec.SampleRate())
 		if err != nil {
 			audioPlaybackErr(track, "oto init", err)
 			return
@@ -111,14 +111,14 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 
 		eq := newEQReader(decSrc, eqRate, track)
 		defer eq.Close()
-		defer voice.ClearTrackBandLevels(track)
-		defer voice.ClearTrackEQBandLevels(track)
+		defer sounds.ClearTrackBandLevels(track)
+		defer sounds.ClearTrackEQBandLevels(track)
 
 		player := otoCtx.NewPlayer(eq)
 		if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
 			bss.SetBufferSize(48000 * 2 / 5 * 4) // ~400 ms at 48 kHz
 		}
-		player.SetVolume(voice.EffectivePlaybackVolume())
+		player.SetVolume(sounds.EffectivePlaybackVolume())
 		defer player.Close()
 		player.Play()
 
@@ -130,7 +130,7 @@ func PlayAudioFromFile(ctx context.Context, path string, track int) func() {
 				if !player.IsPlaying() {
 					return
 				}
-				player.SetVolume(voice.EffectivePlaybackVolume())
+				player.SetVolume(sounds.EffectivePlaybackVolume())
 				time.Sleep(20 * time.Millisecond)
 			}
 		}
@@ -306,8 +306,8 @@ func (r *prefetchReader) IsNearlyDrained() bool {
 
 // playOne streams and plays a single MP3 entry, reconnecting automatically when
 // a live stream catches up to the broadcast edge. For regular files it runs once.
-// If roomID is voice.SelfRoomID the active-room guard is skipped so the user
-// can play audio locally without being in a voice call.
+// If roomID is sounds.SelfRoomID the active-room guard is skipped so the user
+// can play audio locally without being in a sounds call.
 func playOne(ctx context.Context, roomID string, entry trackEntry, track int) {
 	for {
 		if ctx.Err() != nil {
@@ -339,7 +339,7 @@ const liveEdgeDrainTicks = 50
 // Returns (reconnect, msg): reconnect=true means a live stream hit the live
 // edge and the caller should reopen the connection; msg is non-nil on error.
 func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track int) (bool, error) {
-	if roomID != voice.SelfRoomID && voice.ActiveRoomID() != roomID {
+	if roomID != sounds.SelfRoomID && sounds.ActiveRoomID() != roomID {
 		return false, nil
 	}
 
@@ -360,19 +360,19 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 	isLive := resp.Header.Get("Icy-Metaint") != "" ||
 		resp.Header.Get("Icy-Name") != "" ||
 		resp.Header.Get("Icy-Url") != ""
-	voice.SetTrackLive(track, isLive)
-	defer voice.SetTrackLive(track, false)
+	sounds.SetTrackLive(track, isLive)
+	defer sounds.SetTrackLive(track, false)
 	// Show a pulsing spinner while the 5 s live buffer fills.
 	if isLive {
-		voice.SetTrackBuffering(track, true)
-		defer voice.SetTrackBuffering(track, false)
+		sounds.SetTrackBuffering(track, true)
+		defer sounds.SetTrackBuffering(track, false)
 		go func() {
 			timer := time.NewTimer(5 * time.Second)
 			defer timer.Stop()
 			select {
 			case <-ctx.Done():
 			case <-timer.C:
-				voice.SetTrackBuffering(track, false)
+				sounds.SetTrackBuffering(track, false)
 			}
 		}()
 	}
@@ -383,12 +383,12 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 	// fall back to the #EXTINF hint from the playlist.
 	if isLive {
 		if icyName := resp.Header.Get("Icy-Name"); icyName != "" {
-			voice.SetTrackTitle(track, icyName)
+			sounds.SetTrackTitle(track, icyName)
 		} else if entry.Title != "" {
-			voice.SetTrackTitle(track, entry.Title)
+			sounds.SetTrackTitle(track, entry.Title)
 		}
 	}
-	defer voice.ClearTrackTitle(track)
+	defer sounds.ClearTrackTitle(track)
 
 	// Peek the first 64 KB to parse ID3v2 tags (non-live only).
 	// The peeked bytes are prepended back via io.MultiReader so the MP3 decoder
@@ -399,9 +399,9 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 	peek = peek[:n]
 	if !isLive {
 		if title, artist := parseID3Title(peek); title != "" || artist != "" {
-			voice.SetTrackTitle(track, buildTrackDisplayTitle(artist, title))
+			sounds.SetTrackTitle(track, buildTrackDisplayTitle(artist, title))
 		} else if entry.Title != "" {
-			voice.SetTrackTitle(track, entry.Title)
+			sounds.SetTrackTitle(track, entry.Title)
 		}
 	}
 	bodyReader := io.MultiReader(bytes.NewReader(peek), resp.Body)
@@ -415,7 +415,7 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 		return false, audioPlaybackErr(track, "mp3 decode", err)
 	}
 
-	otoCtx, err := voice.GetMusicOtoCtx(dec.SampleRate())
+	otoCtx, err := sounds.GetMusicOtoCtx(dec.SampleRate())
 	if err != nil {
 		return false, audioPlaybackErr(track, "oto init", err)
 	}
@@ -431,8 +431,8 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 
 	eq := newEQReader(decSrc, eqRate, track)
 	defer eq.Close()
-	defer voice.ClearTrackBandLevels(track)   // zero the status-bar meter when playback ends
-	defer voice.ClearTrackEQBandLevels(track) // zero the EQ graph when playback ends
+	defer sounds.ClearTrackBandLevels(track)   // zero the status-bar meter when playback ends
+	defer sounds.ClearTrackEQBandLevels(track) // zero the EQ graph when playback ends
 	player := otoCtx.NewPlayer(eq)
 	if bss, ok := player.(interface{ SetBufferSize(int) }); ok {
 		bufSize := 48000 * 2 / 5 * 4 // ~400 ms at 48 kHz
@@ -441,7 +441,7 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 		}
 		bss.SetBufferSize(bufSize)
 	}
-	player.SetVolume(voice.EffectivePlaybackVolume())
+	player.SetVolume(sounds.EffectivePlaybackVolume())
 	defer player.Close()
 	player.Play()
 
@@ -455,7 +455,7 @@ func playOneAttempt(ctx context.Context, roomID string, entry trackEntry, track 
 			if !player.IsPlaying() {
 				return false, nil
 			}
-			player.SetVolume(voice.EffectivePlaybackVolume())
+			player.SetVolume(sounds.EffectivePlaybackVolume())
 			if isLive {
 				if len(prefetch.ch) >= prefetchChunks/2 {
 					bufferWasFull = true
@@ -518,7 +518,7 @@ type bandAnalyzer struct {
 // init (re)initialises the filter bank for n bands at sample rate sr.
 // Existing smooth values are zeroed; call when the band count changes.
 func (a *bandAnalyzer) init(sr float32, n int) {
-	centers := voice.BandCenters(n)
+	centers := sounds.BandCenters(n)
 	a.filters = make([]biquad, n)
 	a.smooth = make([]float32, n)
 	for i, c := range centers {
@@ -569,12 +569,12 @@ var playbackJitterPeakUs atomic.Int64
 // them here keeps their addresses stable across pipeline rebuilds, so the ring
 // buffers, filter history, and CGo state persist between settings changes.
 type channelEffects struct {
-	eq     voice.EQ
-	delay  voice.Delay
-	reverb voice.Reverb
-	chorus voice.Chorus
-	pitch  *voice.PlaybackPitchEffect
-	lim    voice.PeakLimiter
+	eq     sounds.EQ
+	delay  sounds.Delay
+	reverb sounds.Reverb
+	chorus sounds.Chorus
+	pitch  *sounds.PlaybackPitchEffect
+	lim    sounds.PeakLimiter
 }
 
 // close releases any CGo resources held by this channel.
@@ -587,8 +587,8 @@ func (c *channelEffects) close() {
 
 // buildPipeline assembles the channel's effects into an ordered EffectPipeline.
 // Disabled effects are skipped at runtime by EffectPipeline via the Enabler interface.
-func (c *channelEffects) buildPipeline() voice.EffectPipeline {
-	p := voice.EffectPipeline{&c.eq, &c.delay, &c.reverb, &c.chorus}
+func (c *channelEffects) buildPipeline() sounds.EffectPipeline {
+	p := sounds.EffectPipeline{&c.eq, &c.delay, &c.reverb, &c.chorus}
 	if c.pitch != nil {
 		p = append(p, c.pitch)
 	}
@@ -636,8 +636,8 @@ type eqReader struct {
 	sampleRate    int
 	version       uint64
 	left, right   channelEffects
-	leftPipeline  voice.EffectPipeline
-	rightPipeline voice.EffectPipeline
+	leftPipeline  sounds.EffectPipeline
+	rightPipeline sounds.EffectPipeline
 	preScale      float32
 	outputGain    float32
 	panPhase      float64       // LFO phase for auto-pan; preserved across settings rebuilds
@@ -659,11 +659,11 @@ type eqReader struct {
 
 func newEQReader(src io.Reader, sampleRate, track int) *eqReader {
 	r := &eqReader{src: src, sampleRate: sampleRate, track: track, meterBuf: newMeterDelayBuf(sampleRate)}
-	r.left.pitch = voice.NewPlaybackPitchEffect(sampleRate)
-	r.right.pitch = voice.NewPlaybackPitchEffect(sampleRate)
-	r.eqBands.init(float32(sampleRate), voice.NumEQBands)
-	r.eqPeak = make([]float32, voice.NumEQBands)
-	r.eqSmooth = make([]float32, voice.NumEQBands)
+	r.left.pitch = sounds.NewPlaybackPitchEffect(sampleRate)
+	r.right.pitch = sounds.NewPlaybackPitchEffect(sampleRate)
+	r.eqBands.init(float32(sampleRate), sounds.NumEQBands)
+	r.eqPeak = make([]float32, sounds.NumEQBands)
+	r.eqSmooth = make([]float32, sounds.NumEQBands)
 	r.rebuildEffects()
 	return r
 }
@@ -677,31 +677,31 @@ func (r *eqReader) Close() {
 func (r *eqReader) rebuildEffects() {
 	sr := float32(r.sampleRate)
 
-	eqS := voice.GetPlaybackEQSettings()
+	eqS := sounds.GetPlaybackEQSettings()
 	r.left.eq.Settings = eqS
 	r.right.eq.Settings = eqS
 	r.left.eq.UpdateFilters(sr)
 	r.right.eq.UpdateFilters(sr)
 
-	delayS := voice.GetDelaySettings()
+	delayS := sounds.GetDelaySettings()
 	r.left.delay.Settings = delayS
 	r.right.delay.Settings = delayS
 	r.left.delay.UpdateSettings(sr)
 	r.right.delay.UpdateSettings(sr)
 
-	revS := voice.GetReverbSettings()
+	revS := sounds.GetReverbSettings()
 	r.left.reverb.Settings = revS
 	r.right.reverb.Settings = revS
 	r.left.reverb.UpdateSettings(sr)
 	r.right.reverb.UpdateSettings(sr)
 
-	choS := voice.GetChorusSettings()
+	choS := sounds.GetChorusSettings()
 	r.left.chorus.Settings = choS
 	r.right.chorus.Settings = choS
 	r.left.chorus.UpdateSettings(sr)
 	r.right.chorus.UpdateSettings(sr)
 
-	pitchS := voice.GetPlaybackPitchSettings()
+	pitchS := sounds.GetPlaybackPitchSettings()
 	if r.left.pitch != nil {
 		r.left.pitch.Settings = pitchS
 		r.left.pitch.UpdateSettings()
@@ -724,12 +724,12 @@ func (r *eqReader) rebuildEffects() {
 	} else {
 		r.preScale = 1.0
 	}
-	r.outputGain = float32(voice.GetPlaybackEQVolume()) / 100.0
+	r.outputGain = float32(sounds.GetPlaybackEQVolume()) / 100.0
 
 	r.leftPipeline = r.left.buildPipeline()
 	r.rightPipeline = r.right.buildPipeline()
 
-	r.version = voice.PlaybackEQVersion()
+	r.version = sounds.PlaybackEQVersion()
 }
 
 func (r *eqReader) Read(p []byte) (int, error) {
@@ -773,7 +773,7 @@ func (r *eqReader) Read(p []byte) (int, error) {
 	}
 	r.prevReadTime = now
 
-	if voice.PlaybackEQVersion() != r.version {
+	if sounds.PlaybackEQVersion() != r.version {
 		r.rebuildEffects()
 	}
 	n, err := r.src.Read(p)
@@ -801,7 +801,7 @@ func (r *eqReader) Read(p []byte) (int, error) {
 		// Apply pan gains, output gain, soft-clip via tanh, reinterleave.
 		// tanh provides smooth saturation instead of hard clipping, which is
 		// audible when the volume slider is pushed well above 100%.
-		panS := voice.GetPannerSettings()
+		panS := sounds.GetPannerSettings()
 		// Pre-compute static gains for the non-auto-pan case to avoid per-sample trig.
 		staticAngle := float64(panS.Balance+1) * math.Pi / 4
 		staticLeftGain := float32(math.Cos(staticAngle))
@@ -854,7 +854,7 @@ func (r *eqReader) Read(p []byte) (int, error) {
 			} else {
 				r.eqSmooth[b] = eqRelease*pk + (1-eqRelease)*r.eqSmooth[b]
 			}
-			voice.SetTrackEQBandLevel(r.track, b, r.eqSmooth[b])
+			sounds.SetTrackEQBandLevel(r.track, b, r.eqSmooth[b])
 			r.eqPeak[b] = 0 // reset for next batch
 		}
 		// Map to 4 status-bar slots in a middle-out pattern.
@@ -886,7 +886,7 @@ func (r *eqReader) Read(p []byte) (int, error) {
 		targets := [4]float32{overflow(inner1), inner1, inner2, overflow(inner2)}
 		for i, t := range targets {
 			r.meterSmooth[i] = meterAlpha*t + (1-meterAlpha)*r.meterSmooth[i]
-			voice.SetTrackBandLevel(r.track, i, r.meterSmooth[i])
+			sounds.SetTrackBandLevel(r.track, i, r.meterSmooth[i])
 		}
 		// Update EMA of DSP wall-clock time so the settings screen can display it.
 		dspUs := time.Since(dspStart).Microseconds()
@@ -1069,7 +1069,7 @@ func decodeID3Text(data []byte) string {
 //
 // resampler converts stereo int16-LE PCM from srcRate to dstRate using linear
 // interpolation. It is used when music source audio (typically 44100 Hz) must
-// be fed into the shared 48000 Hz voice oto context.
+// be fed into the shared 48000 Hz sounds oto context.
 
 type resampler struct {
 	src   io.Reader

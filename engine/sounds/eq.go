@@ -1,4 +1,4 @@
-package voice
+package sounds
 
 import "math"
 
@@ -58,7 +58,7 @@ Q controls the width of the boost/cut bell:
 	BW_Hz ≈ f₀ / Q   (approximate at moderate gains)
 
 Higher Q → narrower peak. At Q = 1 and f₀ = 1 kHz the affected band spans roughly
-one octave (≈700 Hz–1.4 kHz). For voice EQ, Q values of 0.7–2.0 are typical.
+one octave (≈700 Hz–1.4 kHz). For sounds EQ, Q values of 0.7–2.0 are typical.
 Very high Q (> 4) risks audible ringing artefacts on speech transients.
 
 # Shelf slope S

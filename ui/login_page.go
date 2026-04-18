@@ -203,7 +203,7 @@ func showLoginView(a fyne.App, w fyne.Window, onSuccess func()) {
 
 	// ── Brand area ────────────────────────────────────────────────────────────
 	titleText := txt("nito", liveAccent, 30, true, true)
-	subtitleText := txt("encrypted voice & chat", liveDim, 11, false, true)
+	subtitleText := txt("encrypted sounds & chat", liveDim, 11, false, true)
 	brandArea := container.NewVBox(
 		container.NewCenter(titleText),
 		vspace(2),

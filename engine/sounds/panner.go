@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Sam Schreiber
 // SPDX-License-Identifier: LicenseRef-nito
 
-package voice
+package sounds
 
 // PannerSettings configures stereo balance and auto-pan for the music playback path.
 // Balance is a static L/R offset; auto-pan modulates balance over time with a sine LFO.

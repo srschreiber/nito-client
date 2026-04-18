@@ -13,7 +13,7 @@
 // Known limitation: the EMA smooths over small alignment jitter caused by OS
 // scheduling and jitter-buffer variance, but a sudden device switch can take up
 // to delayEstInterval frames (~1 s) to converge to the new delay.
-package voice
+package sounds
 
 import (
 	"math"
@@ -197,7 +197,7 @@ func (e *streamDelayEst) runEstimate() {
 
 	if bestCorr < delayEstMinCorr {
 		// Weak correlation — likely a headset or far-end is silent. Don't update.
-		clientlog.Info("voice: delay est: corr=%.3f below threshold, skipping", bestCorr)
+		clientlog.Info("sounds: delay est: corr=%.3f below threshold, skipping", bestCorr)
 		return
 	}
 
@@ -210,7 +210,7 @@ func (e *streamDelayEst) runEstimate() {
 	apm := e.apm
 	e.mu.Unlock()
 
-	clientlog.Info("voice: delay est: lag=%dms corr=%.3f ema=%dms (was %dms)", measuredMs, bestCorr, updated, prev)
+	clientlog.Info("sounds: delay est: lag=%dms corr=%.3f ema=%dms (was %dms)", measuredMs, bestCorr, updated, prev)
 
 	if apm != nil {
 		apm.SetStreamDelay(updated)

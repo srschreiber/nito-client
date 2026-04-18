@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: LicenseRef-nito
 
 // inboundCompressor is a per-track dynamic range compressor applied to
-// received voice audio before it reaches the speaker.
+// received sounds audio before it reaches the speaker.
 //
 // It prevents sudden loud bursts (e.g. someone yelling or a mic spike) from
 // exceeding a comfortable level while leaving normal-volume speech unaffected.
 // One instance is created per incoming audio track so that multiple peers in a
 // call each have independent compression state.
-package voice
+package sounds
 
 import (
 	"math"

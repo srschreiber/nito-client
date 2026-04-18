@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Sam Schreiber
 // SPDX-License-Identifier: LicenseRef-nito
 
-// Package voice manages the client-side WebRTC voice call lifecycle.
+// Package sounds manages the client-side WebRTC sounds call lifecycle.
 //
 // Audio path (send):
 //
@@ -12,8 +12,8 @@
 //	broker → RTP → AES-256-GCM decrypt → Opus decode → PCM → speakers
 //
 // The broker never sees plaintext audio; it only forwards encrypted RTP payloads./
-// The AES-256-GCM key is derived via HKDF(roomKey, "voice").
-package voice
+// The AES-256-GCM key is derived via HKDF(roomKey, "sounds").
+package sounds
 
 import (
 	"context"
@@ -115,7 +115,7 @@ const (
 	opusFrameSamples = sampleRate * opusFrameMs / 1000 // 960 samples
 	apmFrameSamples  = sampleRate / 100                // 10 ms = 480 samples; WebRTC APM frame size
 	opusBufMax       = 4096
-	playbackGain     = 75 // percent; dampen all voice playback to keep feedback loops in check
+	playbackGain     = 75 // percent; dampen all sounds playback to keep feedback loops in check
 )
 
 // AudioDevice represents a system audio input device.
@@ -129,7 +129,7 @@ var (
 	selectedInputDevice string // empty = system default
 )
 
-// SetInputDevice stores the device ID used for the next voice/test-audio session.
+// SetInputDevice stores the device ID used for the next sounds/test-audio session.
 func SetInputDevice(id string) {
 	muSelected.Lock()
 	selectedInputDevice = id
@@ -213,7 +213,7 @@ var (
 	masterVolume      atomic.Int32 // 0–100, master output volume for all audio sources
 	chatSFXOverride   atomic.Int32 // -1 = use master; 0–100 = per-source override for chat SFX
 	playbackOverride  atomic.Int32 // -1 = use master; 0–100 = per-source override for .play clips
-	voiceChatOverride atomic.Int32 // -1 = use master; 0–100 = per-source override for voice call audio
+	voiceChatOverride atomic.Int32 // -1 = use master; 0–100 = per-source override for sounds call audio
 
 	otoOnce sync.Once
 	otoCtx  *oto.Context
@@ -238,7 +238,7 @@ var (
 	pipelineLatNs     atomic.Int64 // latest pipeline latency in nanoseconds
 	networkRTTNs      atomic.Int64 // latest network RTT in nanoseconds (ICE stats in real calls, loopback timing in test)
 
-	// Playback EQ — applied to MP3 clip playback (not voice chat audio).
+	// Playback EQ — applied to MP3 clip playback (not sounds chat audio).
 	// Protected by playbackEQMu; bump playbackEQVersion on every write so
 	// active eqReaders know to rebuild their filter coefficients.
 	playbackEQMu      sync.RWMutex
@@ -596,7 +596,7 @@ func clampVol5(v int) int {
 func MasterVolume() int { return int(masterVolume.Load()) }
 
 // SetMasterVolume sets the master output volume, clamped to 0–100 in steps of 5.
-// Also updates the active voice call player volume immediately.
+// Also updates the active sounds call player volume immediately.
 func SetMasterVolume(v int) {
 	masterVolume.Store(int32(clampVol5(v)))
 	mu.Lock()
@@ -632,11 +632,11 @@ func SetPlaybackOverride(v int) {
 	}
 }
 
-// VoiceChatOverride returns the voice call audio override: -1 means use master.
+// VoiceChatOverride returns the sounds call audio override: -1 means use master.
 func VoiceChatOverride() int { return int(voiceChatOverride.Load()) }
 
-// SetVoiceChatOverride sets the voice call audio override. Pass -1 to revert to master.
-// Also updates the active voice call player volume immediately.
+// SetVoiceChatOverride sets the sounds call audio override. Pass -1 to revert to master.
+// Also updates the active sounds call player volume immediately.
 func SetVoiceChatOverride(v int) {
 	if v < 0 {
 		voiceChatOverride.Store(-1)
@@ -651,7 +651,7 @@ func SetVoiceChatOverride(v int) {
 	}
 }
 
-// EffectiveChatSFXVolume returns the volume [0,1] to use for chat sound effects.
+// EffectiveChatSFXVolume returns the volume [0,1] to use for chat sounds effects.
 func EffectiveChatSFXVolume() float64 {
 	if o := ChatSFXOverride(); o >= 0 {
 		return float64(o) / 100.0
@@ -667,7 +667,7 @@ func EffectivePlaybackVolume() float64 {
 	return float64(MasterVolume()) / 100.0
 }
 
-// EffectiveVoiceChatVolume returns the volume [0,1] to use for live voice call audio.
+// EffectiveVoiceChatVolume returns the volume [0,1] to use for live sounds call audio.
 func EffectiveVoiceChatVolume() float64 {
 	if o := VoiceChatOverride(); o >= 0 {
 		return float64(o) / 100.0
@@ -807,7 +807,7 @@ func SetVibratoRange(r int) {
 	vibratoRange.Store(int32(r))
 }
 
-// IsConnecting reports whether a voice join is currently in progress.
+// IsConnecting reports whether a sounds join is currently in progress.
 func IsConnecting() bool { return connecting.Load() }
 
 // iceRTTMs returns the nominated ICE candidate pair round-trip time in
@@ -834,14 +834,14 @@ func estimatedStreamDelayMs() int {
 	return 2*opusFrameMs + opusFrameMs + 5 // 65ms
 }
 
-// IsActive reports whether a voice session is currently live.
+// IsActive reports whether a sounds session is currently live.
 func IsActive() bool {
 	mu.Lock()
 	defer mu.Unlock()
 	return activeSession != nil
 }
 
-// ActiveRoomID returns the room ID of the current voice session, or "" if none.
+// ActiveRoomID returns the room ID of the current sounds session, or "" if none.
 func ActiveRoomID() string {
 	mu.Lock()
 	defer mu.Unlock()
@@ -899,7 +899,7 @@ func (ab *audioBuf) Read(p []byte) (int, error) {
 		}
 		// Return silence immediately instead of blocking. The oto mux loop
 		// processes all registered players sequentially in one goroutine — if
-		// this Read blocks waiting for voice PCM, the mux loop stalls and stops
+		// this Read blocks waiting for sounds PCM, the mux loop stalls and stops
 		// filling the MP3-playback player's buffer, which pauses audio output.
 		for i := range p {
 			p[i] = 0
@@ -945,11 +945,11 @@ type voiceSession struct {
 }
 
 // GetOtoCtx returns the shared oto audio context, initializing it on first call.
-// Used for voice call playback (20 ms hardware buffer for low latency).
+// Used for sounds call playback (20 ms hardware buffer for low latency).
 func GetOtoCtx() (*oto.Context, error) { return getOtoCtx() }
 
 // GetMusicOtoCtx returns a dedicated oto context for .play music playback,
-// GetMusicOtoCtx returns the shared voice oto context (48 kHz). The sr
+// GetMusicOtoCtx returns the shared sounds oto context (48 kHz). The sr
 // parameter is ignored — callers that source audio at a different rate must
 // resample before writing to the player. Using a single context prevents the
 // CoreAudio crash that occurs when two output AudioUnits coexist on macOS, and
@@ -1004,7 +1004,7 @@ func newPC() (*webrtc.PeerConnection, error) {
 }
 
 func deriveVoiceKey(roomKeyBytes []byte) ([]byte, error) {
-	r := hkdf.New(sha256.New, roomKeyBytes, nil, []byte("voice"))
+	r := hkdf.New(sha256.New, roomKeyBytes, nil, []byte("sounds"))
 	key := make([]byte, 32)
 	if _, err := io.ReadFull(r, key); err != nil {
 		return nil, fmt.Errorf("hkdf: %w", err)
@@ -1052,11 +1052,11 @@ func JoinSelf() error {
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		key := make([]byte, 32)
 		if _, err := rand.Read(key); err != nil {
-			return fmt.Errorf("voice test: generate key: %w", err)
+			return fmt.Errorf("sounds test: generate key: %w", err)
 		}
 		aead, err := newAEAD(key)
 		if err != nil {
-			return fmt.Errorf("voice test: aead: %w", err)
+			return fmt.Errorf("sounds test: aead: %w", err)
 		}
 		if err := joinWithAEAD(SelfRoomID, aead); err != nil {
 			return err
@@ -1070,24 +1070,24 @@ func JoinSelf() error {
 		select {
 		case <-trackCh:
 			if attempt > 1 {
-				debugf("voice: self-test loopback established on attempt %d", attempt)
+				debugf("sounds: self-test loopback established on attempt %d", attempt)
 			}
 			return nil
 		case <-sessCtx.Done():
 			// External Leave() was called — abort retries.
-			return fmt.Errorf("voice test: cancelled")
+			return fmt.Errorf("sounds test: cancelled")
 		case <-time.After(trackTimeout):
 			_ = Leave(SelfRoomID)
 			if attempt < maxAttempts {
-				debugf("voice: self-test no return track after %.0fs, retrying (%d/%d)", trackTimeout.Seconds(), attempt, maxAttempts)
+				debugf("sounds: self-test no return track after %.0fs, retrying (%d/%d)", trackTimeout.Seconds(), attempt, maxAttempts)
 				time.Sleep(200 * time.Millisecond)
 			}
 		}
 	}
-	return fmt.Errorf("voice test: loopback not established after %d attempts", maxAttempts)
+	return fmt.Errorf("sounds test: loopback not established after %d attempts", maxAttempts)
 }
 
-// Join starts a voice call in roomID. Requires an active session with a selected room.
+// Join starts a sounds call in roomID. Requires an active session with a selected room.
 // Returns once the WebRTC connection is signalled; media flows asynchronously.
 // 1. Client creates offer → sets it as local description
 // 2. Client sends offer to broker
@@ -1098,15 +1098,15 @@ func JoinSelf() error {
 func Join(roomID string) error {
 	rawKeyBytes, err := connection.GetRoomKeyBytes()
 	if err != nil {
-		return fmt.Errorf("voice join: room key: %w", err)
+		return fmt.Errorf("sounds join: room key: %w", err)
 	}
 	voiceKey, err := deriveVoiceKey(rawKeyBytes)
 	if err != nil {
-		return fmt.Errorf("voice join: derive voice key: %w", err)
+		return fmt.Errorf("sounds join: derive sounds key: %w", err)
 	}
 	aead, err := newAEAD(voiceKey)
 	if err != nil {
-		return fmt.Errorf("voice join: aead: %w", err)
+		return fmt.Errorf("sounds join: aead: %w", err)
 	}
 	return joinWithAEAD(roomID, aead)
 }
@@ -1114,65 +1114,65 @@ func Join(roomID string) error {
 func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	connecting.Store(true)
 	defer connecting.Store(false)
-	debugf("voice: join start roomID=%s", roomID)
+	debugf("sounds: join start roomID=%s", roomID)
 	mu.Lock()
 	if activeSession != nil {
 		mu.Unlock()
-		return fmt.Errorf("already in a voice session")
+		return fmt.Errorf("already in a sounds session")
 	}
 	mu.Unlock()
-	debugf("voice: keys ok")
+	debugf("sounds: keys ok")
 
 	pc, err := newPC()
 	if err != nil {
-		return fmt.Errorf("voice join: new pc: %w", err)
+		return fmt.Errorf("sounds join: new pc: %w", err)
 	}
-	debugf("voice: peer connection created")
+	debugf("sounds: peer connection created")
 
 	sendTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{
 		MimeType:    webrtc.MimeTypeOpus,
 		ClockRate:   sampleRate,
 		Channels:    sdpChannels,
 		SDPFmtpLine: sdpFmtp,
-	}, "opus", "voice-stream")
+	}, "opus", "sounds-stream")
 	if err != nil {
 		pc.Close()
-		return fmt.Errorf("voice join: new send track: %w", err)
+		return fmt.Errorf("sounds join: new send track: %w", err)
 	}
 	if _, err := pc.AddTrack(sendTrack); err != nil {
 		pc.Close()
-		return fmt.Errorf("voice join: add track: %w", err)
+		return fmt.Errorf("sounds join: add track: %w", err)
 	}
 
-	debugf("voice: initialising audio output")
+	debugf("sounds: initialising audio output")
 	oc, err := getOtoCtx()
 	if err != nil {
 		pc.Close()
-		return fmt.Errorf("voice join: oto: %w", err)
+		return fmt.Errorf("sounds join: oto: %w", err)
 	}
-	debugf("voice: audio output ready")
+	debugf("sounds: audio output ready")
 	ab := newAudioBuf(sampleRate * 4 * 10) // 10 seconds of stereo int16 — reduces drift-pop frequency
-	debugf("voice: creating player")
+	debugf("sounds: creating player")
 	player := oc.NewPlayer(ab)
 	bufferSizeSetter, ok := player.(oto.BufferSizeSetter)
 	if ok {
-		debugf("voice: setting player buffer size to 20ms")
+		debugf("sounds: setting player buffer size to 20ms")
 		// opusFrameSamples(960) × 1 ch × 2 bytes/sample × 2 (stereo upmix) = 3840 bytes.
 		// oto is stereo int16 at 48 kHz → 192000 bytes/s, so 3840 bytes = 20 ms.
 		bufferSizeSetter.SetBufferSize(opusFrameSamples * numChannels * 2 * 2) // 20 ms
 	} else {
-		debugf("voice: player does not support buffer size setter")
+		debugf("sounds: player does not support buffer size setter")
 	}
-	debugf("voice: starting player")
+	debugf("sounds: starting player")
 	player.SetVolume(EffectiveVoiceChatVolume())
 	go player.Play() // Play() can block on Windows waiting for the audio device; don't hold up Join.
-	debugf("voice: player started")
+	debugf("sounds: player started")
 
 	// Create APM before OnTrack so both the receive and capture closures share it.
 	apm, apmErr := newAPMState(sampleRate, numChannels)
 	var de *streamDelayEst
 	if apmErr != nil {
-		debugf("voice: AEC init failed (continuing without): %v", apmErr)
+		debugf("sounds: AEC init failed (continuing without): %v", apmErr)
 		apm = nil
 	} else {
 		initDelayMs := estimatedStreamDelayMs()
@@ -1185,7 +1185,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 
 	// Receive incoming tracks: decrypt → decode Opus → PCM → speakers.
 	pc.OnTrack(func(remote *webrtc.TrackRemote, _ *webrtc.RTPReceiver) {
-		debugf("voice: OnTrack fired, ssrc=%d", remote.SSRC())
+		debugf("sounds: OnTrack fired, ssrc=%d", remote.SSRC())
 		onTrackOnce.Do(func() { close(onTrackCh) })
 		dec, err := newOpusDecoder(sampleRate, numChannels)
 		if err != nil {
@@ -1200,7 +1200,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		}
 		denoiseIn, denoiseInErr := newRNNoiseState()
 		if denoiseInErr != nil {
-			debugf("voice: new inbound rnnoise state, will not denoise: %v", denoiseInErr)
+			debugf("sounds: new inbound rnnoise state, will not denoise: %v", denoiseInErr)
 		} else {
 			defer denoiseIn.Destroy()
 		}
@@ -1208,6 +1208,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 		isLoopback := roomID == SelfRoomID
 		var lastSeq uint16
 		seenFirst := false
+
 		for {
 			pkt, _, err := remote.ReadRTP()
 			if err != nil {
@@ -1286,25 +1287,25 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	// Create offer and gather ICE.
 	// SetLocalDescription triggers mDNS registration which blocks forever on Windows,
 	// so we run the entire gather sequence in a goroutine and select on a result channel.
-	debugf("voice: creating offer")
+	debugf("sounds: creating offer")
 	offer, err := pc.CreateOffer(nil)
 	if err != nil {
 		pc.Close()
 		player.Close()
-		return fmt.Errorf("voice join: create offer: %w", err)
+		return fmt.Errorf("sounds join: create offer: %w", err)
 	}
 	gatherDone := webrtc.GatheringCompletePromise(pc)
 	setLocalErrCh := make(chan error, 1)
 	go func() {
-		debugf("voice: setting local description")
+		debugf("sounds: setting local description")
 		if err := pc.SetLocalDescription(offer); err != nil {
-			debugf("voice: set local desc error: %v", err)
+			debugf("sounds: set local desc error: %v", err)
 			setLocalErrCh <- err
 			return
 		}
-		debugf("voice: waiting for ICE gathering")
+		debugf("sounds: waiting for ICE gathering")
 		<-gatherDone
-		debugf("voice: ICE gathering complete")
+		debugf("sounds: ICE gathering complete")
 		setLocalErrCh <- nil
 	}()
 	select {
@@ -1315,23 +1316,23 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 				_ = player.Close()
 				_ = pc.Close()
 			}()
-			return fmt.Errorf("voice join: set local desc: %w", err)
+			return fmt.Errorf("sounds join: set local desc: %w", err)
 		}
 	case <-time.After(10 * time.Second):
-		debugf("voice: ICE gathering timed out")
+		debugf("sounds: ICE gathering timed out")
 		go func() {
 			ab.close()
 			_ = player.Close()
 			_ = pc.Close()
 		}()
-		return fmt.Errorf("voice join: ICE gathering timeout")
+		return fmt.Errorf("sounds join: ICE gathering timeout")
 	}
 
 	s := connection.CurrentSession()
 	if s == nil {
 		pc.Close()
 		player.Close()
-		return fmt.Errorf("voice join: not connected")
+		return fmt.Errorf("sounds join: not connected")
 	}
 
 	// Set up the session and register the message handler BEFORE sending the
@@ -1375,13 +1376,19 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 
 	pc.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
 		if state == webrtc.PeerConnectionStateFailed {
-			debugf("voice: connection failed, initiating ICE restart")
+			debugf("sounds: connection failed, initiating ICE restart")
 			go iceRestart(sess)
+		} else if state == webrtc.PeerConnectionStateDisconnected || state == webrtc.PeerConnectionStateClosed {
+			clientlog.Info("sounds: connection closed")
+			PlayVoiceLeave()
+		} else if state == webrtc.PeerConnectionStateConnected {
+			clientlog.Info("sounds: connection established")
+			PlayVoiceJoin()
 		}
 	})
 	connection.SetVoiceMessageHandler(handleIncoming)
 
-	debugf("voice: sending offer to broker")
+	debugf("sounds: sending offer to broker")
 	payload, _ := json.Marshal(wstypes.VoiceJoinPayload{
 		RoomID: roomID, SDPOffer: pc.LocalDescription().SDP,
 	})
@@ -1393,23 +1400,23 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	data, _ := json.Marshal(wsMsg)
 	if err := connection.Send(data); err != nil {
 		Leave(roomID)
-		return fmt.Errorf("voice join: send: %w", err)
+		return fmt.Errorf("sounds join: send: %w", err)
 	}
-	debugf("voice: offer sent, waiting for broker answer")
+	debugf("sounds: offer sent, waiting for broker answer")
 
 	select {
 	case sdpAnswer := <-answerCh:
 		if err := pc.SetRemoteDescription(webrtc.SessionDescription{
 			Type: webrtc.SDPTypeAnswer, SDP: sdpAnswer,
 		}); err != nil {
-			debugf("voice: set remote desc error: %v", err)
+			debugf("sounds: set remote desc error: %v", err)
 			Leave(roomID)
-			return fmt.Errorf("voice join: set remote desc: %w", err)
+			return fmt.Errorf("sounds join: set remote desc: %w", err)
 		}
-		debugf("voice: remote description set, join complete")
+		debugf("sounds: remote description set, join complete")
 	case <-time.After(10 * time.Second):
 		Leave(roomID)
-		return fmt.Errorf("voice join: timeout waiting for broker answer")
+		return fmt.Errorf("sounds join: timeout waiting for broker answer")
 	}
 
 	captureCtx, captureCancel := context.WithCancel(ctx)
@@ -1425,7 +1432,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	return nil
 }
 
-// LeaveIfActive tears down the active voice session regardless of room ID.
+// LeaveIfActive tears down the active sounds session regardless of room ID.
 // Safe to call when no session is active.
 func LeaveIfActive() {
 	mu.Lock()
@@ -1437,7 +1444,7 @@ func LeaveIfActive() {
 	Leave(sess.roomID)
 }
 
-// Leave ends the active voice session for roomID.
+// Leave ends the active sounds session for roomID.
 func Leave(roomID string) error {
 	mu.Lock()
 	sess := activeSession
@@ -1488,7 +1495,7 @@ func Leave(roomID string) error {
 }
 
 // RestartCapture cancels the running microphone capture goroutine and starts a
-// fresh one using the currently selected input device. No-op when no voice
+// fresh one using the currently selected input device. No-op when no sounds
 // session is active. Call this after SetInputDevice to apply the new device
 // immediately without tearing down the whole call.
 func RestartCapture() {
@@ -1525,7 +1532,7 @@ func RestartCapture() {
 	}()
 }
 
-// handleIncoming is the voice message handler registered with connection.SetVoiceMessageHandler.
+// handleIncoming is the sounds message handler registered with connection.SetVoiceMessageHandler.
 func handleIncoming(rpcName string, payload []byte) {
 	mu.Lock()
 	sess := activeSession
@@ -1577,23 +1584,23 @@ func handleIncoming(rpcName string, payload []byte) {
 				time.Sleep(100 * time.Millisecond)
 			}
 			if sess.pc.SignalingState() != webrtc.SignalingStateStable {
-				debugf("voice: reneg: timed out waiting for stable state, dropping offer")
+				debugf("sounds: reneg: timed out waiting for stable state, dropping offer")
 				return
 			}
 			if err := sess.pc.SetRemoteDescription(webrtc.SessionDescription{
 				Type: webrtc.SDPTypeOffer, SDP: offer.SDPOffer,
 			}); err != nil {
-				debugf("voice: reneg set remote desc: %v", err)
+				debugf("sounds: reneg set remote desc: %v", err)
 				return
 			}
 			answer, err := sess.pc.CreateAnswer(nil)
 			if err != nil {
-				debugf("voice: reneg create answer: %v", err)
+				debugf("sounds: reneg create answer: %v", err)
 				return
 			}
 			gatherDone := webrtc.GatheringCompletePromise(sess.pc)
 			if err := sess.pc.SetLocalDescription(answer); err != nil {
-				debugf("voice: reneg set local desc: %v", err)
+				debugf("sounds: reneg set local desc: %v", err)
 				return
 			}
 			<-gatherDone
@@ -1632,12 +1639,12 @@ func iceRestart(sess *voiceSession) {
 
 	offer, err := sess.pc.CreateOffer(&webrtc.OfferOptions{ICERestart: true})
 	if err != nil {
-		debugf("voice: ice restart create offer: %v", err)
+		debugf("sounds: ice restart create offer: %v", err)
 		return
 	}
 	gatherDone := webrtc.GatheringCompletePromise(sess.pc)
 	if err := sess.pc.SetLocalDescription(offer); err != nil {
-		debugf("voice: ice restart set local desc: %v", err)
+		debugf("sounds: ice restart set local desc: %v", err)
 		return
 	}
 	<-gatherDone
@@ -1664,10 +1671,10 @@ func iceRestart(sess *voiceSession) {
 		if err := sess.pc.SetRemoteDescription(webrtc.SessionDescription{
 			Type: webrtc.SDPTypeAnswer, SDP: sdpAnswer,
 		}); err != nil {
-			debugf("voice: ice restart set remote desc: %v", err)
+			debugf("sounds: ice restart set remote desc: %v", err)
 		}
 	case <-time.After(10 * time.Second):
-		debugf("voice: ice restart timeout")
+		debugf("sounds: ice restart timeout")
 	}
 }
 
@@ -1702,44 +1709,47 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 		})
 	}
 	if err != nil {
-		clientlog.Error("voice: get user media failed: %v", err)
+		clientlog.Error("sounds: get user media failed: %v", err)
 		return
 	}
+	clientlog.Info("captureAndSend: stream created, get audio tracks")
 	tracks := stream.GetAudioTracks()
 	if len(tracks) == 0 {
-		debugf("voice: no audio tracks from microphone")
+		debugf("sounds: no audio tracks from microphone")
 		return
 	}
+	clientlog.Info("captureAndSend: got %d audio tracks, using the first one", len(tracks))
 	audioTrack := tracks[0]
 	defer func() { _ = audioTrack.Close() }()
 
+	clientlog.Info("captureAndSend: creating opus encoder and RNN encoder")
 	enc, err := newOpusEncoder(sampleRate, numChannels)
 	if err != nil {
-		debugf("voice: new opus encoder: %v", err)
+		debugf("sounds: new opus encoder: %v", err)
 		return
 	}
 
 	denoise, err := newRNNoiseState()
 	if err != nil {
-		debugf("voice: new rnnoise state, will not denoise: %v", err)
+		debugf("sounds: new rnnoise state, will not denoise: %v", err)
 	}
 
-	// signalsmith-stretch pitch shifter: 2048-sample block (~43 ms), 512-sample interval (~11 ms).
-	// Creates ~43 ms of additional send-side latency when pitch shift is active.
-	const ssBlock = 2048
-	const ssInterval = 512
-	pitch, pitchErr := newSSStretch(sampleRate, numChannels, ssBlock, ssInterval)
-	if pitchErr != nil {
-		debugf("voice: signalsmith-stretch init failed: %v", pitchErr)
-	}
-	pitchOut := make([]float32, opusFrameSamples*numChannels)
-	var vibratoPhase float64 // radians; advances each frame
+	//// signalsmith-stretch pitch shifter: 2048-sample block (~43 ms), 512-sample interval (~11 ms).
+	//// Creates ~43 ms of additional send-side latency when pitch shift is active.
+	//const ssBlock = 2048
+	//const ssInterval = 512
+	//pitch, pitchErr := newSSStretch(sampleRate, numChannels, ssBlock, ssInterval)
+	//if pitchErr != nil {
+	//	debugf("sounds: signalsmith-stretch init failed: %v", pitchErr)
+	//}
+	//pitchOut := make([]float32, opusFrameSamples*numChannels)
+	//var vibratoPhase float64 // radians; advances each frame
 
 	defer enc.close()
-	if pitch != nil {
-		defer pitch.close()
-	}
-	// 64 kbps matches Discord's default voice channel bitrate.
+	//if pitch != nil {
+	//	defer pitch.close()
+	//}
+	// 64 kbps matches Discord's default sounds channel bitrate.
 	// Note: the broker rate-limits per-session, so don't go above 96 kbps.
 	enc.setBitrate(64000)
 	// 5% reflects typical internet packet loss; setting this too low (e.g. 1%)
@@ -1747,28 +1757,31 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 	enc.setPacketLossPerc(5)
 	enc.setDTX(true)
 
+	clientlog.Info("captureAndSend: finished configuring encoder")
 	reader := audioTrack.(*media.AudioTrack).NewReader(false)
 	var seq uint32
 	var ts uint32
 	var pcmAccum []int16
 	opusBuf := make([]byte, opusBufMax)
 
+	clientlog.Info("captureAndSend: starting capture loop")
 	for {
 		select {
 		case <-ctx.Done():
+			clientlog.Warn("captureAndSend: context cancelled, stopping capture")
 			return
 		default:
 		}
 
 		chunk, release, err := reader.Read()
 		if err != nil {
-			debugf("voice: reader read: %v", err)
+			debugf("sounds: reader read: %v", err)
 			return
 		}
 		pcm, err := chunkToInt16(chunk)
 		release()
 		if err != nil {
-			debugf("voice: chunk convert: %v", err)
+			debugf("sounds: chunk convert: %v", err)
 			continue
 		}
 		pcmAccum = append(pcmAccum, pcm...)
@@ -1789,7 +1802,7 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 			// AEC capture path: cancel echo from the mic signal using the
 			// reference frames fed via ProcessReverse. Any speaker audio that
 			// leaked back into the mic is subtracted here, leaving (ideally)
-			// only the speaker's own voice. Must run before RNNoise so the
+			// only the speaker's own sounds. Must run before RNNoise so the
 			// noise suppressor works on an already-clean signal.
 			if apm != nil && aecEnabled.Load() {
 				for i := 0; i+apmFrameSamples <= len(frame); i += apmFrameSamples {
@@ -1806,26 +1819,26 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 				frame = float32ToPCM16(f32)
 			}
 
-			usePitch := pitch != nil && (pitchEnabled.Load() || vibratoEnabled.Load())
-			if usePitch {
-				semitones := float64(0)
-				if pitchEnabled.Load() {
-					semitones += float64(pitchPos.Load() - 12)
-				}
-				if vibratoEnabled.Load() {
-					depth := float64(vibratoRange.Load()) * 0.5 // in semitones
-					semitones += depth * math.Sin(vibratoPhase)
-					frameDur := float64(opusFrameSamples) / float64(sampleRate)
-					vibratoPhase += 2 * math.Pi * float64(vibratoFreq.Load()) * frameDur
-					if vibratoPhase >= 2*math.Pi {
-						vibratoPhase -= 2 * math.Pi
-					}
-				}
-				pitch.setSemitones(float32(semitones))
-				f32 := pcm16ToFloat32(frame)
-				pitch.process(f32, pitchOut)
-				frame = float32ToPCM16(pitchOut)
-			}
+			//usePitch := pitch != nil && (pitchEnabled.Load() || vibratoEnabled.Load())
+			//if usePitch {
+			//	semitones := float64(0)
+			//	if pitchEnabled.Load() {
+			//		semitones += float64(pitchPos.Load() - 12)
+			//	}
+			//	if vibratoEnabled.Load() {
+			//		depth := float64(vibratoRange.Load()) * 0.5 // in semitones
+			//		semitones += depth * math.Sin(vibratoPhase)
+			//		frameDur := float64(opusFrameSamples) / float64(sampleRate)
+			//		vibratoPhase += 2 * math.Pi * float64(vibratoFreq.Load()) * frameDur
+			//		if vibratoPhase >= 2*math.Pi {
+			//			vibratoPhase -= 2 * math.Pi
+			//		}
+			//	}
+			//	pitch.setSemitones(float32(semitones))
+			//	f32 := pcm16ToFloat32(frame)
+			//	pitch.process(f32, pitchOut)
+			//	frame = float32ToPCM16(pitchOut)
+			//}
 
 			n, err := enc.encode(frame, opusBuf)
 			encDur := time.Since(encodeStart).Nanoseconds()
@@ -1833,13 +1846,13 @@ func captureAndSend(ctx context.Context, aead cipher.AEAD, track *webrtc.TrackLo
 			encodeFrames.Add(1)
 			lastEncodeNs.Store(encDur)
 			if err != nil {
-				debugf("voice: opus encode: %v", err)
+				debugf("sounds: opus encode: %v", err)
 				continue
 			}
 
 			ciphertext, err := encryptFrame(aead, opusBuf[:n])
 			if err != nil {
-				debugf("voice: encrypt: %v", err)
+				debugf("sounds: encrypt: %v", err)
 				continue
 			}
 

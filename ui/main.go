@@ -15,7 +15,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"github.com/srschreiber/nito-client/engine/commands"
 	"github.com/srschreiber/nito-client/engine/connection"
-	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/engine/sounds"
 	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
@@ -152,6 +152,6 @@ func pingLoop(sp *StatusPanel) {
 func init() {
 	initLogging()
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	voice.LoadAudioSettings()
+	sounds.LoadAudioSettings()
 	clientlog.Info("nito started")
 }

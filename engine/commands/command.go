@@ -79,8 +79,8 @@ var Registry = []CommandDef{
 	{Name: CmdJump, Desc: "jump to a specific line in the conversation history", Args: []ArgDef{
 		{Short: "L", Long: "line", Desc: "target line number (1-indexed from top)"},
 	}},
-	{Name: CmdVoiceJoin, Desc: "join a voice call in the currently selected room"},
-	{Name: CmdVoiceLeave, Desc: "leave the active voice call"},
+	{Name: CmdVoiceJoin, Desc: "join a sounds call in the currently selected room"},
+	{Name: CmdVoiceLeave, Desc: "leave the active sounds call"},
 	{Name: CmdDM, Desc: "open a direct-message conversation with a user (switch to DM tab)", Args: []ArgDef{
 		{Short: "u", Long: "user", Desc: "username to DM"},
 	}},

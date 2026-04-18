@@ -73,7 +73,7 @@ var (
 	storedJWT    string
 )
 
-// SetVoiceMessageHandler registers a callback invoked for every incoming voice RPC
+// SetVoiceMessageHandler registers a callback invoked for every incoming sounds RPC
 // (voice_answer, voice_offer). Safe to call from any goroutine.
 func SetVoiceMessageHandler(h func(rpcName string, payload []byte)) {
 	vmhMu.Lock()
@@ -337,7 +337,7 @@ func readLoop(c *websocket.Conn, echoChan, roomMessageChan, dmChan, nc chan []by
 			// just wrap as a notification to use same plumbing. sorta a hack, but avoids additional wiring
 			notif := wstypes.NotificationPayload{
 				Type:     wstypes.NotificationTypeSoundClip,
-				Text:     "incoming sound clip",
+				Text:     "incoming sounds clip",
 				Username: payload.FromUsername,
 				Data:     payload,
 			}

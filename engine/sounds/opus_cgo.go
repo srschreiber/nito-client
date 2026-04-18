@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Sam Schreiber
 // SPDX-License-Identifier: LicenseRef-nito
 
-package voice
+package sounds
 
 // Minimal CGo wrapper around libopus for encoding and decoding Opus frames.
 // Only libopus is required (pkg-config: opus); libopusfile is not needed.

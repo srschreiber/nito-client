@@ -10,7 +10,7 @@ import (
 
 	"github.com/srschreiber/nito-client/engine/commands"
 	"github.com/srschreiber/nito-client/engine/connection"
-	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/engine/sounds"
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	"github.com/srschreiber/nito-client/ui/clientlog"
 
@@ -286,26 +286,26 @@ func (cp *ChatPanel) buildSidebar() fyne.CanvasObject {
 
 	// ── Voice join/leave button (state updated by TickVoice every 50 ms) ──────
 	cp.voiceBtn = newBtn("Join Voice", func() {
-		if voice.IsActive() {
+		if sounds.IsActive() {
 			go func() {
 				var err error
-				if voice.ActiveRoomID() == voice.SelfRoomID {
+				if sounds.ActiveRoomID() == sounds.SelfRoomID {
 					err = commands.VoiceLeaveTestAudioDirect()
 				} else {
 					err = commands.VoiceLeaveDirect()
 				}
 				if err != nil {
-					fyne.Do(func() { showToast(w, "voice: "+err.Error(), toastError) })
+					fyne.Do(func() { showToast(w, "sounds: "+err.Error(), toastError) })
 				} else {
-					clientlog.Info("left voice chat")
+					clientlog.Info("left sounds chat")
 				}
 			}()
-		} else if !voice.IsConnecting() {
+		} else if !sounds.IsConnecting() {
 			go func() {
 				if err := commands.VoiceJoinDirect(); err != nil {
-					fyne.Do(func() { showToast(w, "voice: "+err.Error(), toastError) })
+					fyne.Do(func() { showToast(w, "sounds: "+err.Error(), toastError) })
 				} else {
-					clientlog.Info("joined voice chat")
+					clientlog.Info("joined sounds chat")
 				}
 			}()
 		}
@@ -605,14 +605,14 @@ func (cp *ChatPanel) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(panel)
 }
 
-// TickVoice updates the join/leave button to reflect current voice state.
+// TickVoice updates the join/leave button to reflect current sounds state.
 // Called every ~50 ms from the StatusPanel animation ticker on the Fyne thread.
 func (cp *ChatPanel) TickVoice() {
 	if cp.voiceBtn == nil {
 		return
 	}
-	active := voice.IsActive()
-	connecting := voice.IsConnecting()
+	active := sounds.IsActive()
+	connecting := sounds.IsConnecting()
 	inRoom := cp.currentRoomID != ""
 
 	cp.voiceTick++

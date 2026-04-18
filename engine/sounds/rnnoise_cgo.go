@@ -1,4 +1,4 @@
-package voice
+package sounds
 
 /*
 #cgo pkg-config: rnnoise

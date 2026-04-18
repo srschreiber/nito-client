@@ -17,7 +17,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/srschreiber/nito-client/engine/components"
-	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/engine/sounds"
 	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
@@ -92,7 +92,12 @@ func startTrackLocal(idx int, audioURL string) {
 	trackMu.Unlock()
 
 	go func() {
-		fn := components.PlayAudioFromURL(ctx, voice.SelfRoomID, audioURL, idx)
+		var fn func()
+		if strings.HasPrefix(audioURL, "http://") || strings.HasPrefix(audioURL, "https://") {
+			fn = components.PlayAudioFromURL(ctx, sounds.SelfRoomID, audioURL, idx)
+		} else {
+			fn = components.PlayAudioFromFile(ctx, audioURL, idx)
+		}
 		fn() // blocks until playback ends or ctx is cancelled
 		trackMu.Lock()
 		if trackState[idx].gen == myGen {
@@ -205,7 +210,7 @@ func (m *TrackMeterWidget) pixelAt(px, py, pw, ph int) color.Color {
 		return liveSurface
 	}
 
-	level := voice.GetTrackBandLevel(m.trackIdx, b)
+	level := sounds.GetTrackBandLevel(m.trackIdx, b)
 
 	// Wobble adds ±8% visual animation even at sustained levels
 	wobble := 0.08 * math.Sin(float64(time.Now().UnixMilli()%628)/100.0)
@@ -255,15 +260,15 @@ func (r *trackRowBundle) tick(tickN int) {
 		r.idleLayer.Hide()
 		r.activeLayer.Show()
 
-		if voice.IsTrackBuffering(r.trackIdx) {
+		if sounds.IsTrackBuffering(r.trackIdx) {
 			frame := spinnerFrames[tickN%len(spinnerFrames)]
 			r.statusLabel.SetText(frame + " BUFFERING")
 			r.statusLabel.Importance = widget.WarningImportance
-		} else if voice.IsTrackLive(r.trackIdx) {
+		} else if sounds.IsTrackLive(r.trackIdx) {
 			r.statusLabel.SetText("◉ LIVE")
 			r.statusLabel.Importance = widget.DangerImportance
 		} else {
-			title := voice.GetTrackTitle(r.trackIdx)
+			title := sounds.GetTrackTitle(r.trackIdx)
 			if title == "" {
 				title = "playing…"
 			}
@@ -320,7 +325,7 @@ func newTrackRowBundle(idx int, w fyne.Window) *trackRowBundle {
 // ── Play popup ────────────────────────────────────────────────────────────────
 
 func showPlayPopup(w fyne.Window, idx int) {
-	aliases, _ := voice.ListAudioAliases()
+	aliases, _ := sounds.ListAudioAliases()
 
 	urlEntry := widget.NewEntry()
 	urlEntry.SetPlaceHolder("https://...  or  archive.org url")
@@ -405,7 +410,7 @@ func showAddAliasPopup(w fyne.Window, onAdded func()) {
 			showToast(w, "name and URL required", toastWarn)
 			return
 		}
-		if err := voice.SaveAudioAlias(name, url); err != nil {
+		if err := sounds.SaveAudioAlias(name, url); err != nil {
 			showToast(w, "save alias: "+err.Error(), toastError)
 			return
 		}
@@ -458,7 +463,7 @@ func showAddAliasPopupPrefilled(w fyne.Window, initName, initURL string, onAdded
 			showToast(w, "name and URL required", toastWarn)
 			return
 		}
-		if err := voice.SaveAudioAlias(name, u); err != nil {
+		if err := sounds.SaveAudioAlias(name, u); err != nil {
 			showToast(w, "save alias: "+err.Error(), toastError)
 			return
 		}
@@ -511,12 +516,12 @@ func buildTracksTab(w fyne.Window) (fyne.CanvasObject, func()) {
 
 	var rebuildAliases func()
 	rebuildAliases = func() {
-		aliases, _ := voice.ListAudioAliases()
+		aliases, _ := sounds.ListAudioAliases()
 		var aliasRows []fyne.CanvasObject
 		for name, url := range aliases {
 			n, u := name, url // capture
 			removeBtn := newBtn("🗑", func() {
-				if err := voice.DeleteAudioAlias(n); err != nil {
+				if err := sounds.DeleteAudioAlias(n); err != nil {
 					showToast(w, "remove alias: "+err.Error(), toastError)
 				} else {
 					clientlog.Info("deleted alias: " + n)

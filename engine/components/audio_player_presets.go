@@ -4,7 +4,7 @@
 package components
 
 import (
-	"github.com/srschreiber/nito-client/engine/voice"
+	"github.com/srschreiber/nito-client/engine/sounds"
 )
 
 // ShowAudioPlayerPresetsMsg opens the preset selector screen.
@@ -23,25 +23,25 @@ type audioPreset struct {
 
 // noFX returns sensible "off" states for delay/reverb/chorus/pan.
 // Preset apply functions call this then layer any FX they need on top.
-func noFX() (voice.DelaySettings, voice.ReverbSettings, voice.ChorusSettings, voice.PannerSettings) {
-	del := voice.DelaySettings{Enabled: false, DelayMs: 55, Feedback: 0.3}
-	rev := voice.ReverbSettings{Enabled: false, Mix: 0.2, Size: 1.0, Decay: 0.5, Tone: 0.5}
-	cho := voice.ChorusSettings{Enabled: false, BaseDelayMs: 15, RateHz: 0.5, DepthMs: 3.0, Mix: 0.2}
+func noFX() (sounds.DelaySettings, sounds.ReverbSettings, sounds.ChorusSettings, sounds.PannerSettings) {
+	del := sounds.DelaySettings{Enabled: false, DelayMs: 55, Feedback: 0.3}
+	rev := sounds.ReverbSettings{Enabled: false, Mix: 0.2, Size: 1.0, Decay: 0.5, Tone: 0.5}
+	cho := sounds.ChorusSettings{Enabled: false, BaseDelayMs: 15, RateHz: 0.5, DepthMs: 3.0, Mix: 0.2}
 	// AutoPanRate must be >0 so LoadAudioSettings recognises the field as written.
-	pan := voice.PannerSettings{Balance: 0, AutoPanEnabled: false, AutoPanRate: 1.0, AutoPanDepth: 0.5}
+	pan := sounds.PannerSettings{Balance: 0, AutoPanEnabled: false, AutoPanRate: 1.0, AutoPanDepth: 0.5}
 	return del, rev, cho, pan
 }
 
 // applyPreset sets EQ + FX settings and saves, preserving volume and pitch.
-func applyPreset(eq voice.EQSettings,
-	del voice.DelaySettings, rev voice.ReverbSettings,
-	cho voice.ChorusSettings, pan voice.PannerSettings) {
-	voice.SetPlaybackEQSettings(eq)
-	voice.SetDelaySettings(del)
-	voice.SetReverbSettings(rev)
-	voice.SetChorusSettings(cho)
-	voice.SetPannerSettings(pan)
-	voice.SaveAudioSettings()
+func applyPreset(eq sounds.EQSettings,
+	del sounds.DelaySettings, rev sounds.ReverbSettings,
+	cho sounds.ChorusSettings, pan sounds.PannerSettings) {
+	sounds.SetPlaybackEQSettings(eq)
+	sounds.SetDelaySettings(del)
+	sounds.SetReverbSettings(rev)
+	sounds.SetChorusSettings(cho)
+	sounds.SetPannerSettings(pan)
+	sounds.SaveAudioSettings()
 }
 
 // audioPresetList contains all available presets in alphabetical order.
@@ -53,10 +53,10 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ · Chorus",
 		apply: func() {
 			del, rev, _, pan := noFX()
-			cho := voice.ChorusSettings{
+			cho := sounds.ChorusSettings{
 				Enabled: true, BaseDelayMs: 22, RateHz: 0.25, DepthMs: 2.5, Mix: 0.14,
 			}
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: -2.0, BassHz: 120,
 				MidGain: -1.0, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: 3.0, TrebleHz: 10000,
@@ -71,10 +71,10 @@ var audioPresetList = []audioPreset{
 		tags:    "Auto-Pan",
 		apply: func() {
 			del, rev, cho, _ := noFX()
-			pan := voice.PannerSettings{
+			pan := sounds.PannerSettings{
 				Balance: 0, AutoPanEnabled: true, AutoPanRate: 1.5, AutoPanDepth: 0.7,
 			}
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: 0.0, BassHz: 120,
 				MidGain: 0.0, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: 0.5, TrebleHz: 5000,
@@ -89,7 +89,7 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ only",
 		apply: func() {
 			del, rev, cho, pan := noFX()
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: 2.0, BassHz: 120,
 				MidGain: -0.5, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: 1.5, TrebleHz: 5000,
@@ -104,7 +104,7 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ only",
 		apply: func() {
 			del, rev, cho, pan := noFX()
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: 3.0, BassHz: 80,
 				MidGain: -1.0, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: 0.0, TrebleHz: 5000,
@@ -119,7 +119,7 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ only",
 		apply: func() {
 			del, rev, cho, pan := noFX()
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: -1.0, BassHz: 120,
 				MidGain: 0.0, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: 3.0, TrebleHz: 9000,
@@ -134,10 +134,10 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ · Reverb",
 		apply: func() {
 			del, _, cho, pan := noFX()
-			rev := voice.ReverbSettings{
+			rev := sounds.ReverbSettings{
 				Enabled: true, Mix: 0.15, Size: 1.3, Decay: 0.55, Tone: 0.35,
 			}
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: 2.5, BassHz: 100,
 				MidGain: -0.5, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: -2.5, TrebleHz: 5000,
@@ -152,8 +152,8 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ · Delay",
 		apply: func() {
 			_, rev, cho, pan := noFX()
-			del := voice.DelaySettings{Enabled: true, DelayMs: 250, Feedback: 0.42}
-			applyPreset(voice.EQSettings{
+			del := sounds.DelaySettings{Enabled: true, DelayMs: 250, Feedback: 0.42}
+			applyPreset(sounds.EQSettings{
 				BassGain: 0.5, BassHz: 120,
 				MidGain: -0.5, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: 2.0, TrebleHz: 7000,
@@ -168,7 +168,7 @@ var audioPresetList = []audioPreset{
 		tags:    "Clean slate",
 		apply: func() {
 			del, rev, cho, pan := noFX()
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: 0.0, BassHz: 120,
 				MidGain: 0.0, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: 0.0, TrebleHz: 5000,
@@ -183,14 +183,14 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ · Reverb · Chorus",
 		apply: func() {
 			del, _, _, _ := noFX()
-			pan := voice.PannerSettings{Balance: 0, AutoPanEnabled: true, AutoPanRate: 0.3, AutoPanDepth: 0.3}
-			rev := voice.ReverbSettings{
+			pan := sounds.PannerSettings{Balance: 0, AutoPanEnabled: true, AutoPanRate: 0.3, AutoPanDepth: 0.3}
+			rev := sounds.ReverbSettings{
 				Enabled: true, Mix: 0.28, Size: 1.8, Decay: 0.72, Tone: 0.55,
 			}
-			cho := voice.ChorusSettings{
+			cho := sounds.ChorusSettings{
 				Enabled: true, BaseDelayMs: 18, RateHz: 0.35, DepthMs: 3.5, Mix: 0.18,
 			}
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: 2.0, BassHz: 120,
 				MidGain: -0.5, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: 2.0, TrebleHz: 5000,
@@ -205,9 +205,9 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ · Reverb · Delay",
 		apply: func() {
 			_, _, cho, pan := noFX()
-			del := voice.DelaySettings{Enabled: true, DelayMs: 80, Feedback: 0.2}
-			rev := voice.ReverbSettings{Enabled: true, Mix: 0.2, Size: 1.2, Decay: 0.65, Tone: 0.3}
-			applyPreset(voice.EQSettings{
+			del := sounds.DelaySettings{Enabled: true, DelayMs: 80, Feedback: 0.2}
+			rev := sounds.ReverbSettings{Enabled: true, Mix: 0.2, Size: 1.2, Decay: 0.65, Tone: 0.3}
+			applyPreset(sounds.EQSettings{
 				BassGain: 2.0, BassHz: 110,
 				MidGain: -1.0, MidHz: 400, MidQ: 1.2,
 				TrebleGain: -3.0, TrebleHz: 8000,
@@ -222,7 +222,7 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ only",
 		apply: func() {
 			del, rev, cho, pan := noFX()
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: 3.0, BassHz: 80,
 				MidGain: 1.5, MidHz: 700, MidQ: 1.5,
 				TrebleGain: 2.0, TrebleHz: 5000,
@@ -236,11 +236,11 @@ var audioPresetList = []audioPreset{
 		tagline: "Full FX chain, high energy",
 		tags:    "EQ · Reverb · Chorus · Delay · Pan",
 		apply: func() {
-			del := voice.DelaySettings{Enabled: true, DelayMs: 120, Feedback: 0.35}
-			rev := voice.ReverbSettings{Enabled: true, Mix: 0.25, Size: 2.0, Decay: 0.70, Tone: 0.6}
-			cho := voice.ChorusSettings{Enabled: true, BaseDelayMs: 12, RateHz: 0.5, DepthMs: 2.0, Mix: 0.12}
-			pan := voice.PannerSettings{Balance: 0, AutoPanEnabled: true, AutoPanRate: 0.5, AutoPanDepth: 0.4}
-			applyPreset(voice.EQSettings{
+			del := sounds.DelaySettings{Enabled: true, DelayMs: 120, Feedback: 0.35}
+			rev := sounds.ReverbSettings{Enabled: true, Mix: 0.25, Size: 2.0, Decay: 0.70, Tone: 0.6}
+			cho := sounds.ChorusSettings{Enabled: true, BaseDelayMs: 12, RateHz: 0.5, DepthMs: 2.0, Mix: 0.12}
+			pan := sounds.PannerSettings{Balance: 0, AutoPanEnabled: true, AutoPanRate: 0.5, AutoPanDepth: 0.4}
+			applyPreset(sounds.EQSettings{
 				BassGain: 3.0, BassHz: 80,
 				MidGain: -3.0, MidHz: 500, MidQ: 1.2,
 				TrebleGain: 3.0, TrebleHz: 8000,
@@ -255,7 +255,7 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ only",
 		apply: func() {
 			del, rev, cho, pan := noFX()
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: -2.0, BassHz: 120,
 				MidGain: 2.5, MidHz: 800, MidQ: 0.8,
 				TrebleGain: 1.0, TrebleHz: 5000,
@@ -270,7 +270,7 @@ var audioPresetList = []audioPreset{
 		tags:    "EQ only",
 		apply: func() {
 			del, rev, cho, pan := noFX()
-			applyPreset(voice.EQSettings{
+			applyPreset(sounds.EQSettings{
 				BassGain: 3.0, BassHz: 110,
 				MidGain: 1.0, MidHz: 1000, MidQ: 1.0,
 				TrebleGain: -3.0, TrebleHz: 6000,
@@ -320,7 +320,7 @@ type displayPreset struct {
 	apply    func()
 }
 
-func buildDisplayPresets(custom []voice.PlayerPreset) []displayPreset {
+func buildDisplayPresets(custom []sounds.PlayerPreset) []displayPreset {
 	out := make([]displayPreset, 0, len(audioPresetList)+len(custom))
 	for _, p := range audioPresetList {
 		out = append(out, displayPreset{
