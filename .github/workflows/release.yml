@@ -9,7 +9,37 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libopus-dev libasound2-dev pkg-config autoconf automake libtool \
+            meson ninja-build \
+            xorg-dev libgl1-mesa-dev
+          cd rnnoise
+          ./autogen.sh
+          ./configure --prefix=/usr/local --disable-shared
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          cd webrtc-audio-processing
+          meson setup build --default-library=static -Dbuildtype=release
+          ninja -C build
+          cd ..
+          sudo rm -f /usr/lib/x86_64-linux-gnu/libopus.so*
+      - name: Run unit tests
+        run: |
+          PKG_CONFIG_PATH=/usr/local/lib/pkgconfig go test ./engine/...
+
   build-darwin-arm64:
+    needs: test
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +71,7 @@ jobs:
           path: ui/nito-darwin-arm64
 
   build-linux-amd64:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -78,6 +109,7 @@ jobs:
           path: ui/nito-linux-amd64
 
   build-windows-amd64:
+    needs: test
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
