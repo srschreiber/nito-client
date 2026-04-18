@@ -25,8 +25,9 @@ type ToClientWsMessage struct {
 
 const (
 	RPCEcho               = "echo"
-	RPCKeyVerifyChallenge = "key_verify_challenge" // A → broker → B: initiate verification session
-	RPCKeyVerifyResponse  = "key_verify_response"  // B → broker → A: signed proof of key ownership
+	RPCKeyVerifyChallenge = "key_verify_challenge" // A → broker → B: initiate verification session, carries pk_A
+	RPCKeyVerifyResponse  = "key_verify_response"  // B → broker → A: carries pk_B and Sign(sk_B, H(code|sid|pk_A|pk_B|"B"))
+	RPCKeyVerifyConfirm   = "key_verify_confirm"   // A → broker → B: Sign(sk_A, H(code|sid|pk_A|pk_B|"A")) — closes the mutual handshake
 	RPCRoomMessage        = "room_message"
 	RPCNotification       = "notification"
 	RPCMembersUpdated     = "members_updated"
@@ -149,23 +150,41 @@ type DirectMessagePayload struct {
 	MessageType  string `json:"messageType,omitempty"`
 }
 
-// KeyVerifyChallengePayload is sent by A to B to start a verification session.
-// The session ID is routed through the broker; the secret code is shared out-of-band.
-// ExpiresAt is a unix timestamp; B must ignore the challenge if it has already passed.
+// KeyVerifyChallengePayload is sent by A to B to start a mutual verification
+// session. The session ID is routed through the broker; the secret code is shared
+// out-of-band. InitiatorPublicKeyPEM is pk_A — B uses it both to build the
+// response signature and (later) to verify A's confirm signature. ExpiresAt is a
+// unix timestamp; B must ignore the challenge if it has already passed.
 type KeyVerifyChallengePayload struct {
-	SessionID    string `json:"sessionId"`
-	FromUsername string `json:"fromUsername"`
-	ToUsername   string `json:"toUsername"`
-	ExpiresAt    int64  `json:"expiresAt"`
+	SessionID             string `json:"sessionId"`
+	FromUsername          string `json:"fromUsername"`
+	ToUsername            string `json:"toUsername"`
+	InitiatorPublicKeyPEM string `json:"initiatorPublicKeyPem"`
+	ExpiresAt             int64  `json:"expiresAt"`
 }
 
-// KeyVerifyResponsePayload is sent by B back to A as proof of key ownership.
-// Signature = Sign(sk_B, SHA-256(code|sessionId|publicKeyPem)).
+// KeyVerifyResponsePayload is B's side of the mutual handshake.
+//
+//	Signature = Sign(sk_B, SHA-256(code | sessionId | pk_A | pk_B | "B"))
+//
+// A verifies this with pk_B and, if valid, replies with KeyVerifyConfirmPayload.
 type KeyVerifyResponsePayload struct {
 	SessionID    string `json:"sessionId"`
 	ToUsername   string `json:"toUsername"` // A's username
 	PublicKeyPEM string `json:"publicKeyPem"`
 	Signature    string `json:"signature"` // base64-encoded RSA-PSS signature
+}
+
+// KeyVerifyConfirmPayload closes the mutual handshake.
+//
+//	Signature = Sign(sk_A, SHA-256(code | sessionId | pk_A | pk_B | "A"))
+//
+// B verifies with pk_A (received in the challenge) and, if valid, pins pk_A as
+// verified. The role tag ("A" vs "B") prevents signature reflection attacks.
+type KeyVerifyConfirmPayload struct {
+	SessionID  string `json:"sessionId"`
+	ToUsername string `json:"toUsername"` // B's username
+	Signature  string `json:"signature"`  // base64-encoded RSA-PSS signature
 }
 
 type PlayAudioPayload struct {

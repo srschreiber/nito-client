@@ -781,6 +781,13 @@ func showTrustPopup(username string, w fyne.Window, existing *keys.TrustedKey) {
 // showVerifyPopup starts the cryptographic verification flow.
 // onSuccess is called with the verified key PEM after the flow completes.
 func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM string)) {
+	myUsername := connection.GetSessionUserID()
+	initiatorPubPEM, err := keys.LoadPublicKeyPEM(myUsername)
+	if err != nil {
+		showToast(w, "load public key: "+err.Error(), toastError)
+		return
+	}
+
 	code, sessionID, err := keys.GenerateVerificationChallenge()
 	if err != nil {
 		showToast(w, "generate verification: "+err.Error(), toastError)
@@ -816,7 +823,7 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 
 	go func() {
 		defer cancel()
-		if err := connection.SendKeyVerifyChallenge(username, sessionID, expiresAt.Unix()); err != nil {
+		if err := connection.SendKeyVerifyChallenge(username, sessionID, initiatorPubPEM, expiresAt.Unix()); err != nil {
 			clientlog.Error("verify: send challenge failed for %s: %v", username, err)
 			fyne.Do(func() {
 				if pop != nil {
@@ -840,8 +847,10 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 			})
 			return
 		}
-		if err := keys.VerifyPeerSignature(code, sessionID, resp.PublicKeyPEM, resp.Signature); err != nil {
-			clientlog.Error("verify: signature check failed for %s: %v", username, err)
+		// A checks that B's signature really covers (code, session, pk_A, pk_B)
+		// under pk_B — proves B holds sk_B and saw the out-of-band code.
+		if err := keys.VerifyResponseSignature(code, sessionID, initiatorPubPEM, resp.PublicKeyPEM, resp.Signature); err != nil {
+			clientlog.Error("verify: response signature check failed for %s: %v", username, err)
 			fyne.Do(func() {
 				if pop != nil {
 					pop.Hide()
@@ -850,6 +859,31 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 			})
 			return
 		}
+		// A produces a matching signature under sk_A with role tag "A".
+		// This signature is the confirm message — it proves to B that A also
+		// knows the out-of-band code and sk_A, closing the mutual handshake.
+		confirmSig, err := keys.SignVerificationConfirm(code, sessionID, initiatorPubPEM, resp.PublicKeyPEM, myUsername)
+		if err != nil {
+			clientlog.Error("verify: sign confirm failed for %s: %v", username, err)
+			fyne.Do(func() {
+				if pop != nil {
+					pop.Hide()
+				}
+				showToast(w, "sign confirm: "+err.Error(), toastError)
+			})
+			return
+		}
+		if err := connection.SendKeyVerifyConfirm(username, sessionID, confirmSig); err != nil {
+			clientlog.Error("verify: send confirm failed for %s: %v", username, err)
+			fyne.Do(func() {
+				if pop != nil {
+					pop.Hide()
+				}
+				showToast(w, "send confirm: "+err.Error(), toastError)
+			})
+			return
+		}
+		// A pins B's key only after sending the confirm.
 		_ = keys.SavePeerPublicKey(username, keys.TrustedKey{
 			PublicKey: resp.PublicKeyPEM,
 			Verified:  true,

@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"testing"
+	"time"
 
 	"github.com/srschreiber/nito-client/engine/keys"
 )
@@ -224,118 +225,190 @@ func TestKeyPairConsistency(t *testing.T) {
 	}
 }
 
-// ── TOFU / verification protocol ─────────────────────────────────────────────
+// ── Mutual verification protocol ─────────────────────────────────────────────
 
-// signVerifyPayload signs H(code|sessionID|pubKeyPEM) with priv and returns a base64 sig.
-func signVerifyPayload(t *testing.T, priv *rsa.PrivateKey, code, sessionID, pubKeyPEM string) string {
-	t.Helper()
-	h := sha256.Sum256([]byte(code + "|" + sessionID + "|" + pubKeyPEM))
-	sig, err := rsa.SignPSS(rand.Reader, priv, crypto.SHA256, h[:], nil)
-	if err != nil {
-		t.Fatalf("SignPSS: %v", err)
-	}
-	return base64.StdEncoding.EncodeToString(sig)
-}
-
-// setupBobKeys generates on-disk RSA keys for "bob" in a temp directory and
-// returns a cleanup function. Callers must call it before any disk-based key op.
-func setupBobKeys(t *testing.T) {
+// setupTwoParties generates on-disk keys for "alice" and "bob" in a temp dir.
+func setupTwoParties(t *testing.T) (alicePub, bobPub string) {
 	t.Helper()
 	dir := t.TempDir()
 	keys.SetActiveBroker(dir)
 	t.Cleanup(func() { keys.SetActiveBroker("") })
-	if _, err := keys.LoadOrGenerate("bob"); err != nil {
+	var err error
+	if alicePub, err = keys.LoadOrGenerate("alice"); err != nil {
+		t.Fatalf("LoadOrGenerate(alice): %v", err)
+	}
+	if bobPub, err = keys.LoadOrGenerate("bob"); err != nil {
 		t.Fatalf("LoadOrGenerate(bob): %v", err)
 	}
+	return alicePub, bobPub
 }
 
-// TestVerificationFullProtocol simulates the complete TOFU handshake:
-//  1. A calls GenerateVerificationChallenge to get a code + session ID.
-//  2. B calls SignVerificationResponse (reads B's on-disk key, signs the payload).
-//  3. A calls VerifyPeerSignature — expects success.
-//  4. A calls SavePeerPublicKey to pin the key as verified.
-//  5. A calls LoadPeerPublicKey and confirms the stored record is correct.
-func TestVerificationFullProtocol(t *testing.T) {
-	setupBobKeys(t)
+// TestMutualVerificationFullProtocol exercises the complete 3-step handshake:
+//  1. A generates code + session ID.
+//  2. B signs H(code|sid|pk_A|pk_B|"B") → response.
+//  3. A verifies B's signature.
+//  4. A signs H(code|sid|pk_A|pk_B|"A") → confirm.
+//  5. B verifies A's signature.
+//  6. Both sides pin the verified peer key.
+func TestMutualVerificationFullProtocol(t *testing.T) {
+	alicePub, _ := setupTwoParties(t)
 
 	code, sessionID, err := keys.GenerateVerificationChallenge()
 	if err != nil {
 		t.Fatalf("GenerateVerificationChallenge: %v", err)
 	}
 
-	pubPEM, sig, err := keys.SignVerificationResponse(code, sessionID, "bob")
+	// Step 2: B signs response.
+	bobPub, respSig, err := keys.SignVerificationResponse(code, sessionID, alicePub, "bob")
 	if err != nil {
 		t.Fatalf("SignVerificationResponse: %v", err)
 	}
-	if pubPEM == "" || sig == "" {
-		t.Fatal("SignVerificationResponse returned empty pubPEM or sig")
+
+	// Step 3: A verifies B's signature.
+	if err := keys.VerifyResponseSignature(code, sessionID, alicePub, bobPub, respSig); err != nil {
+		t.Fatalf("A rejected a valid response from B: %v", err)
 	}
 
-	if err := keys.VerifyPeerSignature(code, sessionID, pubPEM, sig); err != nil {
-		t.Fatalf("VerifyPeerSignature: %v", err)
+	// Step 4: A signs confirm.
+	confirmSig, err := keys.SignVerificationConfirm(code, sessionID, alicePub, bobPub, "alice")
+	if err != nil {
+		t.Fatalf("SignVerificationConfirm: %v", err)
 	}
 
-	// Pin the key as verified (what A does after a successful handshake).
-	if err := keys.SavePeerPublicKey("bob", keys.TrustedKey{
-		PublicKey: pubPEM,
-		Verified:  true,
-		Method:    keys.TrustMethodVerified,
-	}); err != nil {
-		t.Fatalf("SavePeerPublicKey: %v", err)
+	// Step 5: B verifies A's confirm.
+	if err := keys.VerifyConfirmSignature(code, sessionID, alicePub, bobPub, confirmSig); err != nil {
+		t.Fatalf("B rejected a valid confirm from A: %v", err)
 	}
+
+	// Step 6: both sides pin the peer key as verified.
+	_ = keys.SavePeerPublicKey("bob", keys.TrustedKey{PublicKey: bobPub, Verified: true, Method: keys.TrustMethodVerified})
+	_ = keys.SavePeerPublicKey("alice", keys.TrustedKey{PublicKey: alicePub, Verified: true, Method: keys.TrustMethodVerified})
 
 	rec, ok := keys.LoadPeerPublicKey("bob")
+	if !ok || rec.PublicKey != bobPub || !rec.Verified {
+		t.Error("A failed to pin B's key as verified")
+	}
+	rec, ok = keys.LoadPeerPublicKey("alice")
+	if !ok || rec.PublicKey != alicePub || !rec.Verified {
+		t.Error("B failed to pin A's key as verified")
+	}
+}
+
+// TestResponseSignatureReflectionAttack — critical security test. An attacker
+// takes B's response signature (role "B") and tries to pass it off as A's
+// confirm (role "A"). The role tag in verifyHash must make this fail.
+func TestResponseSignatureReflectionAttack(t *testing.T) {
+	alicePub, _ := setupTwoParties(t)
+
+	code, sessionID, err := keys.GenerateVerificationChallenge()
+	if err != nil {
+		t.Fatalf("GenerateVerificationChallenge: %v", err)
+	}
+	bobPub, respSig, err := keys.SignVerificationResponse(code, sessionID, alicePub, "bob")
+	if err != nil {
+		t.Fatalf("SignVerificationResponse: %v", err)
+	}
+
+	// Feed B's response signature into the confirm-verify path — must fail.
+	if err := keys.VerifyConfirmSignature(code, sessionID, alicePub, bobPub, respSig); err == nil {
+		t.Fatal("reflection attack succeeded: B's response signature accepted as A's confirm — role tag is not enforced")
+	}
+}
+
+// TestConfirmSignatureReflectionAttack — the inverse. An attacker takes A's
+// confirm (role "A") and tries to pass it off as B's response (role "B").
+func TestConfirmSignatureReflectionAttack(t *testing.T) {
+	alicePub, bobPub := setupTwoParties(t)
+
+	code, sessionID, err := keys.GenerateVerificationChallenge()
+	if err != nil {
+		t.Fatalf("GenerateVerificationChallenge: %v", err)
+	}
+	confirmSig, err := keys.SignVerificationConfirm(code, sessionID, alicePub, bobPub, "alice")
+	if err != nil {
+		t.Fatalf("SignVerificationConfirm: %v", err)
+	}
+
+	// Feed A's confirm signature into the response-verify path — must fail.
+	if err := keys.VerifyResponseSignature(code, sessionID, alicePub, bobPub, confirmSig); err == nil {
+		t.Fatal("reflection attack succeeded: A's confirm signature accepted as B's response")
+	}
+}
+
+// TestResponseFailsWithWrongCode confirms A's check rejects a response signed
+// with a different code (wrong out-of-band secret).
+func TestResponseFailsWithWrongCode(t *testing.T) {
+	alicePub, _ := setupTwoParties(t)
+	_, sessionID, _ := keys.GenerateVerificationChallenge()
+
+	bobPub, sig, err := keys.SignVerificationResponse("123456", sessionID, alicePub, "bob")
+	if err != nil {
+		t.Fatalf("SignVerificationResponse: %v", err)
+	}
+	if err := keys.VerifyResponseSignature("999999", sessionID, alicePub, bobPub, sig); err == nil {
+		t.Error("wrong code accepted — codes must bind to the signature")
+	}
+}
+
+// TestResponseFailsWithWrongSession confirms replay across sessions is blocked.
+func TestResponseFailsWithWrongSession(t *testing.T) {
+	alicePub, _ := setupTwoParties(t)
+	code := "123456"
+
+	bobPub, sig, err := keys.SignVerificationResponse(code, "session-1", alicePub, "bob")
+	if err != nil {
+		t.Fatalf("SignVerificationResponse: %v", err)
+	}
+	if err := keys.VerifyResponseSignature(code, "session-2", alicePub, bobPub, sig); err == nil {
+		t.Error("session ID swap accepted — sessions must bind to the signature")
+	}
+}
+
+// TestResponseFailsWithMITMInitiatorKey catches an active MITM who proxies the
+// handshake but substitutes a different pk_A on the wire.
+func TestResponseFailsWithMITMInitiatorKey(t *testing.T) {
+	alicePub, _ := setupTwoParties(t)
+	code, sessionID, _ := keys.GenerateVerificationChallenge()
+
+	// B signs against the real pk_A.
+	bobPub, sig, err := keys.SignVerificationResponse(code, sessionID, alicePub, "bob")
+	if err != nil {
+		t.Fatalf("SignVerificationResponse: %v", err)
+	}
+
+	// Attacker substitutes an attacker-controlled pk_A when forwarding.
+	_, attackerPub := genKeyPair(t)
+	if err := keys.VerifyResponseSignature(code, sessionID, attackerPub, bobPub, sig); err == nil {
+		t.Error("MITM pk_A swap accepted — initiator key must bind to the signature")
+	}
+}
+
+// TestConfirmContextCacheRoundTrip confirms B's in-memory confirm context
+// stores and retrieves correctly, and is single-use.
+func TestConfirmContextCacheRoundTrip(t *testing.T) {
+	keys.RememberConfirmContext("sess-1", "alice", "123456", "pk_a", "pk_b", 1*time.Minute)
+
+	from, code, pkA, pkB, ok := keys.ConsumeConfirmContext("sess-1")
 	if !ok {
-		t.Fatal("LoadPeerPublicKey returned false after pinning")
+		t.Fatal("ConsumeConfirmContext returned ok=false after store")
 	}
-	if rec.PublicKey != pubPEM {
-		t.Error("pinned public key does not match the one from SignVerificationResponse")
+	if from != "alice" || code != "123456" || pkA != "pk_a" || pkB != "pk_b" {
+		t.Errorf("fields mismatch: got (%q,%q,%q,%q)", from, code, pkA, pkB)
 	}
-	if !rec.Verified {
-		t.Error("pinned record should be marked verified")
-	}
-	if rec.Method != keys.TrustMethodVerified {
-		t.Errorf("method: got %q, want %q", rec.Method, keys.TrustMethodVerified)
+
+	// Second consume must fail (single-use).
+	if _, _, _, _, ok := keys.ConsumeConfirmContext("sess-1"); ok {
+		t.Error("ConsumeConfirmContext returned ok=true on second read — should be single-use")
 	}
 }
 
-// TestVerificationWrongCodeEndToEnd confirms that if A shares the wrong code
-// out-of-band, VerifyPeerSignature rejects the response even with a valid sig.
-func TestVerificationWrongCodeEndToEnd(t *testing.T) {
-	setupBobKeys(t)
+// TestConfirmContextCacheExpired confirms that entries past their TTL are not returned.
+func TestConfirmContextCacheExpired(t *testing.T) {
+	keys.RememberConfirmContext("sess-expired", "alice", "123456", "pk_a", "pk_b", 1*time.Nanosecond)
+	time.Sleep(5 * time.Millisecond)
 
-	code, sessionID, err := keys.GenerateVerificationChallenge()
-	if err != nil {
-		t.Fatalf("GenerateVerificationChallenge: %v", err)
-	}
-
-	pubPEM, sig, err := keys.SignVerificationResponse(code, sessionID, "bob")
-	if err != nil {
-		t.Fatalf("SignVerificationResponse: %v", err)
-	}
-
-	if err := keys.VerifyPeerSignature("000000", sessionID, pubPEM, sig); err == nil {
-		t.Error("wrong code should fail end-to-end verification")
-	}
-}
-
-// TestVerificationWrongSessionEndToEnd confirms that a response signed for one
-// session ID cannot be replayed under a different session ID.
-func TestVerificationWrongSessionEndToEnd(t *testing.T) {
-	setupBobKeys(t)
-
-	code, sessionID, err := keys.GenerateVerificationChallenge()
-	if err != nil {
-		t.Fatalf("GenerateVerificationChallenge: %v", err)
-	}
-
-	pubPEM, sig, err := keys.SignVerificationResponse(code, sessionID, "bob")
-	if err != nil {
-		t.Fatalf("SignVerificationResponse: %v", err)
-	}
-
-	if err := keys.VerifyPeerSignature(code, "replayed-session", pubPEM, sig); err == nil {
-		t.Error("replayed session ID should fail end-to-end verification")
+	if _, _, _, _, ok := keys.ConsumeConfirmContext("sess-expired"); ok {
+		t.Error("expired context was returned — TTL not enforced")
 	}
 }
 
@@ -351,53 +424,10 @@ func TestVerificationChallengeUnique(t *testing.T) {
 	if s1 == s2 {
 		t.Error("two consecutive session IDs are identical")
 	}
-	// Code is 6 digits; sessions may collide rarely by chance — just check format.
 	for _, c := range []string{c1, c2} {
 		if len(c) != 6 {
 			t.Errorf("code %q is not 6 digits", c)
 		}
-	}
-}
-
-func TestVerifyPeerSignatureValid(t *testing.T) {
-	priv, pubPEM := genKeyPair(t)
-	code, sessionID := "123456", "test-session"
-	sig := signVerifyPayload(t, priv, code, sessionID, pubPEM)
-
-	if err := keys.VerifyPeerSignature(code, sessionID, pubPEM, sig); err != nil {
-		t.Errorf("valid signature rejected: %v", err)
-	}
-}
-
-func TestVerifyPeerSignatureWrongCode(t *testing.T) {
-	priv, pubPEM := genKeyPair(t)
-	code, sessionID := "123456", "test-session"
-	sig := signVerifyPayload(t, priv, code, sessionID, pubPEM)
-
-	if err := keys.VerifyPeerSignature("999999", sessionID, pubPEM, sig); err == nil {
-		t.Error("wrong code should fail verification")
-	}
-}
-
-func TestVerifyPeerSignatureWrongSession(t *testing.T) {
-	priv, pubPEM := genKeyPair(t)
-	code, sessionID := "123456", "test-session"
-	sig := signVerifyPayload(t, priv, code, sessionID, pubPEM)
-
-	if err := keys.VerifyPeerSignature(code, "other-session", pubPEM, sig); err == nil {
-		t.Error("wrong session ID should fail verification")
-	}
-}
-
-func TestVerifyPeerSignatureWrongKey(t *testing.T) {
-	priv, pubPEM := genKeyPair(t)
-	_, differentPubPEM := genKeyPair(t)
-	code, sessionID := "123456", "test-session"
-	sig := signVerifyPayload(t, priv, code, sessionID, pubPEM)
-
-	// Signature was computed over pubPEM, but we pass differentPubPEM.
-	if err := keys.VerifyPeerSignature(code, sessionID, differentPubPEM, sig); err == nil {
-		t.Error("signature for wrong key should fail verification")
 	}
 }
 

@@ -503,9 +503,11 @@ func (sp *StatusPanel) SetInvites(invites []apitypes.PendingInvite) {
 }
 
 // AddVerifyRequest appends a key-verification request row to the REQUESTS tab.
+// initiatorPubPEM is pk_A, extracted from the incoming challenge; it is used
+// both to sign B's response and (later) to verify A's confirm.
 // The row auto-removes itself when expiresAt passes; if expiresAt is already in
 // the past, the request is silently dropped. Must be called on the Fyne thread.
-func (sp *StatusPanel) AddVerifyRequest(fromUsername, sessionID string, expiresAt time.Time) {
+func (sp *StatusPanel) AddVerifyRequest(fromUsername, sessionID, initiatorPubPEM string, expiresAt time.Time) {
 	if sp.verifyListBox == nil {
 		return
 	}
@@ -534,17 +536,24 @@ func (sp *StatusPanel) AddVerifyRequest(fromUsername, sessionID string, expiresA
 		}
 		myUsername := connection.GetSessionUserID()
 		go func() {
-			pubKeyPEM, sig, err := keys.SignVerificationResponse(code, sessionID, myUsername)
+			responderPubPEM, sig, err := keys.SignVerificationResponse(code, sessionID, initiatorPubPEM, myUsername)
 			if err != nil {
 				fyne.Do(func() { showToast(sp.w, "sign verification: "+err.Error(), toastError) })
 				return
 			}
-			if err := connection.SendKeyVerifyResponse(fromUsername, sessionID, pubKeyPEM, sig); err != nil {
+			if err := connection.SendKeyVerifyResponse(fromUsername, sessionID, responderPubPEM, sig); err != nil {
 				fyne.Do(func() { showToast(sp.w, "send verification: "+err.Error(), toastError) })
 				return
 			}
+			// Remember the context so the incoming confirm can be verified.
+			ttl := 10 * time.Minute
+			if !expiresAt.IsZero() {
+				ttl = time.Until(expiresAt) + 5*time.Minute
+			}
+			keys.RememberConfirmContext(sessionID, fromUsername, code, initiatorPubPEM, responderPubPEM, ttl)
+			clientlog.Info("verify: sent response to %s (session %s), waiting for confirm", fromUsername, sessionID)
 			fyne.Do(func() {
-				showToast(sp.w, "verification response sent to "+fromUsername, toastInfo)
+				showToast(sp.w, "response sent to "+fromUsername+" — waiting for confirmation", toastInfo)
 				if row != nil {
 					sp.removeVerifyRow(row)
 				}

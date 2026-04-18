@@ -54,16 +54,17 @@ type decryptedDM struct {
 }
 
 var (
-	mu                 sync.Mutex
-	wmu                sync.Mutex // serializes all writes to conn
-	conn               *websocket.Conn
-	session            *Session
-	notifChan          chan []byte // server-push notification text
-	echoChan           chan []byte // echo messages from the server (for testing connectivity)
-	roomMessageChan    chan []byte // incoming room messages (raw JSON for the TUI model to dispatch)
-	dmChan             chan []byte // incoming direct messages, already decrypted (JSON-encoded decryptedDM)
-	keyVerifyChallChan chan []byte // incoming key-verify challenges (raw payload JSON)
-	lateVerifyRespChan chan string // fromUsername of responses that arrived after the session was cancelled/timed out
+	mu                   sync.Mutex
+	wmu                  sync.Mutex // serializes all writes to conn
+	conn                 *websocket.Conn
+	session              *Session
+	notifChan            chan []byte // server-push notification text
+	echoChan             chan []byte // echo messages from the server (for testing connectivity)
+	roomMessageChan      chan []byte // incoming room messages (raw JSON for the TUI model to dispatch)
+	dmChan               chan []byte // incoming direct messages, already decrypted (JSON-encoded decryptedDM)
+	keyVerifyChallChan   chan []byte // incoming key-verify challenges (raw payload JSON)
+	keyVerifyConfirmChan chan []byte // incoming key-verify confirms (raw payload JSON)
+	lateVerifyRespChan   chan string // fromUsername of responses that arrived after the session was cancelled/timed out
 
 	// pendingVerifications maps sessionID → chan KeyVerifyResponsePayload for in-flight verify waits.
 	pendingVerifications sync.Map
@@ -238,18 +239,19 @@ func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	echoChan = make(chan []byte, 16)
 	dmChan = make(chan []byte, 16)
 	keyVerifyChallChan = make(chan []byte, 8)
+	keyVerifyConfirmChan = make(chan []byte, 8)
 	lateVerifyRespChan = make(chan string, 8)
 	conn = c
 	session = &Session{UserID: userID, BrokerURL: brokerURL, JWTToken: jwtToken, KeyManager: map[string]*keys.RoomKeyChain{}}
 	notifChan = nc
 
-	go readLoop(c, echoChan, roomMessageChan, dmChan, nc, keyVerifyChallChan)
+	go readLoop(c, echoChan, roomMessageChan, dmChan, nc, keyVerifyChallChan, keyVerifyConfirmChan)
 	clientlog.Info("connected to broker %s as %s", brokerURL, userID)
 	return nil
 }
 
 // readLoop runs in the background, routing messages to their respective channels.
-func readLoop(c *websocket.Conn, echoChan, roomMessageChan, dmChan, nc, kvChalChan chan []byte) {
+func readLoop(c *websocket.Conn, echoChan, roomMessageChan, dmChan, nc, kvChalChan, kvConfirmChan chan []byte) {
 	defer func() {
 		mu.Lock()
 		if conn == c {
@@ -362,6 +364,13 @@ func readLoop(c *websocket.Conn, echoChan, roomMessageChan, dmChan, nc, kvChalCh
 			}
 			continue
 
+		case wstypes.RPCKeyVerifyConfirm:
+			select {
+			case kvConfirmChan <- message.Payload:
+			default:
+			}
+			continue
+
 		case wstypes.RPCKeyVerifyResponse:
 			var resp wstypes.KeyVerifyResponsePayload
 			if json.Unmarshal(message.Payload, &resp) != nil {
@@ -456,6 +465,14 @@ func KeyVerifyChallengeChan() <-chan []byte {
 	return keyVerifyChallChan
 }
 
+// KeyVerifyConfirmChan returns the channel that receives incoming verification
+// confirms (raw KeyVerifyConfirmPayload JSON). Returns nil when not connected.
+func KeyVerifyConfirmChan() <-chan []byte {
+	mu.Lock()
+	defer mu.Unlock()
+	return keyVerifyConfirmChan
+}
+
 // LateVerifyResponseChan returns a channel of `fromUsername` values for
 // KeyVerifyResponse messages that arrived after the local session was
 // cancelled/timed out. UI should warn the user so they know not to trust any
@@ -487,19 +504,20 @@ func sendWsRPC(rpcName string, userID string, payload any) error {
 	return Send(data)
 }
 
-// SendKeyVerifyChallenge sends a verification challenge to toUsername via the broker.
-// expiresAt is a unix timestamp the receiver uses to discard stale challenges.
-// The secret code is never transmitted — it is shared out-of-band by the caller.
-func SendKeyVerifyChallenge(toUsername, sessionID string, expiresAt int64) error {
+// SendKeyVerifyChallenge sends A's verification challenge to toUsername via the
+// broker. Carries pk_A so B can sign the role-tagged mutual-handshake hash.
+// The secret code is never transmitted — it is shared out-of-band.
+func SendKeyVerifyChallenge(toUsername, sessionID, initiatorPubPEM string, expiresAt int64) error {
 	s := CurrentSession()
 	if s == nil {
 		return errors.New("not connected")
 	}
 	return sendWsRPC(wstypes.RPCKeyVerifyChallenge, s.UserID, wstypes.KeyVerifyChallengePayload{
-		SessionID:    sessionID,
-		FromUsername: s.UserID,
-		ToUsername:   toUsername,
-		ExpiresAt:    expiresAt,
+		SessionID:             sessionID,
+		FromUsername:          s.UserID,
+		ToUsername:            toUsername,
+		InitiatorPublicKeyPEM: initiatorPubPEM,
+		ExpiresAt:             expiresAt,
 	})
 }
 
@@ -514,6 +532,20 @@ func SendKeyVerifyResponse(toUsername, sessionID, pubKeyPEM, sig string) error {
 		ToUsername:   toUsername,
 		PublicKeyPEM: pubKeyPEM,
 		Signature:    sig,
+	})
+}
+
+// SendKeyVerifyConfirm sends A's closing signature back to B, completing the
+// mutual handshake.
+func SendKeyVerifyConfirm(toUsername, sessionID, sig string) error {
+	s := CurrentSession()
+	if s == nil {
+		return errors.New("not connected")
+	}
+	return sendWsRPC(wstypes.RPCKeyVerifyConfirm, s.UserID, wstypes.KeyVerifyConfirmPayload{
+		SessionID:  sessionID,
+		ToUsername: toUsername,
+		Signature:  sig,
 	})
 }
 

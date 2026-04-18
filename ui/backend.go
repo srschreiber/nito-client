@@ -89,6 +89,7 @@ func startBackend(cp *ChatPanel, sp *StatusPanel, w fyne.Window) {
 	go notifLoop(cp, sp, w)
 	go roomPollLoop(cp, sp)
 	go keyVerifyChallengeLoop(sp, w)
+	go keyVerifyConfirmLoop(w)
 	go lateVerifyResponseLoop(w)
 }
 
@@ -109,6 +110,11 @@ func keyVerifyChallengeLoop(sp *StatusPanel, w fyne.Window) {
 			}
 			fromUsername := payload.FromUsername
 			sessionID := payload.SessionID
+			initiatorPubPEM := payload.InitiatorPublicKeyPEM
+			if initiatorPubPEM == "" {
+				clientlog.Warn("verify: rejecting challenge from %s — missing initiator public key", fromUsername)
+				continue
+			}
 			var expiresAt time.Time
 			if payload.ExpiresAt > 0 {
 				expiresAt = time.Unix(payload.ExpiresAt, 0)
@@ -119,8 +125,57 @@ func keyVerifyChallengeLoop(sp *StatusPanel, w fyne.Window) {
 			}
 			clientlog.Info("verify: received challenge from %s (session %s)", fromUsername, sessionID)
 			fyne.Do(func() {
-				sp.AddVerifyRequest(fromUsername, sessionID, expiresAt)
+				sp.AddVerifyRequest(fromUsername, sessionID, initiatorPubPEM, expiresAt)
 				showToast(w, "⚠️ "+fromUsername+" wants to verify your key — see REQUESTS tab", toastInfo)
+			})
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+// keyVerifyConfirmLoop is B's side of the mutual handshake: after sending the
+// response, B waits here for A's confirm signature. On success, B pins pk_A as
+// verified and notifies the user.
+func keyVerifyConfirmLoop(w fyne.Window) {
+	for {
+		ch := connection.KeyVerifyConfirmChan()
+		if ch == nil {
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		for data := range ch {
+			var payload wstypes.KeyVerifyConfirmPayload
+			if err := json.Unmarshal(data, &payload); err != nil {
+				clientlog.Error("keyVerifyConfirmLoop: unmarshal: %v", err)
+				continue
+			}
+			sessionID := payload.SessionID
+			fromUsername, code, initiatorPubPEM, responderPubPEM, ok := keys.ConsumeConfirmContext(sessionID)
+			if !ok {
+				clientlog.Warn("verify: received confirm for unknown/expired session %s — ignored", sessionID)
+				fyne.Do(func() {
+					showToast(w, "⚠️ received confirm for an expired verify session — ignored", toastWarn)
+				})
+				continue
+			}
+			if err := keys.VerifyConfirmSignature(code, sessionID, initiatorPubPEM, responderPubPEM, payload.Signature); err != nil {
+				clientlog.Error("verify: confirm signature invalid from %s: %v", fromUsername, err)
+				fyne.Do(func() {
+					showToast(w, "⚠️ invalid confirm signature from "+fromUsername+" — not trusted", toastError)
+				})
+				continue
+			}
+			if err := keys.SavePeerPublicKey(fromUsername, keys.TrustedKey{
+				PublicKey: initiatorPubPEM,
+				Verified:  true,
+				Method:    keys.TrustMethodVerified,
+			}); err != nil {
+				clientlog.Error("verify: save pinned key for %s: %v", fromUsername, err)
+			}
+			clientlog.Info("verify: mutually verified and pinned key for %s", fromUsername)
+			peer := fromUsername
+			fyne.Do(func() {
+				showToast(w, "✓ mutually verified "+peer, toastSuccess)
 			})
 		}
 		time.Sleep(500 * time.Millisecond)
