@@ -569,10 +569,15 @@ func (sp *StatusPanel) AddVerifyRequest(fromUsername, sessionID, initiatorPubPEM
 		}
 	}
 
+	codeEntry.TextStyle = fyne.TextStyle{Monospace: true}
+
 	row = container.NewVBox(
 		container.NewHBox(monoTxt("◆ ", liveAccent), monoTxt(fromUsername+" wants to verify your key", colText)),
-		container.NewHBox(codeEntry, submitBtn, dismissBtn),
 		vspace(4),
+		codeEntry,
+		vspace(4),
+		container.NewHBox(submitBtn, dismissBtn),
+		vspace(8),
 	)
 
 	sp.verifyListBox.Add(row)
