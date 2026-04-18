@@ -49,7 +49,7 @@ func showMainView(a fyne.App, w fyne.Window) {
 	// Create chatInput before chatPanel so the closure captures the var reference.
 	var chatPanel *ChatPanel
 	var chatInput *ChatInput
-	chatInput = NewChatInput(func(text string) {
+	chatInput = NewChatInput(w, func(text string) {
 		if chatPanel == nil {
 			return
 		}

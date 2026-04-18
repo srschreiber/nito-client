@@ -43,12 +43,10 @@ type chatMessage struct {
 
 func renderMessage(m chatMessage) fyne.CanvasObject {
 	var row fyne.CanvasObject
-	msgBody := func(text string) *widget.Label {
-		l := widget.NewLabel(text)
-		l.Selectable = true
-		l.TextStyle = fyne.TextStyle{Monospace: true}
-		l.Wrapping = fyne.TextWrapWord
-		return l
+	msgBody := func(text string) fyne.CanvasObject {
+		rt := widget.NewRichTextFromMarkdown(text)
+		rt.Wrapping = fyne.TextWrapWord
+		return rt
 	}
 	msgRow := func(ts, from string, fromCol color.Color, text string) fyne.CanvasObject {
 		meta := container.NewHBox(
