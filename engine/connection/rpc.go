@@ -21,6 +21,12 @@ import (
 var (
 	vmhMu               sync.Mutex // serialises updates to voiceMessageHandler
 	voiceMessageHandler func(rpcName string, payload []byte)
+
+	// pongMu guards pongCh. Exactly one ping may be in flight at a time; a
+	// second PingSession call while one is pending will replace the waiter,
+	// so callers must serialise themselves if that matters.
+	pongMu sync.Mutex
+	pongCh chan struct{}
 )
 
 // SetVoiceMessageHandler registers a callback invoked for every incoming sounds RPC
@@ -65,6 +71,21 @@ func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	// WriteControl is safe to call concurrently with WriteMessage, so no wmu needed.
 	c.SetPingHandler(func(data string) error {
 		return c.WriteControl(websocket.PongMessage, []byte(data), time.Now().Add(5*time.Second))
+	})
+	// Pong handler fires when the server replies to our client-initiated ping
+	// (see PingSession). Signal the waiter without blocking — if no one's
+	// waiting, drop the pong.
+	c.SetPongHandler(func(string) error {
+		pongMu.Lock()
+		ch := pongCh
+		pongMu.Unlock()
+		if ch != nil {
+			select {
+			case ch <- struct{}{}:
+			default:
+			}
+		}
+		return nil
 	})
 
 	roomMessageChan = make(chan []byte, 16)
@@ -123,6 +144,43 @@ func Send(data []byte) error {
 	wmu.Lock()
 	defer wmu.Unlock()
 	return conn.WriteMessage(websocket.TextMessage, data)
+}
+
+// PingSession sends a WebSocket ping control frame and waits for the matching
+// pong. Returns the round-trip time, or an error if not connected, the write
+// fails, or the pong doesn't arrive inside timeout. This measures the live
+// session — unlike PingBroker (HTTP), a stale WebSocket will fail here even
+// if the broker's HTTP endpoint is still up.
+func PingSession(timeout time.Duration) (time.Duration, error) {
+	mu.Lock()
+	c := conn
+	mu.Unlock()
+	if c == nil {
+		return 0, errors.New("not connected")
+	}
+	ch := make(chan struct{}, 1)
+	pongMu.Lock()
+	pongCh = ch
+	pongMu.Unlock()
+	defer func() {
+		pongMu.Lock()
+		if pongCh == ch {
+			pongCh = nil
+		}
+		pongMu.Unlock()
+	}()
+
+	start := time.Now()
+	// WriteControl is safe without wmu (see note in Connect).
+	if err := c.WriteControl(websocket.PingMessage, nil, time.Now().Add(timeout)); err != nil {
+		return 0, fmt.Errorf("ping write: %w", err)
+	}
+	select {
+	case <-ch:
+		return time.Since(start), nil
+	case <-time.After(timeout):
+		return 0, errors.New("pong timeout")
+	}
 }
 
 // sendWsRPC marshals payload as a ToBrokerWsMessage with a fresh nonce/timestamp and sends it.

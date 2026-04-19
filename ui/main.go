@@ -134,14 +134,16 @@ func showMainView(a fyne.App, w fyne.Window) {
 	go startBackend(chatPanel, statusPanel, w)
 }
 
-// pingLoop pings the broker every second and updates the STATUS tab.
+// pingLoop pings the active WebSocket session every second and updates the
+// STATUS tab. Using PingSession (WS ping frame) instead of PingBroker (HTTP)
+// so the status reflects the actual session health — if the WS is dead, the
+// pong won't arrive and we report disconnected, even if HTTP is still up.
 func pingLoop(sp *StatusPanel) {
 	for {
 		time.Sleep(time.Second)
-		start := time.Now()
-		err := connection.PingBroker()
-		latencyMs := time.Since(start).Milliseconds()
+		rtt, err := connection.PingSession(5 * time.Second)
 		connected := err == nil
+		latencyMs := rtt.Milliseconds()
 
 		s := connection.CurrentSession()
 		var brokerURL, userID string
