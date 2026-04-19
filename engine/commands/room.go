@@ -125,7 +125,7 @@ func roomInviteCmd(args []Argument) (string, error) {
 		}
 		keyPEM = rec.PublicKey
 	} else {
-		inviteePub, err := connection.GetUserPublicKey(username)
+		inviteePub, err := connection.GetOrStoreUserPublicKey(username)
 		if err != nil {
 			return "", fmt.Errorf("room-invite: get invitee public key: %w", err)
 		}

@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"image/color"
 	"strings"
 	"time"
@@ -618,6 +619,17 @@ func (cp *ChatPanel) selectRoom(roomID, roomName string) {
 		}
 
 		if err := connection.SetSessionRoom(roomID); err != nil {
+			// Unverified rotator: the manifest signature checked out, but the
+			// rotator's identity is only TOFU-pinned. Prompt the user to
+			// continue at their own risk or verify first.
+			var unverified *connection.UnverifiedRotatorError
+			if errors.As(err, &unverified) {
+				rotator := unverified.Rotator
+				fyne.Do(func() {
+					cp.promptUnverifiedRotator(roomID, roomName, rotator)
+				})
+				return
+			}
 			clientlog.Error("join room failed: " + err.Error())
 			fyne.Do(func() { showToast(cp.w, "room: "+err.Error(), toastError) })
 			return
@@ -657,6 +669,90 @@ func (cp *ChatPanel) selectRoom(roomID, roomName string) {
 			cp.msgScroll.ScrollToBottom()
 		})
 	}()
+}
+
+// promptUnverifiedRotator shows a blocking popup warning that the active
+// room-key rotator is not verified (only TOFU-pinned). The user can either
+// verify the rotator out-of-band first or continue at their own risk; the
+// latter retries the join via SetSessionRoomTrustingUnverified.
+func (cp *ChatPanel) promptUnverifiedRotator(roomID, roomName, rotator string) {
+	var pop *widget.PopUp
+
+	title := "UNVERIFIED ROOM KEY — " + strings.ToUpper(roomName)
+	headline := "⚠  KEY ROTATED BY UNVERIFIED USER: " + strings.ToUpper(rotator)
+	desc := "This room's encryption key was signed by " + rotator + ", whose identity you have not cryptographically verified. " +
+		"The signature proves the broker didn't tamper with the key en route, but without verification you can't rule out that the broker created a fake \"" + rotator + "\" account whose key signs a substituted room key. " +
+		"Either verify " + rotator + " out-of-band first (recommended) or continue at your own risk."
+
+	continueBtn := newBtn("Continue unverified (risky)", nil)
+	verifyBtn := newBtn("Start verification", nil)
+	cancelBtn := newBtn("Cancel", nil)
+	cancelBtn.Importance = widget.LowImportance
+
+	continueBtn.OnTapped = func() {
+		if pop != nil {
+			pop.Hide()
+		}
+		go func() {
+			if err := connection.SetSessionRoomTrustingUnverified(roomID); err != nil {
+				clientlog.Error("join room (trusting unverified) failed: " + err.Error())
+				fyne.Do(func() { showToast(cp.w, "room: "+err.Error(), toastError) })
+				return
+			}
+			commands.SendRoomEnter(roomID)
+			clientlog.Info("joined room %s (rotator %s unverified — user consented)", roomID, rotator)
+			members, _ := connection.ListRoomMembers(roomID)
+			var histMsgs []chatMessage
+			if resp, err := connection.GetRoomMessages(roomID, 50); err == nil {
+				histMsgs = decryptHistoricalMessages(resp)
+			}
+			joinMsg := chatMessage{
+				kind:      msgSystem,
+				timestamp: time.Now().Format("15:04"),
+				date:      time.Now().Format("2006-01-02"),
+				body:      "— joined room: " + roomName + " (rotator unverified) —",
+			}
+			allMsgs := append(histMsgs, joinMsg)
+			fyne.Do(func() {
+				cp.roomHeader.Text = "# " + roomName
+				cp.roomHeader.Refresh()
+				cp.currentRoomID = roomID
+				cp.currentRoomName = roomName
+				cp.messages = allMsgs
+				cp.rebuildMsgBox()
+				cp.showRoomArea()
+				if members != nil {
+					cp.SetMembers(members)
+				}
+				cp.msgScroll.ScrollToBottom()
+			})
+		}()
+	}
+
+	verifyBtn.OnTapped = func() {
+		if pop != nil {
+			pop.Hide()
+		}
+		// Kicks off the mutual-handshake flow for the rotator. On success
+		// the peer key store marks them verified; a follow-up room-select
+		// will pass the trust check without prompting.
+		showVerifyPopup(rotator, cp.w, func(_ string) {
+			showToast(cp.w, "verified "+rotator+" — try joining the room again", toastSuccess)
+		})
+	}
+
+	cancelBtn.OnTapped = func() {
+		if pop != nil {
+			pop.Hide()
+		}
+	}
+
+	body := container.NewVBox(
+		alertRichText(headline), vspace(6),
+		popupDescLabel(desc), vspace(10),
+		verifyBtn, continueBtn, cancelBtn,
+	)
+	pop = showNitoPopupSized(title, body, cp.w, 0.33)
 }
 
 // AppendMessage adds a message to the current room view. Fyne thread.
@@ -892,7 +988,7 @@ func showTrustPopup(username string, w fyne.Window, existing *keys.TrustedKey) {
 			if existing != nil {
 				keyPEM = existing.PublicKey
 			} else {
-				fetched, err := connection.GetUserPublicKey(username)
+				fetched, err := connection.GetOrStoreUserPublicKey(username)
 				if err != nil {
 					fyne.Do(func() { showToast(w, "get key: "+err.Error(), toastError) })
 					return

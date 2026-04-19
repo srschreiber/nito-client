@@ -189,21 +189,63 @@ func GetRoomKeyBytes() ([]byte, error) {
 	return keys.DecryptRoomKey(*session.EncryptedRoomKey, session.Username)
 }
 
-// SetSessionRoom stores the selected room ID in the session, fetching the room key and room info.
+// UnverifiedRotatorError is returned by SetSessionRoom when the room's current
+// key was signed by a rotator whose public key is only TOFU-pinned — i.e. the
+// signature is mathematically valid but the UI hasn't cryptographically
+// verified that identity through the mutual-handshake flow. The UI should
+// warn the user, offer to run verification, and retry via
+// SetSessionRoomTrustingUnverified to bypass the check.
+type UnverifiedRotatorError struct {
+	RoomID  string
+	Rotator string
+}
+
+func (e *UnverifiedRotatorError) Error() string {
+	return fmt.Sprintf("room %s: key rotator %q is not verified out-of-band", e.RoomID, e.Rotator)
+}
+
+// SetSessionRoom joins the given room, enforcing that the room-key rotator's
+// identity is already cryptographically verified (or is ourselves). Returns
+// *UnverifiedRotatorError if the rotator is only TOFU-pinned, leaving the
+// session unchanged.
 func SetSessionRoom(roomID string) error {
+	return setSessionRoomWithTrust(roomID, false)
+}
+
+// SetSessionRoomTrustingUnverified is the bypass variant called after the UI
+// has warned the user about an unverified rotator and received explicit
+// consent. It joins the room regardless of the rotator's trust level.
+func SetSessionRoomTrustingUnverified(roomID string) error {
+	return setSessionRoomWithTrust(roomID, true)
+}
+
+func setSessionRoomWithTrust(roomID string, allowUnverified bool) error {
 	mu.Lock()
 	if session == nil {
 		mu.Unlock()
 		return fmt.Errorf("not connected")
 	}
+	me := session.Username
 	mu.Unlock()
 
 	// Fetch room key and room info outside the lock to avoid deadlock
 	// (both call CurrentSession which also locks mu).
-	rk, kv, err := getMyRoomKey(roomID)
+	rk, kv, rotator, err := getMyRoomKey(roomID)
 	if err != nil {
 		return fmt.Errorf("room-select: retrieve room key failed: %w", err)
 	}
+
+	// Trust check: the rotator's manifest signature already verified, but we
+	// want an explicit user-approved TOFU-bypass before we commit to using
+	// this key. Skip the check if the rotator is ourselves — we trust our own
+	// key store implicitly — or if the caller opted in via the bypass entry.
+	if !allowUnverified && rotator != "" && rotator != me {
+		rec, ok := keys.LoadPeerPublicKey(rotator)
+		if !ok || !rec.Verified {
+			return &UnverifiedRotatorError{RoomID: roomID, Rotator: rotator}
+		}
+	}
+
 	info, err := getRoomInfo(roomID)
 	if err != nil {
 		return fmt.Errorf("room-select: retrieve room info failed: %w", err)

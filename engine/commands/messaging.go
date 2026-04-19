@@ -135,7 +135,7 @@ func SendDirectMessage(toUsername, text string) error {
 	if rec, ok := keys.LoadPeerPublicKey(toUsername); ok {
 		toPEM = rec.PublicKey
 	} else {
-		fetched, err := connection.GetUserPublicKey(toUsername)
+		fetched, err := connection.GetOrStoreUserPublicKey(toUsername)
 		if err != nil {
 			return fmt.Errorf("dm: get user public key: %w", err)
 		}

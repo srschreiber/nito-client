@@ -105,18 +105,25 @@ func Login(ctx context.Context, brokerURL, username, password string) (string, e
 	return result.Token, nil
 }
 
-// GetUserPublicKey returns the PEM-encoded public key for a username.
+// GetOrStoreUserPublicKey returns the PEM-encoded public key for a username.
 //
-// Disk-first, with TOFU-on-miss: if the key has already been pinned (either
-// verified through the mutual-handshake flow or TOFU'd on a previous fetch),
-// that stored copy is returned and the broker is not contacted. This is
-// critical for security-sensitive paths (like room-key manifest verification)
-// where a compromised broker could otherwise serve a substituted public key
-// matched to a substituted signature.
+// The signed-in user's own key is always served from their local keystore
+// (written at registration), never from the broker — a compromised broker
+// must never be able to hand us a forged copy of our *own* key.
 //
-// If no record exists locally we fall back to the broker, save the result as
-// an unverified TOFU pin, and return it. Subsequent calls will hit disk.
-func GetUserPublicKey(username string) (string, error) {
+// For peers it's disk-first, TOFU-on-miss: if the key has already been pinned
+// (verified via mutual-handshake, or TOFU'd on a prior fetch), that stored
+// copy is returned and the broker is not contacted. This matters for paths
+// like room-key manifest verification where a compromised broker could
+// otherwise serve a substituted public key matched to a substituted signature.
+//
+// If no peer record exists, we fall back to the broker, save the result as
+// an unverified TOFU pin, and return it. Subsequent calls hit disk.
+func GetOrStoreUserPublicKey(username string) (string, error) {
+	// Self: always use our own on-disk public key, never the broker's view.
+	if s := CurrentSession(); s != nil && s.Username == username {
+		return keys.LoadPublicKeyPEM(username)
+	}
 	if rec, ok := keys.LoadPeerPublicKey(username); ok && rec.PublicKey != "" {
 		return rec.PublicKey, nil
 	}
