@@ -9,10 +9,12 @@ package main
 // sender saw.
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -27,6 +29,60 @@ import (
 // hung media host can't leak goroutines indefinitely. GIFs are usually small
 // enough that 20s is a comfortable upper bound.
 var gifHTTPClient = &http.Client{Timeout: 20 * time.Second}
+
+// ── Per-URL cache + singleflight for GIF downloads ────────────────────────────
+//
+// Without this, every buildGifEmbed call for the same URL fires its own HTTP
+// request. Re-rendering chat history (on join, room switch, theme change)
+// multiplies that across every message containing the URL. A single gif can
+// easily end up downloaded 5+ times in a second. Cache keeps each URL's
+// bytes after the first fetch; sync.Once ensures concurrent callers share
+// one download instead of racing.
+
+type gifCacheEntry struct {
+	once sync.Once
+	data []byte
+	err  error
+}
+
+var (
+	gifCacheMu sync.Mutex
+	gifCache   = map[string]*gifCacheEntry{}
+)
+
+// fetchGifOnce downloads gifURL at most once per process. Subsequent calls
+// return the cached bytes (or cached error) without hitting the network.
+func fetchGifOnce(gifURL string) ([]byte, error) {
+	gifCacheMu.Lock()
+	e, ok := gifCache[gifURL]
+	if !ok {
+		e = &gifCacheEntry{}
+		gifCache[gifURL] = e
+	}
+	gifCacheMu.Unlock()
+
+	e.once.Do(func() {
+		clientlog.Info("gif: fetching %s", gifURL)
+		resp, err := gifHTTPClient.Get(gifURL)
+		if err != nil {
+			e.err = fmt.Errorf("http.Get: %w", err)
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			e.err = fmt.Errorf("HTTP %d", resp.StatusCode)
+			return
+		}
+		data, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+		if err != nil {
+			e.err = fmt.Errorf("read body: %w", err)
+			return
+		}
+		clientlog.Info("gif: downloaded %d bytes from %s", len(data), gifURL)
+		e.data = data
+	})
+	return e.data, e.err
+}
 
 const gifEmbedMaxW float32 = 280
 const gifEmbedMaxH float32 = 280
