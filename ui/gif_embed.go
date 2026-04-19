@@ -51,6 +51,14 @@ func findGifURLs(text string) []string {
 	return found
 }
 
+// isGifOnlyText is true if text (after trimming whitespace) is exactly one
+// GIF URL with no other content. Used by the message renderer to suppress
+// the URL text and show just the animated embed.
+func isGifOnlyText(text string) bool {
+	fields := strings.Fields(text)
+	return len(fields) == 1 && isGifURL(fields[0])
+}
+
 // buildGifEmbed returns an inline animated-GIF player for gifURL. The fetch
 // runs in a goroutine and swaps the loading placeholder for the real widget
 // when bytes arrive, so rendering isn't blocked on network.

@@ -167,6 +167,12 @@ func renderMessage(m chatMessage) fyne.CanvasObject {
 			size := theme.Size(sizeNameChatEmoji)
 			return NewSelectableRichTextWithSize(text, size)
 		}
+		// GIF-only messages (just a URL, nothing else) hide the URL text — the
+		// embed below conveys the content. A zero-width spacer keeps the row's
+		// header (timestamp + from) aligned and visible.
+		if isGifOnlyText(text) {
+			return container.NewWithoutLayout()
+		}
 		return NewSelectableRichText(text)
 	}
 	msgRow := func(ts, from string, fromCol color.Color, text string) fyne.CanvasObject {
