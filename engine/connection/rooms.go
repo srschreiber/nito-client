@@ -99,19 +99,43 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator s
 	}
 
 	// Verify the manifest signature against the rotator's public key. The
-	// rotator is named inside the manifest (`rotated_by`), so we fetch that
-	// user's key and check the signature over the canonical manifest form.
+	// rotator is named inside the manifest (`rotated_by`) along with the
+	// specific device that signed (`device_id`). Root-device signatures
+	// (empty device_id) fall through to GetOrStoreUserPublicKey which does
+	// disk-first + TOFU-on-miss. Non-root devices must already be pinned
+	// locally — per-device key fetching is a separate capability.
 	if result.VersionManifestSignature != "" {
 		rotator = result.VersionManifest.RotatedBy
 		if rotator == "" {
 			return "", 0, "", fmt.Errorf("get room key: manifest has no rotator")
 		}
-		pubPEM, err := GetOrStoreUserPublicKey(rotator)
-		if err != nil {
-			return "", 0, "", fmt.Errorf("get room key: fetch rotator public key: %w", err)
+		deviceID := ""
+		if result.VersionManifest.DeviceID != nil {
+			deviceID = *result.VersionManifest.DeviceID
+		}
+		var pubPEM string
+		if deviceID == "" {
+			pubPEM, err = GetOrStoreUserPublicKey(rotator)
+			if err != nil {
+				return "", 0, "", fmt.Errorf("get room key: fetch rotator public key: %w", err)
+			}
+		} else {
+			rec, ok := keys.LoadPeerPublicKeyByDevice(rotator, deviceID)
+			if !ok {
+				// TODO: support fetching a per-device public key from the broker
+				// given (username, device_id) — then TOFU-pin it like the
+				// root-device path does. Needs a new broker endpoint
+				// (e.g. GET /users/public-key?username=X&device_id=Y) plus a
+				// client helper that mirrors GetOrStoreUserPublicKey's
+				// disk-first + cache-on-miss semantics. Until then, non-root
+				// device signatures can only be verified against keys the
+				// user has already pinned locally.
+				return "", 0, "", fmt.Errorf("get room key: no pinned key for %s/device %s", rotator, deviceID)
+			}
+			pubPEM = rec.PublicKey
 		}
 		if err := keys.VerifyRoomKeyManifest(&result.VersionManifest, result.VersionManifestSignature, pubPEM); err != nil {
-			return "", 0, "", fmt.Errorf("get room key: manifest signature invalid (rotator=%s): %w", rotator, err)
+			return "", 0, "", fmt.Errorf("get room key: manifest signature invalid (rotator=%s device=%q): %w", rotator, deviceID, err)
 		}
 	}
 
