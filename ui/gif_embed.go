@@ -142,25 +142,11 @@ func buildGifEmbed(gifURL string) fyne.CanvasObject {
 	wrapper := container.NewHBox(placeholder)
 
 	go func() {
-		clientlog.Info("gif: fetching %s", gifURL)
-		resp, err := gifHTTPClient.Get(gifURL)
+		data, err := fetchGifOnce(gifURL)
 		if err != nil {
-			clientlog.Error("gif: http.Get %s failed: %v", gifURL, err)
+			clientlog.Error("gif: fetch %s failed: %v", gifURL, err)
 			return
 		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			clientlog.Error("gif: %s returned HTTP %d", gifURL, resp.StatusCode)
-			return
-		}
-		// Cap download size — animated GIFs can be surprisingly large and we
-		// render them inline in chat so 4MB is a reasonable upper bound.
-		data, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
-		if err != nil {
-			clientlog.Error("gif: read body %s failed: %v", gifURL, err)
-			return
-		}
-		clientlog.Info("gif: downloaded %d bytes from %s", len(data), gifURL)
 		res := fyne.NewStaticResource("chat.gif", data)
 		gif, err := xwidget.NewAnimatedGifFromResource(res)
 		if err != nil {
