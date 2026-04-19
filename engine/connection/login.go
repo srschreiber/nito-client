@@ -105,8 +105,21 @@ func Login(ctx context.Context, brokerURL, username, password string) (string, e
 	return result.Token, nil
 }
 
-// GetUserPublicKey fetches the public key PEM for a given username from the broker.
+// GetUserPublicKey returns the PEM-encoded public key for a username.
+//
+// Disk-first, with TOFU-on-miss: if the key has already been pinned (either
+// verified through the mutual-handshake flow or TOFU'd on a previous fetch),
+// that stored copy is returned and the broker is not contacted. This is
+// critical for security-sensitive paths (like room-key manifest verification)
+// where a compromised broker could otherwise serve a substituted public key
+// matched to a substituted signature.
+//
+// If no record exists locally we fall back to the broker, save the result as
+// an unverified TOFU pin, and return it. Subsequent calls will hit disk.
 func GetUserPublicKey(username string) (string, error) {
+	if rec, ok := keys.LoadPeerPublicKey(username); ok && rec.PublicKey != "" {
+		return rec.PublicKey, nil
+	}
 	s := CurrentSession()
 	if s == nil {
 		return "", errors.New("not connected")
@@ -125,5 +138,14 @@ func GetUserPublicKey(username string) (string, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", fmt.Errorf("get public key: decode: %w", err)
 	}
+	// TOFU-pin on first sight so every future caller — including the
+	// manifest verifier — gets the same bytes without re-contacting the
+	// broker. Verified pins (set via the mutual-handshake flow) are never
+	// overwritten here because LoadPeerPublicKey short-circuited above.
+	_ = keys.SavePeerPublicKey(username, keys.TrustedKey{
+		PublicKey: result.PublicKey,
+		Verified:  false,
+		Method:    keys.TrustMethodTOFU,
+	})
 	return result.PublicKey, nil
 }

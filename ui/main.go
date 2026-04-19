@@ -56,7 +56,7 @@ func showMainView(a fyne.App, w fyne.Window) {
 		dmTarget := chatInput.DMTarget()
 		if dmTarget != "" {
 			// DM mode — send encrypted direct message.
-			myID := connection.GetSessionUserID()
+			myID := connection.GetSessionUsername()
 			m := chatMessage{
 				kind:      msgSelf,
 				timestamp: time.Now().Format("15:04"),
@@ -75,7 +75,7 @@ func showMainView(a fyne.App, w fyne.Window) {
 			}()
 		} else {
 			// Room chat mode — send encrypted room message.
-			myID := connection.GetSessionUserID()
+			myID := connection.GetSessionUsername()
 			m := chatMessage{
 				kind:      msgSelf,
 				timestamp: time.Now().Format("15:04"),
@@ -149,7 +149,7 @@ func pingLoop(sp *StatusPanel) {
 		var brokerURL, userID string
 		if s != nil {
 			brokerURL = s.BrokerURL
-			userID = s.UserID
+			userID = s.Username
 		}
 		sp.UpdateStatus(connected, brokerURL, userID, latencyMs)
 	}

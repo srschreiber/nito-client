@@ -9,23 +9,28 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/srschreiber/nito-client/engine/keys"
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
 // CreateRoom creates a new room on the broker. Requires an active session.
-// encryptedRoomKey is the base64-encoded RSA-OAEP ciphertext of the room's AES key.
-func CreateRoom(name, encryptedRoomKey string) (id, roomName string, err error) {
+// encryptedRoomKey is the base64 RSA-OAEP ciphertext of the room's AES key.
+// manifest + manifestSig are the signed metadata every member will use to
+// detect if the broker later substitutes a different key.
+func CreateRoom(name, encryptedRoomKey string, manifest apitypes.RoomKeyManifest, manifestSig string) (id, roomName string, err error) {
 	s := CurrentSession()
 	if s == nil {
 		return "", "", errors.New("not connected")
 	}
-	body, _ := json.Marshal(map[string]string{
-		"name":             name,
-		"userId":           s.UserID,
-		"encryptedRoomKey": encryptedRoomKey,
+	body, _ := json.Marshal(apitypes.CreateRoomRequest{
+		Name:                     name,
+		UserID:                   s.Username,
+		EncryptedRoomKey:         encryptedRoomKey,
+		VersionManifest:          manifest,
+		VersionManifestSignature: manifestSig,
 	})
-	resp, err := signedPost(s.v0("/rooms"), s.UserID, "/api/v0/rooms", body)
+	resp, err := signedPost(s.v0("/rooms"), s.Username, "/api/v0/rooms", body)
 	if err != nil {
 		return "", "", fmt.Errorf("create room: %w", err)
 	}
@@ -33,10 +38,7 @@ func CreateRoom(name, encryptedRoomKey string) (id, roomName string, err error) 
 	if resp.StatusCode != http.StatusOK {
 		return "", "", fmt.Errorf("create room: broker returned %s", resp.Status)
 	}
-	var result struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
+	var result apitypes.CreateRoomResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", "", fmt.Errorf("create room: decode: %w", err)
 	}
@@ -50,8 +52,8 @@ func ListRooms() ([]apitypes.RoomEntry, error) {
 		return nil, errors.New("not connected")
 	}
 	resp, err := signedGet(
-		s.v0("/rooms/list?user_id="+s.UserID),
-		s.UserID,
+		s.v0("/rooms/list?user_id="+s.Username),
+		s.Username,
 		"/api/v0/rooms/list",
 	)
 	if err != nil {
@@ -70,7 +72,11 @@ func ListRooms() ([]apitypes.RoomEntry, error) {
 	return result.Rooms, nil
 }
 
-// getMyRoomKey fetches the caller's encrypted room key and key version for the given room.
+// getMyRoomKey fetches the caller's encrypted room key + version for the
+// given room and verifies the accompanying signed manifest. If the manifest
+// signature doesn't verify against the rotator's current public key, we
+// return an error rather than trust the key — catches the case where a
+// compromised broker swaps the room key without the rotator's knowledge.
 func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, err error) {
 	s := CurrentSession()
 	if s == nil {
@@ -78,7 +84,7 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, err error
 	}
 	resp, err := signedGet(
 		s.v0("/rooms/key?room_id="+roomID),
-		s.UserID,
+		s.Username,
 		"/api/v0/rooms/key",
 	)
 	if err != nil {
@@ -92,6 +98,24 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, err error
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", 0, fmt.Errorf("get room key: decode: %w", err)
 	}
+
+	// Verify the manifest signature against the rotator's public key. The
+	// rotator is named inside the manifest (`rotated_by`), so we fetch that
+	// user's key and check the signature over the canonical manifest form.
+	if result.VersionManifestSignature != "" {
+		rotator := result.VersionManifest.RotatedBy
+		if rotator == "" {
+			return "", 0, fmt.Errorf("get room key: manifest has no rotator")
+		}
+		pubPEM, err := GetUserPublicKey(rotator)
+		if err != nil {
+			return "", 0, fmt.Errorf("get room key: fetch rotator public key: %w", err)
+		}
+		if err := keys.VerifyRoomKeyManifest(&result.VersionManifest, result.VersionManifestSignature, pubPEM); err != nil {
+			return "", 0, fmt.Errorf("get room key: manifest signature invalid (rotator=%s): %w", rotator, err)
+		}
+	}
+
 	return result.EncryptedRoomKey, result.KeyVersion, nil
 }
 
@@ -103,7 +127,7 @@ func getRoomInfo(roomID string) (*RoomInfo, error) {
 	}
 	resp, err := signedGet(
 		s.v0("/rooms/info?room_id="+roomID),
-		s.UserID,
+		s.Username,
 		"/api/v0/rooms/info",
 	)
 	if err != nil {
@@ -131,7 +155,7 @@ func InviteUser(roomID, invitedUsername, encryptedRoomKey string) error {
 		"invitedUsername":  invitedUsername,
 		"encryptedRoomKey": encryptedRoomKey,
 	})
-	resp, err := signedPost(s.v0("/rooms/invite"), s.UserID, "/api/v0/rooms/invite", body)
+	resp, err := signedPost(s.v0("/rooms/invite"), s.Username, "/api/v0/rooms/invite", body)
 	if err != nil {
 		return fmt.Errorf("invite user: %w", err)
 	}
@@ -150,7 +174,7 @@ func ListRoomMembers(roomID string) ([]apitypes.RoomMemberEntry, error) {
 	}
 	resp, err := signedGet(
 		s.v0("/rooms/members?room_id="+roomID),
-		s.UserID,
+		s.Username,
 		"/api/v0/rooms/members",
 	)
 	if err != nil {
@@ -176,8 +200,8 @@ func ListPendingInvites() ([]apitypes.PendingInvite, error) {
 		return nil, errors.New("not connected")
 	}
 	resp, err := signedGet(
-		s.v0("/rooms/invites?user_id="+s.UserID),
-		s.UserID,
+		s.v0("/rooms/invites?user_id="+s.Username),
+		s.Username,
 		"/api/v0/rooms/invites",
 	)
 	if err != nil {
@@ -207,7 +231,7 @@ func GetRoomMessages(roomID string, limit int) (*apitypes.GetRoomMessagesRespons
 		RoomID: roomID,
 		Limit:  &limit,
 	})
-	resp, err := signedPost(s.v0("/rooms/messages"), s.UserID, "/api/v0/rooms/messages", body)
+	resp, err := signedPost(s.v0("/rooms/messages"), s.Username, "/api/v0/rooms/messages", body)
 	if err != nil {
 		return nil, fmt.Errorf("get room messages: %w", err)
 	}
@@ -229,7 +253,7 @@ func AcceptInvite(roomID string) error {
 		return errors.New("not connected")
 	}
 	body, _ := json.Marshal(map[string]string{"roomId": roomID})
-	resp, err := signedPost(s.v0("/rooms/invites/accept"), s.UserID, "/api/v0/rooms/invites/accept", body)
+	resp, err := signedPost(s.v0("/rooms/invites/accept"), s.Username, "/api/v0/rooms/invites/accept", body)
 	if err != nil {
 		return fmt.Errorf("accept invite: %w", err)
 	}

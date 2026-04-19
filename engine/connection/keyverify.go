@@ -18,9 +18,9 @@ func SendKeyVerifyChallenge(toUsername, sessionID, initiatorPubPEM string, expir
 	if s == nil {
 		return errors.New("not connected")
 	}
-	return sendWsRPC(wstypes.RPCKeyVerifyChallenge, s.UserID, wstypes.KeyVerifyChallengePayload{
+	return sendWsRPC(wstypes.RPCKeyVerifyChallenge, s.Username, wstypes.KeyVerifyChallengePayload{
 		SessionID:             sessionID,
-		FromUsername:          s.UserID,
+		FromUsername:          s.Username,
 		ToUsername:            toUsername,
 		InitiatorPublicKeyPEM: initiatorPubPEM,
 		ExpiresAt:             expiresAt,
@@ -33,7 +33,7 @@ func SendKeyVerifyResponse(toUsername, sessionID, pubKeyPEM, sig string) error {
 	if s == nil {
 		return errors.New("not connected")
 	}
-	return sendWsRPC(wstypes.RPCKeyVerifyResponse, s.UserID, wstypes.KeyVerifyResponsePayload{
+	return sendWsRPC(wstypes.RPCKeyVerifyResponse, s.Username, wstypes.KeyVerifyResponsePayload{
 		SessionID:    sessionID,
 		ToUsername:   toUsername,
 		PublicKeyPEM: pubKeyPEM,
@@ -48,7 +48,7 @@ func SendKeyVerifyConfirm(toUsername, sessionID, sig string) error {
 	if s == nil {
 		return errors.New("not connected")
 	}
-	return sendWsRPC(wstypes.RPCKeyVerifyConfirm, s.UserID, wstypes.KeyVerifyConfirmPayload{
+	return sendWsRPC(wstypes.RPCKeyVerifyConfirm, s.Username, wstypes.KeyVerifyConfirmPayload{
 		SessionID:  sessionID,
 		ToUsername: toUsername,
 		Signature:  sig,

@@ -559,7 +559,7 @@ func (cp *ChatPanel) SetRooms(rooms []apitypes.RoomEntry) {
 
 // SetMembers rebuilds the member rows. Must be called on the Fyne thread.
 func (cp *ChatPanel) SetMembers(members []apitypes.RoomMemberEntry) {
-	myID := connection.GetSessionUserID()
+	myID := connection.GetSessionUsername()
 	var rows []fyne.CanvasObject
 	for _, m := range members {
 		m := m
@@ -948,7 +948,7 @@ func showTrustPopup(username string, w fyne.Window, existing *keys.TrustedKey) {
 // showVerifyPopup starts the cryptographic verification flow.
 // onSuccess is called with the verified key PEM after the flow completes.
 func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM string)) {
-	myUsername := connection.GetSessionUserID()
+	myUsername := connection.GetSessionUsername()
 	initiatorPubPEM, err := keys.LoadPublicKeyPEM(myUsername)
 	if err != nil {
 		showToast(w, "load public key: "+err.Error(), toastError)

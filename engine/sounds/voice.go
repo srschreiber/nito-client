@@ -1394,7 +1394,7 @@ func joinWithAEAD(roomID string, aead cipher.AEAD) error {
 	})
 	wsMsg := wstypes.ToBrokerWsMessage{
 		RPCName: wstypes.RPCVoiceJoin, RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
-		UserID: s.UserID, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
+		UserID: s.Username, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(), Payload: payload,
 	}
 	data, _ := json.Marshal(wsMsg)
@@ -1487,7 +1487,7 @@ func Leave(roomID string) error {
 	payload, _ := json.Marshal(wstypes.VoiceLeavePayload{RoomID: roomID})
 	wsMsg := wstypes.ToBrokerWsMessage{
 		RPCName: wstypes.RPCVoiceLeave, RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
-		UserID: s.UserID, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
+		UserID: s.Username, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(), Payload: payload,
 	}
 	data, _ := json.Marshal(wsMsg)
@@ -1614,7 +1614,7 @@ func handleIncoming(rpcName string, payload []byte) {
 			})
 			wsMsg := wstypes.ToBrokerWsMessage{
 				RPCName: wstypes.RPCVoiceRenegAnswer, RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
-				UserID: s.UserID, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
+				UserID: s.Username, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
 				Timestamp: time.Now().Unix(), Payload: respPayload,
 			}
 			data, _ := json.Marshal(wsMsg)
@@ -1658,7 +1658,7 @@ func iceRestart(sess *voiceSession) {
 	})
 	wsMsg := wstypes.ToBrokerWsMessage{
 		RPCName: wstypes.RPCVoiceICERestart, RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
-		UserID: s.UserID, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
+		UserID: s.Username, Nonce: fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(), Payload: payload,
 	}
 	data, _ := json.Marshal(wsMsg)

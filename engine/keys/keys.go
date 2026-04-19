@@ -229,6 +229,7 @@ func GenerateRoomKey() ([]byte, error) {
 	if _, err := rand.Read(key); err != nil {
 		return nil, fmt.Errorf("generate room Key: %w", err)
 	}
+
 	return key, nil
 }
 

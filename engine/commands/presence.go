@@ -26,7 +26,7 @@ func sendPresence(rpcName string, payload any) {
 	msg := wstypes.ToBrokerWsMessage{
 		RPCName:   rpcName,
 		RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
-		UserID:    s.UserID,
+		UserID:    s.Username,
 		Nonce:     fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(),
 		Payload:   p,

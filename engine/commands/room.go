@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/srschreiber/nito-client/engine/connection"
 	"github.com/srschreiber/nito-client/engine/keys"
+	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	"github.com/srschreiber/nito-client/shared/utils"
 	"github.com/srschreiber/nito-client/ui/clientlog"
 )
@@ -25,12 +27,33 @@ func roomCreateCmd(args []Argument) (string, error) {
 		return "", fmt.Errorf("room-create: %w", err)
 	}
 
-	encryptedKey, err := keys.EncryptRoomKey(roomKey, connection.GetSessionUserID())
+	username := connection.GetSessionUsername()
+	encryptedKey, err := keys.EncryptRoomKey(roomKey, username)
 	if err != nil {
 		return "", fmt.Errorf("room-create: %w", err)
 	}
 
-	id, roomName, err := connection.CreateRoom(name, encryptedKey)
+	// Build and sign the initial room-key manifest. First version has no
+	// predecessor so PrevVersionNum=0 and PrevKeyHash="".
+	nonce, err := keys.GenerateManifestNonce()
+	if err != nil {
+		return "", fmt.Errorf("room-create: %w", err)
+	}
+	manifest := apitypes.RoomKeyManifest{
+		CurKeyHash:     keys.HashRoomKey(roomKey),
+		CurVersionNum:  1,
+		Nonce:          nonce,
+		PrevKeyHash:    "",
+		PrevVersionNum: 0,
+		RotatedBy:      username,
+		Timestamp:      time.Now().Unix(),
+	}
+	manifestSig, err := keys.SignRoomKeyManifest(&manifest, username)
+	if err != nil {
+		return "", fmt.Errorf("room-create: sign manifest: %w", err)
+	}
+
+	id, roomName, err := connection.CreateRoom(name, encryptedKey, manifest, manifestSig)
 	if err != nil {
 		return "", err
 	}
@@ -130,7 +153,7 @@ func InviteUserWithKey(username, keyPEM string) (string, error) {
 		return "", errors.New("room-invite: no encrypted room key in session")
 	}
 
-	roomKey, err := keys.DecryptRoomKey(utils.DerefOrZero(encryptedKey), connection.GetSessionUserID())
+	roomKey, err := keys.DecryptRoomKey(utils.DerefOrZero(encryptedKey), connection.GetSessionUsername())
 	if err != nil {
 		return "", fmt.Errorf("room-invite: decrypt room key: %w", err)
 	}

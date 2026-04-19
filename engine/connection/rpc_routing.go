@@ -97,7 +97,7 @@ func readLoop(c *websocket.Conn, echoChan, roomMessageChan, dmChan, nc, kvChalCh
 			mu.Lock()
 			myUserID := ""
 			if session != nil {
-				myUserID = session.UserID
+				myUserID = session.Username
 			}
 			mu.Unlock()
 			if myUserID == "" {

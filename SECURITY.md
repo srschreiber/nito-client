@@ -108,6 +108,49 @@ else.
 Further reading: [RFC 8017 §7](https://datatracker.ietf.org/doc/html/rfc8017#section-7)
 for OAEP.
 
+## Room-key manifest — detecting silent key substitution
+
+Encrypting the room key under each member's public key protects against a
+passive broker, but a compromised broker could still re-encrypt a *different*
+key for every member and sit in the middle. To catch that, each room-key
+version is accompanied by a signed manifest:
+
+```
+RoomKeyManifest {
+  cur_key_hash     // hex sha256 of the raw room key
+  cur_version_num  // monotonic, starts at 1
+  nonce            // 16 random bytes, base64
+  prev_key_hash    // sha256 of prior key, empty on first version
+  prev_version_num // 0 on first version
+  rotated_by       // username who created/rotated this version
+  timestamp        // unix seconds — broker rejects stale requests
+}
+signature = RSA-PSS-SHA256(sk_rotator, "cur_key_hash;cur_version_num;nonce;prev_key_hash;prev_version_num;rotated_by;timestamp")
+```
+
+The signed payload is the field values concatenated **alphabetically by JSON
+key** with `;` separators, so both sides produce identical bytes without
+JSON-encoding ambiguity.
+
+Every client fetching a room key:
+
+1. Downloads the manifest + signature alongside their encrypted key copy.
+2. Resolves `rotated_by`'s public key via `GetUserPublicKey`, which prefers a
+   pinned (verified or TOFU) local copy over the broker's current answer —
+   so a broker that substitutes *both* the key and the pubkey can't fool a
+   client that has previously pinned the rotator's real key.
+3. Verifies the signature. A mismatch aborts the join and surfaces an error
+   rather than silently trusting the substituted key.
+
+The `cur_key_hash` lets each member verify the bytes they decrypt match what
+the rotator signed, and `prev_key_hash` chains successive versions so a broker
+can't roll back to an earlier compromised key without the rotator's
+cooperation. The `nonce` and `timestamp` prevent replay of an old manifest.
+
+Further reading: [Merkle / hash chains](https://en.wikipedia.org/wiki/Hash_chain),
+the [Double Ratchet "safety numbers"](https://signal.org/blog/safety-number-updates/)
+design (similar goal, different mechanism).
+
 ## Message encryption — HMAC ratchet + ChaCha20-Poly1305
 
 The room key is never used directly. Instead, every message uses a per-user,

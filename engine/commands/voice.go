@@ -77,7 +77,7 @@ func playCmd(audioURL string, track int) (string, error) {
 		return "", errors.New("play: not connected")
 	}
 	payload, err := json.Marshal(wstypes.PlayAudioPayload{
-		FromUsername: s.UserID,
+		FromUsername: s.Username,
 		RoomID:       roomID,
 		AudioURL:     audioURL,
 		Track:        track,
@@ -88,7 +88,7 @@ func playCmd(audioURL string, track int) (string, error) {
 	msg := wstypes.ToBrokerWsMessage{
 		RPCName:   wstypes.PlayAudio,
 		RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
-		UserID:    s.UserID,
+		UserID:    s.Username,
 		Nonce:     fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(),
 		Payload:   payload,

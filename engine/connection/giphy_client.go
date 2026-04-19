@@ -113,7 +113,7 @@ func GiphyTranslate(req apitypes.GiphyTranslateRequest) (*GiphyTranslateResponse
 	if err != nil {
 		return nil, fmt.Errorf("giphy translate: marshal: %w", err)
 	}
-	resp, err := signedPost(s.v0("/gifs/translate"), s.UserID, "/api/v0/gifs/translate", body)
+	resp, err := signedPost(s.v0("/gifs/translate"), s.Username, "/api/v0/gifs/translate", body)
 	if err != nil {
 		return nil, fmt.Errorf("giphy translate: %w", err)
 	}

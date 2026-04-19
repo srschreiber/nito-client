@@ -39,7 +39,7 @@ func decryptHistoricalMessages(resp *apitypes.GetRoomMessagesResponse) []chatMes
 		return nil
 	}
 
-	myUserID := connection.GetSessionUserID()
+	myUserID := connection.GetSessionUsername()
 
 	// Build one RoomKeyChain per key version using the user's encrypted copies.
 	keyChains := make(map[int]*keys.RoomKeyChain)
@@ -237,7 +237,7 @@ func messageReceiveLoop(cp *ChatPanel, w fyne.Window) {
 				continue
 			}
 
-			myUserID := connection.GetSessionUserID()
+			myUserID := connection.GetSessionUsername()
 			kind := msgChat
 			if payload.FromUsername == myUserID {
 				kind = msgSelf

@@ -35,7 +35,7 @@ func echoCmd(args []Argument) (string, error) {
 	msg := wstypes.ToBrokerWsMessage{
 		RPCName:   wstypes.RPCEcho,
 		RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
-		UserID:    s.UserID,
+		UserID:    s.Username,
 		Nonce:     fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(),
 		Payload:   payload,
@@ -87,7 +87,7 @@ func sendRoomMessageWithType(text, msgType string) error {
 		return errors.New("say: no room info available for selected room")
 	}
 
-	ciphertext, err := ukc.EncryptMessageWithRoomKey([]byte(text), s.UserID, &roomInfo.SentMessageCount)
+	ciphertext, err := ukc.EncryptMessageWithRoomKey([]byte(text), s.Username, &roomInfo.SentMessageCount)
 	if err != nil {
 		return fmt.Errorf("say: encrypt: %w", err)
 	}
@@ -96,7 +96,7 @@ func sendRoomMessageWithType(text, msgType string) error {
 		RoomID:             roomID,
 		RoomKeyVersion:     roomKeyVersion,
 		SenderMessageCount: roomInfo.SentMessageCount,
-		FromUsername:       s.UserID,
+		FromUsername:       s.Username,
 		EncryptedText:      base64.StdEncoding.EncodeToString(ciphertext),
 		MessageType:        msgType,
 	})
@@ -106,7 +106,7 @@ func sendRoomMessageWithType(text, msgType string) error {
 	msg := wstypes.ToBrokerWsMessage{
 		RPCName:   wstypes.RPCRoomMessage,
 		RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
-		UserID:    s.UserID,
+		UserID:    s.Username,
 		Nonce:     fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(),
 		Payload:   payload,
@@ -154,7 +154,7 @@ func SendDirectMessage(toUsername, text string) error {
 
 	payload := wstypes.DirectMessagePayload{
 		ToUsername:   toUsername,
-		FromUsername: s.UserID,
+		FromUsername: s.Username,
 		CipherText:   encryptedText,
 	}
 
@@ -166,7 +166,7 @@ func SendDirectMessage(toUsername, text string) error {
 	msg := wstypes.ToBrokerWsMessage{
 		RPCName:   wstypes.RPCDirectMessage,
 		RequestID: fmt.Sprintf("%d", time.Now().UnixNano()),
-		UserID:    s.UserID,
+		UserID:    s.Username,
 		Nonce:     fmt.Sprintf("%d", time.Now().UnixNano()),
 		Timestamp: time.Now().Unix(),
 		Payload:   marshaled,

@@ -35,7 +35,7 @@ type RoomInfo struct {
 }
 
 type Session struct {
-	UserID           string // username (used as the identity token sent to the broker)
+	Username         string // the authenticated user's username; used as the identity token on every broker call
 	BrokerURL        string
 	JWTToken         string                        // JWT token for API authentication
 	RoomID           *string                       // currently selected room
@@ -112,13 +112,16 @@ func GetSessionEncryptedRoomKey() *string {
 	return session.EncryptedRoomKey
 }
 
-func GetSessionUserID() string {
+// GetSessionUsername returns the authenticated user's username, or "" if no
+// session is active. (Formerly GetSessionUserID — renamed because Session's
+// primary identity token is a username, not an opaque id.)
+func GetSessionUsername() string {
 	mu.Lock()
 	defer mu.Unlock()
 	if session == nil {
 		return ""
 	}
-	return session.UserID
+	return session.Username
 }
 
 // GetOrCreateRoomKeyChain returns the ratcheting AES-key chain for the active
@@ -133,7 +136,7 @@ func GetOrCreateRoomKeyChain() (*keys.RoomKeyChain, error) {
 	chain, ok := session.KeyManager[roomID]
 	if !ok {
 		baseKey := session.EncryptedRoomKey
-		keyDecrypted, err := keys.DecryptRoomKey(utils.DerefOrZero(baseKey), session.UserID)
+		keyDecrypted, err := keys.DecryptRoomKey(utils.DerefOrZero(baseKey), session.Username)
 		if err != nil {
 			log.Printf("decrypt room key for room %s: %v", roomID, err)
 			return nil, err
@@ -183,7 +186,7 @@ func GetRoomKeyBytes() ([]byte, error) {
 	if session.EncryptedRoomKey == nil {
 		return nil, errors.New("no room selected")
 	}
-	return keys.DecryptRoomKey(*session.EncryptedRoomKey, session.UserID)
+	return keys.DecryptRoomKey(*session.EncryptedRoomKey, session.Username)
 }
 
 // SetSessionRoom stores the selected room ID in the session, fetching the room key and room info.

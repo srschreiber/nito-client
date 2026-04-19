@@ -32,9 +32,11 @@ type PingResponse struct {
 // Rooms
 
 type CreateRoomRequest struct {
-	Name             string `json:"name" validate:"required"`
-	UserID           string `json:"userId" validate:"required"`
-	EncryptedRoomKey string `json:"encryptedRoomKey" validate:"required"`
+	Name                     string          `json:"name" validate:"required"`
+	UserID                   string          `json:"userId" validate:"required"`
+	EncryptedRoomKey         string          `json:"encryptedRoomKey" validate:"required"`
+	VersionManifest          RoomKeyManifest `json:"versionManifest" validate:"required"`
+	VersionManifestSignature string          `json:"versionManifestSignature" validate:"required"`
 }
 
 type CreateRoomResponse struct {
@@ -86,9 +88,25 @@ type AcceptInviteRequest struct {
 	RoomID string `json:"roomId" validate:"required"`
 }
 
+// RoomKeyManifest is the signed metadata that accompanies every room-key
+// version so members can detect silent broker-side key rotation / substitution.
+// Fields are concatenated alphabetically (by JSON key) with `;` separators to
+// produce the signed payload.
+type RoomKeyManifest struct {
+	CurKeyHash     string `json:"cur_key_hash"`     // hex sha256 of the raw (unencrypted) current key
+	CurVersionNum  int    `json:"cur_version_num"`  // monotonically increasing version
+	Nonce          string `json:"nonce"`            // random, base64 — prevents replay
+	PrevKeyHash    string `json:"prev_key_hash"`    // empty on first key
+	PrevVersionNum int    `json:"prev_version_num"` // 0 on first key
+	RotatedBy      string `json:"rotated_by"`       // username who created/rotated this key
+	Timestamp      int64  `json:"timestamp"`        // unix seconds — broker checks freshness
+}
+
 type GetRoomKeyResponse struct {
-	EncryptedRoomKey string `json:"encryptedRoomKey"`
-	KeyVersion       int    `json:"keyVersion"`
+	EncryptedRoomKey         string          `json:"encryptedRoomKey"`
+	KeyVersion               int             `json:"keyVersion"`
+	VersionManifest          RoomKeyManifest `json:"versionManifest"`
+	VersionManifestSignature string          `json:"versionManifestSignature"`
 }
 
 type GetUserPublicKeyResponse struct {

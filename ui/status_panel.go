@@ -534,7 +534,7 @@ func (sp *StatusPanel) AddVerifyRequest(fromUsername, sessionID, initiatorPubPEM
 			}
 			return
 		}
-		myUsername := connection.GetSessionUserID()
+		myUsername := connection.GetSessionUsername()
 		go func() {
 			responderPubPEM, sig, err := keys.SignVerificationResponse(code, sessionID, initiatorPubPEM, myUsername)
 			if err != nil {
