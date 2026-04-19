@@ -24,6 +24,7 @@ type ColorProfile struct {
 	Surface2    color.NRGBA // raised surface (input, sidebar)
 	TabActive   color.NRGBA // active tab indicator
 	InputBg     color.NRGBA // text-entry background
+	CodeBg      color.NRGBA // inline/block code background — slightly brighter than InputBg
 	Hover       color.NRGBA // hover / active-tab overlay
 }
 
@@ -43,6 +44,7 @@ var colorProfiles = []ColorProfile{
 		Surface2:    color.NRGBA{R: 0x26, G: 0x20, B: 0x30, A: 0xff},
 		TabActive:   color.NRGBA{R: 0x2c, G: 0x24, B: 0x38, A: 0xff},
 		InputBg:     color.NRGBA{R: 0x20, G: 0x1c, B: 0x2c, A: 0xff},
+		CodeBg:      color.NRGBA{R: 0x2e, G: 0x26, B: 0x3e, A: 0xff},
 		Hover:       color.NRGBA{R: 0x40, G: 0x2a, B: 0x68, A: 0xff},
 	},
 	// ── Chill Blue ───────────────────────────────────────────────────────────
@@ -59,6 +61,7 @@ var colorProfiles = []ColorProfile{
 		Surface2:    color.NRGBA{R: 0x20, G: 0x2a, B: 0x38, A: 0xff},
 		TabActive:   color.NRGBA{R: 0x24, G: 0x2e, B: 0x42, A: 0xff},
 		InputBg:     color.NRGBA{R: 0x1c, G: 0x24, B: 0x34, A: 0xff},
+		CodeBg:      color.NRGBA{R: 0x26, G: 0x30, B: 0x44, A: 0xff},
 		Hover:       color.NRGBA{R: 0x2a, G: 0x48, B: 0x70, A: 0xff},
 	},
 	// ── Chill Red ────────────────────────────────────────────────────────────
@@ -75,6 +78,7 @@ var colorProfiles = []ColorProfile{
 		Surface2:    color.NRGBA{R: 0x2c, G: 0x20, B: 0x20, A: 0xff},
 		TabActive:   color.NRGBA{R: 0x34, G: 0x24, B: 0x24, A: 0xff},
 		InputBg:     color.NRGBA{R: 0x28, G: 0x1c, B: 0x1c, A: 0xff},
+		CodeBg:      color.NRGBA{R: 0x36, G: 0x24, B: 0x24, A: 0xff},
 		Hover:       color.NRGBA{R: 0x50, G: 0x28, B: 0x28, A: 0xff},
 	},
 	// ── Chill Green ──────────────────────────────────────────────────────────
@@ -91,6 +95,7 @@ var colorProfiles = []ColorProfile{
 		Surface2:    color.NRGBA{R: 0x20, G: 0x2a, B: 0x22, A: 0xff},
 		TabActive:   color.NRGBA{R: 0x26, G: 0x34, B: 0x2c, A: 0xff},
 		InputBg:     color.NRGBA{R: 0x1c, G: 0x26, B: 0x1e, A: 0xff},
+		CodeBg:      color.NRGBA{R: 0x24, G: 0x32, B: 0x28, A: 0xff},
 		Hover:       color.NRGBA{R: 0x28, G: 0x4e, B: 0x38, A: 0xff},
 	},
 	// ── Chill Orange ─────────────────────────────────────────────────────────
@@ -107,6 +112,7 @@ var colorProfiles = []ColorProfile{
 		Surface2:    color.NRGBA{R: 0x2c, G: 0x24, B: 0x20, A: 0xff},
 		TabActive:   color.NRGBA{R: 0x34, G: 0x2c, B: 0x24, A: 0xff},
 		InputBg:     color.NRGBA{R: 0x28, G: 0x1e, B: 0x18, A: 0xff},
+		CodeBg:      color.NRGBA{R: 0x36, G: 0x28, B: 0x20, A: 0xff},
 		Hover:       color.NRGBA{R: 0x50, G: 0x30, B: 0x28, A: 0xff},
 	},
 	// ── Chill Teal ───────────────────────────────────────────────────────────
@@ -123,6 +129,7 @@ var colorProfiles = []ColorProfile{
 		Surface2:    color.NRGBA{R: 0x20, G: 0x2c, B: 0x2c, A: 0xff},
 		TabActive:   color.NRGBA{R: 0x26, G: 0x36, B: 0x36, A: 0xff},
 		InputBg:     color.NRGBA{R: 0x1c, G: 0x28, B: 0x28, A: 0xff},
+		CodeBg:      color.NRGBA{R: 0x24, G: 0x34, B: 0x34, A: 0xff},
 		Hover:       color.NRGBA{R: 0x28, G: 0x52, B: 0x50, A: 0xff},
 	},
 	// ── Chill Pink ───────────────────────────────────────────────────────────
@@ -139,6 +146,7 @@ var colorProfiles = []ColorProfile{
 		Surface2:    color.NRGBA{R: 0x2c, G: 0x22, B: 0x2c, A: 0xff},
 		TabActive:   color.NRGBA{R: 0x34, G: 0x28, B: 0x34, A: 0xff},
 		InputBg:     color.NRGBA{R: 0x28, G: 0x1e, B: 0x28, A: 0xff},
+		CodeBg:      color.NRGBA{R: 0x36, G: 0x28, B: 0x36, A: 0xff},
 		Hover:       color.NRGBA{R: 0x50, G: 0x26, B: 0x4c, A: 0xff},
 	},
 }
@@ -223,6 +231,7 @@ func setProfileColors(name string) {
 	colSurface2 = scaledCol(p.Surface2)
 	colTabActive = scaledCol(p.TabActive)
 	colInputBg = scaledCol(p.InputBg)
+	colCodeBg = scaledCol(p.CodeBg)
 	colHover = scaledCol(p.Hover)
 }
 

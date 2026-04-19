@@ -159,15 +159,13 @@ func splitByEmoji(s string) []emojiRun {
 func renderMessage(m chatMessage) fyne.CanvasObject {
 	var row fyne.CanvasObject
 	msgBody := func(text string) fyne.CanvasObject {
-		// Emoji-only messages get the enlarged-emoji treatment and keep using
-		// RichText (they don't need selection support and benefit from the size
-		// bump — see upsizeEmojiSegments). Everything else goes through the
-		// SelectableRichText widget so users can select/copy across the line.
+		// Emoji-only messages render at the enlarged emoji size but still go
+		// through SelectableRichText so each emoji can be clicked, selected,
+		// and Cmd+C-copied like any other character.
 		if isEmojiOnlyText(text) {
-			rt := widget.NewRichTextFromMarkdown(text)
-			rt.Wrapping = fyne.TextWrapWord
-			upsizeEmojiSegments(rt)
-			return rt
+			theme := fyne.CurrentApp().Settings().Theme()
+			size := theme.Size(sizeNameChatEmoji)
+			return NewSelectableRichTextWithSize(text, size)
 		}
 		return NewSelectableRichText(text)
 	}

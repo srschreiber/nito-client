@@ -35,6 +35,7 @@ var (
 	colTransparent = color.NRGBA{A: 0x00}
 	colTabActive   = color.NRGBA{R: 0x2c, G: 0x24, B: 0x38, A: 0xff} // active tab bg
 	colInputBg     = color.NRGBA{R: 0x20, G: 0x1c, B: 0x2c, A: 0xff}
+	colCodeBg      = color.NRGBA{R: 0x2e, G: 0x26, B: 0x3e, A: 0xff} // inline/block code bg — slightly brighter than InputBg
 	colHover       = color.NRGBA{R: 0x40, G: 0x2a, B: 0x68, A: 0xff} // button/item hover
 )
 
@@ -62,6 +63,7 @@ var (
 	liveBorderFocus = liveCol{&colBorderFocus}
 	liveHover       = liveCol{&colHover}
 	liveInputBg     = liveCol{&colInputBg}
+	liveCodeBg      = liveCol{&colCodeBg}
 	liveTabActive   = liveCol{&colTabActive}
 )
 

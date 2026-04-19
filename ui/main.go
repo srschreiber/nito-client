@@ -123,6 +123,10 @@ func showMainView(a fyne.App, w fyne.Window) {
 		}
 	})
 
+	// Canvas-level Cmd/Ctrl+C fallback so the active chat selection is
+	// copyable even when focus has drifted to an unrelated widget.
+	InstallGlobalCopyShortcut(w)
+
 	w.Canvas().Focus(chatInput.Entry)
 
 	// Start background goroutines.

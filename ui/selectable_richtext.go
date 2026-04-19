@@ -225,6 +225,37 @@ func NewSelectableRichText(text string) *SelectableRichText {
 	return s
 }
 
+// activeSelection is the most recently-selected SelectableRichText in the
+// window. It serves as a fallback target for Cmd/Ctrl+C when focus has moved
+// elsewhere (e.g. mouse is hovering over a non-selectable area). At most one
+// selection is active at a time — starting a new selection clears the previous.
+var activeSelection *SelectableRichText
+
+// setActiveSelection makes s the active selection and clears any other widget's
+// selection so only one is highlighted at a time.
+func setActiveSelection(s *SelectableRichText) {
+	if activeSelection != nil && activeSelection != s {
+		prev := activeSelection
+		activeSelection = nil // prevent re-entrant unregistration in prev.clearSelection
+		prev.selStart = -1
+		prev.selEnd = -1
+		prev.Refresh()
+	}
+	activeSelection = s
+}
+
+// InstallGlobalCopyShortcut registers a canvas-level Cmd/Ctrl+C handler that
+// copies from activeSelection when no focused widget consumed the shortcut.
+// Called once from main. Entry widgets still handle Cmd+C locally because
+// focused widgets get shortcuts first.
+func InstallGlobalCopyShortcut(w fyne.Window) {
+	w.Canvas().AddShortcut(&fyne.ShortcutCopy{}, func(_ fyne.Shortcut) {
+		if activeSelection != nil && activeSelection.hasSelection() {
+			activeSelection.copyToClipboard()
+		}
+	})
+}
+
 // NewSelectableRichTextWithSize is like NewSelectableRichText but renders at a
 // custom font size. Used for emoji-only messages (large display, still selectable).
 func NewSelectableRichTextWithSize(text string, size float32) *SelectableRichText {
@@ -455,6 +486,9 @@ func (s *SelectableRichText) selectAll() {
 func (s *SelectableRichText) clearSelection() {
 	s.selStart = -1
 	s.selEnd = -1
+	if activeSelection == s {
+		activeSelection = nil
+	}
 	s.Refresh()
 }
 
@@ -471,8 +505,16 @@ func (s *SelectableRichText) copyToClipboard() {
 
 func (s *SelectableRichText) FocusGained() { s.focused = true }
 func (s *SelectableRichText) FocusLost() {
+	// If the user drags and releases outside our bounds, Fyne reassigns focus
+	// to whatever's under the cursor on release. Clearing the selection there
+	// would discard the drag the user just made. Keep the selection if we
+	// were dragging; only clear on an intentional click-elsewhere (when not
+	// mid-drag).
 	s.focused = false
-	s.dragging = false
+	if s.dragging {
+		s.dragging = false
+		return
+	}
 	s.clearSelection()
 }
 func (s *SelectableRichText) TypedRune(r rune)        {}
@@ -492,6 +534,7 @@ func (s *SelectableRichText) Tapped(*fyne.PointEvent) {
 // terminal/IDE convention where double-click picks the current line out of a
 // block of text so Cmd+C grabs it as a unit.
 func (s *SelectableRichText) DoubleTapped(e *fyne.PointEvent) {
+	setActiveSelection(s)
 	if c := fyne.CurrentApp().Driver().CanvasForObject(s); c != nil {
 		c.Focus(s)
 	}
@@ -530,6 +573,7 @@ func (s *SelectableRichText) TypedShortcut(sc fyne.Shortcut) {
 // ── desktop.Mouseable ─────────────────────────────────────────────────────────
 
 func (s *SelectableRichText) MouseDown(e *desktop.MouseEvent) {
+	setActiveSelection(s)
 	if c := fyne.CurrentApp().Driver().CanvasForObject(s); c != nil {
 		c.Focus(s)
 	}
@@ -620,7 +664,7 @@ func (r *srtRenderer) rebuildObjects() {
 	// Code-block backgrounds (painted first, behind selection + text).
 	// Consecutive block lines are merged into a single rectangle so the
 	// rounded corners don't create visible gaps between adjacent lines.
-	// colInputBg recolours with the active theme profile.
+	// colCodeBg recolours with the active theme profile.
 	for i := 0; i < len(s.lines); {
 		if !s.lines[i].block {
 			i++
@@ -633,7 +677,7 @@ func (r *srtRenderer) rebuildObjects() {
 		end := i - 1
 		top := s.lines[start].y
 		bottom := s.lines[end].y + s.lineHeight()
-		bg := canvas.NewRectangle(colInputBg)
+		bg := canvas.NewRectangle(liveCodeBg)
 		bg.CornerRadius = 4
 		bg.Move(fyne.NewPos(0, top))
 		bg.Resize(fyne.NewSize(s.lastWidth, bottom-top))
@@ -649,7 +693,7 @@ func (r *srtRenderer) rebuildObjects() {
 			if !tok.code {
 				continue
 			}
-			bg := canvas.NewRectangle(colInputBg)
+			bg := canvas.NewRectangle(liveCodeBg)
 			bg.CornerRadius = 3
 			// Slight horizontal padding so the pill doesn't clip the glyphs.
 			const pad = 2
