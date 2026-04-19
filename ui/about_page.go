@@ -48,6 +48,9 @@ var licWebrtcRnnoise string
 //go:embed licenses_data/12_fyne.txt
 var licFyne string
 
+//go:embed licenses_data/13_fyne_io.txt
+var licFyneIO string
+
 type licenseEntry struct {
 	name string
 	text string
@@ -66,6 +69,7 @@ var allLicenses = []licenseEntry{
 	{"spl_sqrt_floor", licSplSqrt},
 	{"WebRTC/rnnoise", licWebrtcRnnoise},
 	{"Fyne", licFyne},
+	{"Fyne-IO", licFyneIO},
 }
 
 // showAboutWindow opens a separate window with two panes: license list on the

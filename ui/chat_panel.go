@@ -188,10 +188,11 @@ func renderMessage(m chatMessage) fyne.CanvasObject {
 		row = msgRow(m.timestamp, m.from, colLavender, m.body)
 	}
 
-	// Append embeds for YouTube and audio URLs.
+	// Append embeds for YouTube, audio, and GIF URLs.
 	ytURLs := findYouTubeURLs(m.body)
 	audioURLs := findAudioURLs(m.body)
-	if len(ytURLs) == 0 && len(audioURLs) == 0 {
+	gifURLs := findGifURLs(m.body)
+	if len(ytURLs) == 0 && len(audioURLs) == 0 && len(gifURLs) == 0 {
 		return row
 	}
 	parts := []fyne.CanvasObject{row}
@@ -202,6 +203,11 @@ func renderMessage(m chatMessage) fyne.CanvasObject {
 	}
 	for _, u := range audioURLs {
 		if embed := buildAudioEmbed(u); embed != nil {
+			parts = append(parts, embed)
+		}
+	}
+	for _, u := range gifURLs {
+		if embed := buildGifEmbed(u); embed != nil {
 			parts = append(parts, embed)
 		}
 	}

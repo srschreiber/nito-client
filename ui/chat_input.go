@@ -96,9 +96,19 @@ func expandFinishedShortcode(text string) string {
 
 // ── multilineEntry ────────────────────────────────────────────────────────────
 
+// suggestion is one row in the autocomplete list. Accept is the callback that
+// edits the entry text when the user selects the row (via click, Tab, or Enter
+// on a highlighted row); different suggestion kinds (emoji inline-replace vs
+// chatop full-replace) supply different Accept implementations.
+type suggestion struct {
+	Label  string
+	Accept func()
+}
+
 // multilineEntry submits on plain Enter and inserts a newline on Shift+Enter.
-// It also renders emoji shortcode autocomplete as a small popup while the user
-// types `:xxx`, and expands completed `:code:` (or `:code: `) into the emoji.
+// Renders emoji shortcode autocomplete while the user types `:xxx`, expands
+// completed `:code:` (or `:code: `) into the emoji, and shows chatop
+// autocomplete while the user types a leading `/`.
 type multilineEntry struct {
 	widget.Entry
 	shiftHeld bool
@@ -109,7 +119,7 @@ type multilineEntry struct {
 	// are no matches we Hide() the whole card so nothing is visible.
 	SuggestCard  *fyne.Container
 	suggestList  *fyne.Container
-	suggestions  []emojiEntry
+	suggestions  []suggestion
 	suggestIndex int
 	suppressHook bool // true while programmatically mutating SetText to avoid recursion
 }
@@ -194,8 +204,9 @@ func (e *multilineEntry) appendText(s string) {
 	e.suppressHook = false
 }
 
-// onTextChanged is attached to Entry.OnChanged. It performs completed-shortcode
-// expansion and maintains the autocomplete popup.
+// onTextChanged is attached to Entry.OnChanged. Handles completed-shortcode
+// expansion and routes autocomplete between emoji (`:xxx`) and chatop (`/xxx`)
+// modes based on the current text.
 func (e *multilineEntry) onTextChanged(s string) {
 	if e.suppressHook {
 		return
@@ -208,12 +219,19 @@ func (e *multilineEntry) onTextChanged(s string) {
 		e.hideSuggestions()
 		return
 	}
-	// 2. Update or show the autocomplete popup.
-	e.refreshSuggestionsFromText(s)
+	// 2. Chatop autocomplete — only active while the user is typing the
+	// command name (i.e. text starts with '/' and has no space yet).
+	trim := strings.TrimLeft(s, " ")
+	if strings.HasPrefix(trim, "/") && !strings.Contains(trim, " ") {
+		e.refreshChatOpSuggestions(trim)
+		return
+	}
+	// 3. Emoji autocomplete.
+	e.refreshEmojiSuggestions(s)
 }
 
-func (e *multilineEntry) refreshSuggestionsFromText(s string) {
-	_, prefix, ok := findActiveShortcode(s)
+func (e *multilineEntry) refreshEmojiSuggestions(s string) {
+	start, prefix, ok := findActiveShortcode(s)
 	if !ok || prefix == "" {
 		e.hideSuggestions()
 		return
@@ -232,8 +250,59 @@ func (e *multilineEntry) refreshSuggestionsFromText(s string) {
 		e.hideSuggestions()
 		return
 	}
-	e.suggestions = matches
-	if e.suggestIndex >= len(matches) {
+	suggestions := make([]suggestion, 0, len(matches))
+	for _, m := range matches {
+		mm := m
+		startRef := start
+		suggestions = append(suggestions, suggestion{
+			Label: mm.Char + "  :" + mm.Code + ":",
+			Accept: func() {
+				replaced := e.Text[:startRef] + mm.Char
+				e.suppressHook = true
+				e.SetText(replaced)
+				e.CursorColumn = len(replaced)
+				e.suppressHook = false
+				e.hideSuggestions()
+			},
+		})
+	}
+	e.setSuggestions(suggestions)
+}
+
+func (e *multilineEntry) refreshChatOpSuggestions(trimmed string) {
+	prefix := strings.TrimPrefix(trimmed, "/")
+	ops := ChatOpCompletions(prefix)
+	if len(ops) == 0 {
+		e.hideSuggestions()
+		return
+	}
+	suggestions := make([]suggestion, 0, len(ops))
+	for _, op := range ops {
+		opRef := op
+		label := "/" + opRef.Name
+		if opRef.Desc != "" {
+			label += "  —  " + opRef.Desc
+		}
+		suggestions = append(suggestions, suggestion{
+			Label: label,
+			Accept: func() {
+				// Replace the whole input with `/<name> ` so the user types
+				// args next. Cursor moves to end.
+				replaced := "/" + opRef.Name + " "
+				e.suppressHook = true
+				e.SetText(replaced)
+				e.CursorColumn = len(replaced)
+				e.suppressHook = false
+				e.hideSuggestions()
+			},
+		})
+	}
+	e.setSuggestions(suggestions)
+}
+
+func (e *multilineEntry) setSuggestions(list []suggestion) {
+	e.suggestions = list
+	if e.suggestIndex >= len(list) {
 		e.suggestIndex = 0
 	}
 	e.showSuggestions()
@@ -244,9 +313,9 @@ func (e *multilineEntry) showSuggestions() {
 		return
 	}
 	rows := make([]fyne.CanvasObject, 0, len(e.suggestions))
-	for i, em := range e.suggestions {
-		idx, item := i, em
-		label := monoTxt(item.Char+"  :"+item.Code+":", colText)
+	for i := range e.suggestions {
+		idx := i
+		label := monoTxt(e.suggestions[idx].Label, colText)
 		row := NewHoverRow(container.NewPadded(label), func() {
 			e.acceptSuggestion(idx)
 		})
@@ -280,16 +349,7 @@ func (e *multilineEntry) acceptSuggestion(idx int) {
 	if idx < 0 || idx >= len(e.suggestions) {
 		return
 	}
-	start, _, ok := findActiveShortcode(e.Text)
-	if !ok {
-		return
-	}
-	replaced := e.Text[:start] + e.suggestions[idx].Char
-	e.suppressHook = true
-	e.SetText(replaced)
-	e.CursorColumn = len(replaced) // move cursor to end
-	e.suppressHook = false
-	e.hideSuggestions()
+	e.suggestions[idx].Accept()
 }
 
 // ── Emoji picker (smiley-button popup) ────────────────────────────────────────
@@ -378,6 +438,13 @@ func NewChatInput(w fyne.Window, onSubmit func(string)) *ChatInput {
 	ci.modeLabel = txt("> ", liveAccent, 13, false, true)
 
 	ci.Entry = newMultilineEntry(func(text string) {
+		// Slash commands route through ExecChatOp instead of being sent as
+		// regular text. The host marshals back to the Fyne thread for toasts
+		// / SendMessage and reuses ci.onSubmit to publish results to chat.
+		if IsChatOp(text) {
+			ExecChatOp(text, &chatOpHost{ci: ci})
+			return
+		}
 		if ci.onSubmit != nil {
 			ci.onSubmit(text)
 		}
@@ -420,6 +487,22 @@ func (ci *ChatInput) DMTarget() string {
 		return ""
 	}
 	return strings.TrimSuffix(strings.TrimPrefix(text, "dm "), " › ")
+}
+
+// chatOpHost implements ChatOpHost for the active chat input. All callbacks
+// marshal to the Fyne thread so ops can invoke them from goroutines.
+type chatOpHost struct{ ci *ChatInput }
+
+func (h *chatOpHost) SendMessage(text string) {
+	fyne.Do(func() {
+		if h.ci.onSubmit != nil {
+			h.ci.onSubmit(text)
+		}
+	})
+}
+
+func (h *chatOpHost) ShowError(msg string) {
+	fyne.Do(func() { showToast(h.ci.w, msg, toastError) })
 }
 
 func (ci *ChatInput) CreateRenderer() fyne.WidgetRenderer {
