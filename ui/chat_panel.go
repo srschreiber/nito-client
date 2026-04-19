@@ -189,7 +189,10 @@ func renderMessage(m chatMessage) fyne.CanvasObject {
 
 	switch m.kind {
 	case msgSystem:
-		return container.NewPadded(monoTxt("  "+m.body, colMuted))
+		// truncLabel instead of raw canvas.Text so the row can shrink with
+		// the split divider instead of forcing its full text width as a min.
+		lbl := truncLabel("  "+m.body, colMuted, false)
+		return container.NewPadded(lbl)
 	case msgSelf:
 		row = msgRow(m.timestamp, "you", colCyan, m.body)
 	case msgDM:
@@ -241,7 +244,7 @@ func renderDaySep(date string) fyne.CanvasObject {
 	default:
 		label = "— " + t.Format("Monday, January 2") + " —"
 	}
-	return container.NewPadded(monoTxt("  "+label, colMuted))
+	return container.NewPadded(truncLabel("  "+label, colMuted, false))
 }
 
 // ── ChatPanel ─────────────────────────────────────────────────────────────────
