@@ -119,13 +119,15 @@ version is accompanied by a signed manifest:
 RoomKeyManifest {
   cur_key_hash     // hex sha256 of the raw room key
   cur_version_num  // monotonic, starts at 1
+  device_id        // which device of rotated_by signed this; empty = root device
   nonce            // 16 random bytes, base64
   prev_key_hash    // sha256 of prior key, empty on first version
   prev_version_num // 0 on first version
   rotated_by       // username who created/rotated this version
   timestamp        // unix seconds — broker rejects stale requests
 }
-signature = RSA-PSS-SHA256(sk_rotator, "cur_key_hash;cur_version_num;nonce;prev_key_hash;prev_version_num;rotated_by;timestamp")
+signature = RSA-PSS-SHA256(sk_rotator,
+  "cur_key_hash;cur_version_num;device_id;nonce;prev_key_hash;prev_version_num;rotated_by;timestamp")
 ```
 
 The signed payload is the field values concatenated **alphabetically by JSON
@@ -135,17 +137,37 @@ JSON-encoding ambiguity.
 Every client fetching a room key:
 
 1. Downloads the manifest + signature alongside their encrypted key copy.
-2. Resolves `rotated_by`'s public key via `GetUserPublicKey`, which prefers a
-   pinned (verified or TOFU) local copy over the broker's current answer —
-   so a broker that substitutes *both* the key and the pubkey can't fool a
-   client that has previously pinned the rotator's real key.
+2. Resolves `rotated_by`'s public key via `GetOrStoreUserPublicKey`. That
+   helper is **disk-first**: if a local pin (verified or TOFU) exists, the
+   broker is not contacted at all. When `rotated_by` is the signed-in user,
+   the key is read from our own on-disk keystore (written at registration)
+   — the broker never gets a say about our own identity. If nothing is
+   pinned yet, it falls back to the broker once and TOFU-pins the result.
 3. Verifies the signature. A mismatch aborts the join and surfaces an error
    rather than silently trusting the substituted key.
+4. Checks the rotator's *trust level*. If the rotator is only TOFU-pinned
+   (not cryptographically verified out-of-band), the client surfaces an
+   `UnverifiedRotatorError` to the UI. The UI shows a warning popup: users
+   can run the mutual-verify handshake against the rotator first or
+   consciously continue at their own risk. The room is not joined until
+   that decision is made. See the TOFU / verification section above for
+   why this distinction matters.
 
 The `cur_key_hash` lets each member verify the bytes they decrypt match what
-the rotator signed, and `prev_key_hash` chains successive versions so a broker
+the rotator signed; `prev_key_hash` chains successive versions so a broker
 can't roll back to an earlier compromised key without the rotator's
-cooperation. The `nonce` and `timestamp` prevent replay of an old manifest.
+cooperation; `nonce` + `timestamp` prevent replay of an old manifest; and
+`device_id` scopes the signature to a single device within a user's account,
+so a compromised non-root device can't silently rotate keys as the root user.
+
+**Limits of this defense.** A fully compromised broker can still trick a
+client on *first contact* by forging a fresh identity, signing a substituted
+manifest with it, and letting TOFU pin the fake key. The manifest closes the
+silent-substitution hole only for rotators the client has already verified
+or seen before. For strong protection against an adversarial broker, run
+the mutual-verify handshake against peers you care about — verified pins
+are never overwritten by the TOFU path, so a later substitution attempt
+fails even if the broker is cooperating with it.
 
 Further reading: [Merkle / hash chains](https://en.wikipedia.org/wiki/Hash_chain),
 the [Double Ratchet "safety numbers"](https://signal.org/blog/safety-number-updates/)
