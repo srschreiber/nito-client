@@ -76,6 +76,23 @@ func upsizeEmojiSegments(rt *widget.RichText) {
 	}
 }
 
+// isEmojiOnlyText returns true if s consists solely of emoji runes and
+// whitespace. Used by the message renderer to route to the enlarged-emoji
+// RichText path instead of the selectable-text widget.
+func isEmojiOnlyText(s string) bool {
+	hasEmoji := false
+	for _, r := range s {
+		if r == ' ' || r == '\t' || r == '\n' {
+			continue
+		}
+		if !isEmojiRune(r) {
+			return false
+		}
+		hasEmoji = true
+	}
+	return hasEmoji
+}
+
 // isEmojiOnlyMessage returns true if every text segment in rt contains only
 // emoji runes and whitespace (so we can safely enlarge the whole message).
 func isEmojiOnlyMessage(rt *widget.RichText) bool {
@@ -142,10 +159,17 @@ func splitByEmoji(s string) []emojiRun {
 func renderMessage(m chatMessage) fyne.CanvasObject {
 	var row fyne.CanvasObject
 	msgBody := func(text string) fyne.CanvasObject {
-		rt := widget.NewRichTextFromMarkdown(text)
-		rt.Wrapping = fyne.TextWrapWord
-		upsizeEmojiSegments(rt)
-		return rt
+		// Emoji-only messages get the enlarged-emoji treatment and keep using
+		// RichText (they don't need selection support and benefit from the size
+		// bump — see upsizeEmojiSegments). Everything else goes through the
+		// SelectableRichText widget so users can select/copy across the line.
+		if isEmojiOnlyText(text) {
+			rt := widget.NewRichTextFromMarkdown(text)
+			rt.Wrapping = fyne.TextWrapWord
+			upsizeEmojiSegments(rt)
+			return rt
+		}
+		return NewSelectableRichText(text)
 	}
 	msgRow := func(ts, from string, fromCol color.Color, text string) fyne.CanvasObject {
 		meta := container.NewHBox(
@@ -585,6 +609,7 @@ func (cp *ChatPanel) selectRoom(roomID, roomName string) {
 			if members != nil {
 				cp.SetMembers(members)
 			}
+			cp.msgScroll.ScrollToBottom()
 		})
 	}()
 }

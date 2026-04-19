@@ -120,7 +120,6 @@ func newMultilineEntry(onSubmit func(string)) *multilineEntry {
 	e := &multilineEntry{onSubmit: onSubmit}
 	e.MultiLine = true
 	e.SetPlaceHolder("type a message")
-	e.TextStyle = fyne.TextStyle{Monospace: true}
 
 	e.suggestList = container.NewVBox()
 	bg := canvas.NewRectangle(liveSurface2)
