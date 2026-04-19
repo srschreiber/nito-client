@@ -642,7 +642,11 @@ func (r *srtRenderer) MinSize() fyne.Size {
 	if h == 0 {
 		h = r.widget.lineHeight()
 	}
-	return fyne.NewSize(r.widget.lastWidth, h)
+	// Width 0 so the widget can be sized to anything the parent wants (the
+	// HSplit divider between sidebar and chat was getting pinned because
+	// MinSize was the last-laid-out width). Layout re-wraps whatever width
+	// it actually receives.
+	return fyne.NewSize(0, h)
 }
 
 func (r *srtRenderer) Refresh() {

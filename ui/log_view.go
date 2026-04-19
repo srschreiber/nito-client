@@ -48,6 +48,8 @@ func buildLogsTab() fyne.CanvasObject {
 	entry := widget.NewMultiLineEntry()
 	entry.Wrapping = fyne.TextWrapWord
 	entry.TextStyle = fyne.TextStyle{Monospace: true}
+	// Read-only: selection + Cmd+C still work; typing doesn't.
+	entry.Disable()
 
 	refresh := func() {
 		logMu.Lock()

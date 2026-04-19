@@ -8,9 +8,15 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/srschreiber/nito-client/engine/keys"
 )
+
+// signedHTTPClient bounds the tail of every signed REST call so a hung broker
+// / upstream proxy can't leak goroutines. 30s is generous for broker-proxied
+// GIPHY / room calls but short enough that users see a real error eventually.
+var signedHTTPClient = &http.Client{Timeout: 30 * time.Second}
 
 // normalizeURL strips any scheme prefix so downstream code can format ws://
 // or http:// itself without double-prefixing.
@@ -39,7 +45,7 @@ func signedPost(url, username, apiPath string, body []byte) (*http.Response, err
 	if s := CurrentSession(); s != nil && s.JWTToken != "" {
 		req.Header.Set("Authorization", "Bearer "+s.JWTToken)
 	}
-	return http.DefaultClient.Do(req)
+	return signedHTTPClient.Do(req)
 }
 
 // signedGet builds a GET request with X-Username, X-Signature, and Authorization headers.
@@ -57,5 +63,5 @@ func signedGet(url, username, apiPath string) (*http.Response, error) {
 	if s := CurrentSession(); s != nil && s.JWTToken != "" {
 		req.Header.Set("Authorization", "Bearer "+s.JWTToken)
 	}
-	return http.DefaultClient.Do(req)
+	return signedHTTPClient.Do(req)
 }

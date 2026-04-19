@@ -168,19 +168,23 @@ func renderMessage(m chatMessage) fyne.CanvasObject {
 			return NewSelectableRichTextWithSize(text, size)
 		}
 		// GIF-only messages (just a URL, nothing else) hide the URL text — the
-		// embed below conveys the content. A zero-width spacer keeps the row's
-		// header (timestamp + from) aligned and visible.
+		// embed below conveys the content.
 		if isGifOnlyText(text) {
 			return container.NewWithoutLayout()
 		}
+		// Everything else (including ``` code blocks) goes through the
+		// selectable rich-text widget which handles block rendering inline.
 		return NewSelectableRichText(text)
 	}
 	msgRow := func(ts, from string, fromCol color.Color, text string) fyne.CanvasObject {
+		// Meta (timestamp + from) sits above the body instead of to the left.
+		// Keeping it on the left forced canvas.Text widths as the row's hard
+		// minimum, which pinned the HSplit divider once any message existed.
 		meta := container.NewHBox(
 			txt(ts+" ", liveDim, 12, false, true),
-			txt(from+"  ", fromCol, 13, false, true),
+			txt(from, fromCol, 13, true, true),
 		)
-		return container.NewPadded(container.NewBorder(nil, nil, meta, nil, msgBody(text)))
+		return container.NewPadded(container.NewVBox(meta, msgBody(text)))
 	}
 
 	switch m.kind {
@@ -309,7 +313,35 @@ func NewChatPanel(w fyne.Window) *ChatPanel {
 
 	cp.content = container.NewStack(split)
 	cp.ExtendBaseWidget(cp)
+
+	// Theme changes cause Fyne to Refresh the whole tree; the scroll container
+	// can lose its offset during that cascade. Snapshot offset before the
+	// theme-triggered refresh kicks in, restore it on the next tick.
+	registerThemeListener(func() {
+		offset := cp.msgScroll.Offset
+		fyne.Do(func() {
+			cp.msgScroll.Offset = offset
+			cp.msgScroll.Refresh()
+		})
+	})
+
+	// When a GIF embed finishes downloading, the message row grows. If the
+	// user was at the bottom, scroll to the new bottom so they see the GIF.
+	setGifLoadedHook(func() {
+		if isAtBottom(cp.msgScroll) {
+			cp.msgScroll.ScrollToBottom()
+		}
+	})
+
 	return cp
+}
+
+// isAtBottom returns true if the scroll container is scrolled to the end
+// (within 4 px of bottom). Used to avoid yanking the user's view when
+// async content (like GIF embeds) arrives while they're reading history.
+func isAtBottom(s *container.Scroll) bool {
+	const slack float32 = 4
+	return s.Offset.Y+s.Size().Height >= s.Content.Size().Height-slack
 }
 
 // buildSidebar constructs the sidebar once; room/member rows are updated via
