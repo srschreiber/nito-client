@@ -189,6 +189,10 @@ type SelectableRichText struct {
 	plaintext string // marker-stripped text; selection indices refer to this
 	runs      []styledRun
 
+	// fontSize overrides theme.TextSize() when > 0. Used for emoji-only
+	// messages (≈36 pt) so they render large but stay selectable/copyable.
+	fontSize float32
+
 	lines     []srtLine
 	lastWidth float32
 
@@ -201,10 +205,12 @@ type SelectableRichText struct {
 }
 
 var (
-	_ fyne.Focusable    = (*SelectableRichText)(nil)
-	_ fyne.Shortcutable = (*SelectableRichText)(nil)
-	_ desktop.Mouseable = (*SelectableRichText)(nil)
-	_ desktop.Hoverable = (*SelectableRichText)(nil)
+	_ fyne.Focusable      = (*SelectableRichText)(nil)
+	_ fyne.Shortcutable   = (*SelectableRichText)(nil)
+	_ fyne.Tappable       = (*SelectableRichText)(nil)
+	_ fyne.DoubleTappable = (*SelectableRichText)(nil)
+	_ desktop.Mouseable   = (*SelectableRichText)(nil)
+	_ desktop.Hoverable   = (*SelectableRichText)(nil)
 )
 
 func NewSelectableRichText(text string) *SelectableRichText {
@@ -219,10 +225,26 @@ func NewSelectableRichText(text string) *SelectableRichText {
 	return s
 }
 
+// NewSelectableRichTextWithSize is like NewSelectableRichText but renders at a
+// custom font size. Used for emoji-only messages (large display, still selectable).
+func NewSelectableRichTextWithSize(text string, size float32) *SelectableRichText {
+	s := NewSelectableRichText(text)
+	s.fontSize = size
+	return s
+}
+
 // ── Layout / wrapping ─────────────────────────────────────────────────────────
 
+// textSize returns the font size to render at: the override if set, else theme.
+func (s *SelectableRichText) textSize() float32 {
+	if s.fontSize > 0 {
+		return s.fontSize
+	}
+	return theme.TextSize()
+}
+
 func (s *SelectableRichText) lineHeight() float32 {
-	return theme.TextSize() * 1.4
+	return s.textSize() * 1.4
 }
 
 // rebuildLayout flows runs into lines given the available width.
@@ -230,7 +252,7 @@ func (s *SelectableRichText) rebuildLayout(width float32) {
 	s.lastWidth = width
 	s.lines = nil
 
-	textSize := theme.TextSize()
+	textSize := s.textSize()
 	curLine := srtLine{y: 0}
 	x := float32(0)
 	runeIdx := 0
@@ -251,10 +273,19 @@ func (s *SelectableRichText) rebuildLayout(width float32) {
 				curLine = srtLine{y: float32(len(s.lines)) * s.lineHeight()}
 				x = 0
 			}
-			codeStyle := fyne.TextStyle{Monospace: true}
-			// Left inset so text doesn't touch the bg rect edge.
+			// NOTE: intentionally not Monospace — Fyne's default monospace
+			// font renders underscores as near-invisible whitespace. The dark
+			// background already conveys "this is code"; regular font keeps
+			// var_names, snake_case, etc. legible.
+			codeStyle := fyne.TextStyle{}
 			const codePad = 8
-			for _, physLine := range strings.Split(run.Text, "\n") {
+			for li, physLine := range strings.Split(run.Text, "\n") {
+				if li > 0 {
+					// Plaintext includes the \n separator between physical
+					// lines; skip one rune here so token indices stay aligned
+					// with plaintext indices for selection/copy.
+					runeIdx++
+				}
 				blockLine := srtLine{y: float32(len(s.lines)) * s.lineHeight(), block: true}
 				bx := float32(codePad)
 				lineRunes := []rune(physLine)
@@ -273,9 +304,9 @@ func (s *SelectableRichText) rebuildLayout(width float32) {
 			continue
 		}
 		style := fyne.TextStyle{Bold: run.Bold, Italic: run.Italic}
-		if run.Code {
-			style.Monospace = true
-		}
+		// Inline code keeps the default font (not Monospace) for the same
+		// underscore-rendering reason as block code; the pill background is
+		// enough visual distinction.
 		for _, tok := range tokenizeForWrap(run.Text) {
 			tokRunes := []rune(tok)
 			w := fyne.MeasureText(tok, textSize, style).Width
@@ -378,7 +409,7 @@ func (s *SelectableRichText) indexAt(px, py float32) int {
 			runes := []rune(tok.text)
 			acc := float32(0)
 			for i := 0; i < len(runes); i++ {
-				rw := fyne.MeasureText(string(runes[i]), theme.TextSize(), tok.style).Width
+				rw := fyne.MeasureText(string(runes[i]), s.textSize(), tok.style).Width
 				if rel < acc+rw/2 {
 					return tok.runeStart + i
 				}
@@ -438,10 +469,53 @@ func (s *SelectableRichText) copyToClipboard() {
 
 // ── fyne.Focusable ────────────────────────────────────────────────────────────
 
-func (s *SelectableRichText) FocusGained()            { s.focused = true }
-func (s *SelectableRichText) FocusLost()              { s.focused = false }
+func (s *SelectableRichText) FocusGained() { s.focused = true }
+func (s *SelectableRichText) FocusLost() {
+	s.focused = false
+	s.dragging = false
+	s.clearSelection()
+}
 func (s *SelectableRichText) TypedRune(r rune)        {}
 func (s *SelectableRichText) TypedKey(*fyne.KeyEvent) {}
+
+// Tapped is a no-op handler; Fyne's framework routes focus to Tappable objects
+// on click, so implementing this interface is what enables the widget to be
+// focused (and thus receive Cmd/Ctrl+C shortcuts). MouseDown does the actual
+// selection work.
+func (s *SelectableRichText) Tapped(*fyne.PointEvent) {
+	if c := fyne.CurrentApp().Driver().CanvasForObject(s); c != nil {
+		c.Focus(s)
+	}
+}
+
+// DoubleTapped selects the entire line under the cursor. Matches the common
+// terminal/IDE convention where double-click picks the current line out of a
+// block of text so Cmd+C grabs it as a unit.
+func (s *SelectableRichText) DoubleTapped(e *fyne.PointEvent) {
+	if c := fyne.CurrentApp().Driver().CanvasForObject(s); c != nil {
+		c.Focus(s)
+	}
+	if len(s.lines) == 0 {
+		return
+	}
+	lh := s.lineHeight()
+	li := int(e.Position.Y / lh)
+	if li < 0 {
+		li = 0
+	}
+	if li >= len(s.lines) {
+		li = len(s.lines) - 1
+	}
+	line := s.lines[li]
+	if len(line.tokens) == 0 {
+		return
+	}
+	first := line.tokens[0]
+	last := line.tokens[len(line.tokens)-1]
+	s.selStart = first.runeStart
+	s.selEnd = last.runeStart + last.runeCount
+	s.Refresh()
+}
 
 // TypedShortcut handles Cmd/Ctrl+A and Cmd/Ctrl+C.
 func (s *SelectableRichText) TypedShortcut(sc fyne.Shortcut) {
@@ -476,6 +550,13 @@ func (s *SelectableRichText) MouseIn(*desktop.MouseEvent) {}
 func (s *SelectableRichText) MouseOut()                   {}
 func (s *SelectableRichText) MouseMoved(e *desktop.MouseEvent) {
 	if !s.dragging {
+		return
+	}
+	// If the user released the mouse outside our bounds we never get MouseUp,
+	// so dragging would stay true forever. Fyne populates e.Button with the
+	// currently-held button during a move; 0 means nothing is held.
+	if e.Button == 0 {
+		s.dragging = false
 		return
 	}
 	s.selEnd = s.indexAt(e.Position.X, e.Position.Y)
@@ -531,7 +612,7 @@ func (r *srtRenderer) Objects() []fyne.CanvasObject { return r.objects }
 // current selection. Called on Layout and Refresh.
 func (r *srtRenderer) rebuildObjects() {
 	s := r.widget
-	textSize := theme.TextSize()
+	textSize := s.textSize()
 	lh := s.lineHeight()
 
 	var objs []fyne.CanvasObject
