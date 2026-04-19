@@ -9,9 +9,10 @@ package keys
 //
 // Canonical signable form: fields concatenated alphabetically (by JSON key)
 // with ';' separators. Numeric fields are stringified via strconv; missing
-// prev_* fields (first key) are serialised as 0 / empty string.
+// prev_* fields (first key) and nil device_id (root device) serialise as 0
+// or empty string.
 //
-//   cur_key_hash;cur_version_num;nonce;prev_key_hash;prev_version_num;rotated_by;timestamp
+//   cur_key_hash;cur_version_num;device_id;nonce;prev_key_hash;prev_version_num;rotated_by;timestamp
 
 import (
 	"crypto"
@@ -48,11 +49,18 @@ func GenerateManifestNonce() (string, error) {
 	return base64.RawStdEncoding.EncodeToString(b), nil
 }
 
-// manifestSignable builds the canonical bytes described above.
+// manifestSignable builds the canonical bytes described above. A nil DeviceID
+// (root device) is serialised as an empty string so both signer and verifier
+// produce identical bytes regardless of whether the pointer is set.
 func manifestSignable(m *apitypes.RoomKeyManifest) string {
+	deviceID := ""
+	if m.DeviceID != nil {
+		deviceID = *m.DeviceID
+	}
 	return strings.Join([]string{
 		m.CurKeyHash,
 		strconv.Itoa(m.CurVersionNum),
+		deviceID,
 		m.Nonce,
 		m.PrevKeyHash,
 		strconv.Itoa(m.PrevVersionNum),
