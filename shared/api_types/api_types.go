@@ -128,3 +128,50 @@ type LoginResponse struct {
 	Token    string `json:"token"` // JWT token for authenticating future requests
 	DeviceID string `json:"deviceId"`
 }
+
+// ── Giphy proxy requests ─────────────────────────────────────────────────────
+//
+// The broker proxies Giphy API calls (keeps the API key server-side). These
+// request types are what clients send; broker forwards to Giphy and returns
+// the raw response. Mirrors the Giphy REST API shape.
+
+type GiphySearchRequest struct {
+	Query string `json:"q" validate:"required"`
+	// Limit max 50, default 20.
+	Limit  *int    `json:"limit" validate:"omitempty,gte=1,lte=50"`
+	Rating *string `json:"rating" validate:"omitempty,oneof=g pg pg-13 r"`
+	Offset *int    `json:"offset" validate:"omitempty,gte=0"`
+	// Sticker routes to /v1/stickers/* instead of /v1/gifs/*.
+	Sticker bool `json:"sticker"`
+}
+
+type GiphyTrendingRequest struct {
+	// Limit max 50, default 25.
+	Limit  *int    `json:"limit" validate:"omitempty,gte=1,lte=50"`
+	Rating *string `json:"rating" validate:"omitempty,oneof=g pg pg-13 r"`
+	// Offset max 499, default 0.
+	Offset *int `json:"offset" validate:"omitempty,gte=0,lte=499"`
+	// Sticker routes to /v1/stickers/* instead of /v1/gifs/*.
+	Sticker bool `json:"sticker"`
+}
+
+type GiphyTranslateRequest struct {
+	Phrase string  `json:"s" validate:"required"`
+	Rating *string `json:"rating" validate:"omitempty,oneof=g pg pg-13 r"`
+	// Sticker routes to /v1/stickers/* instead of /v1/gifs/*.
+	Sticker bool `json:"sticker"`
+}
+
+type GiphyRandomRequest struct {
+	Tag    *string `json:"tag" validate:"omitempty"`
+	Rating *string `json:"rating" validate:"omitempty,oneof=g pg pg-13 r"`
+	// Sticker routes to /v1/stickers/* instead of /v1/gifs/*.
+	Sticker bool `json:"sticker"`
+}
+
+type GiphyEmojiRequest struct {
+	// Limit max 50, default 25.
+	Limit *int `json:"limit" validate:"omitempty,gte=1,lte=50"`
+	// Offset default 0.
+	Offset *int `json:"offset" validate:"omitempty,gte=0"`
+}

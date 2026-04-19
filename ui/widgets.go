@@ -274,6 +274,7 @@ type HoverRow struct {
 	bg             *canvas.Rectangle
 	OnTap          func()
 	OnSecondaryTap func(pos fyne.Position)
+	OnHover        HoverCallback
 }
 
 func NewHoverRow(content fyne.CanvasObject, onTap func()) *HoverRow {
@@ -283,6 +284,10 @@ func NewHoverRow(content fyne.CanvasObject, onTap func()) *HoverRow {
 	h.ExtendBaseWidget(h)
 	return h
 }
+
+// OnHover, if set, is invoked with true when the cursor enters and false when
+// it leaves. Used by the emoji picker to surface shortcode tooltips.
+type HoverCallback = func(entered bool)
 
 func (h *HoverRow) CreateRenderer() fyne.WidgetRenderer {
 	return widget.NewSimpleRenderer(container.NewStack(h.bg, h.content))
@@ -303,6 +308,9 @@ func (h *HoverRow) TappedSecondary(e *fyne.PointEvent) {
 func (h *HoverRow) MouseIn(_ *desktop.MouseEvent) {
 	h.bg.FillColor = liveHover
 	h.bg.Refresh()
+	if h.OnHover != nil {
+		h.OnHover(true)
+	}
 }
 
 func (h *HoverRow) MouseMoved(_ *desktop.MouseEvent) {}
@@ -310,6 +318,9 @@ func (h *HoverRow) MouseMoved(_ *desktop.MouseEvent) {}
 func (h *HoverRow) MouseOut() {
 	h.bg.FillColor = colTransparent
 	h.bg.Refresh()
+	if h.OnHover != nil {
+		h.OnHover(false)
+	}
 }
 
 func (h *HoverRow) Cursor() desktop.Cursor { return desktop.PointerCursor }

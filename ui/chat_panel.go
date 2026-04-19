@@ -41,6 +41,102 @@ type chatMessage struct {
 	body      string
 }
 
+// isEmojiRune returns true for runes that are part of an emoji grapheme — the
+// emoji codepoints themselves plus the modifier runes (ZWJ, variation selectors,
+// skin tones) that join them into a single visual glyph.
+func isEmojiRune(r rune) bool {
+	switch {
+	case r >= 0x1F000 && r <= 0x1FFFF: // emoticons, symbols & pictographs, transport, etc.
+		return true
+	case r >= 0x2600 && r <= 0x27BF: // misc symbols, dingbats
+		return true
+	case r >= 0x2B00 && r <= 0x2BFF: // misc symbols & arrows
+		return true
+	case r >= 0x2300 && r <= 0x23FF: // misc technical (⏰ etc.)
+		return true
+	case r == 0x200D, r == 0xFE0F, r == 0xFE0E: // ZWJ, variation selectors
+		return true
+	}
+	return false
+}
+
+// upsizeEmojiSegments enlarges emoji in RichText messages. Because Fyne's
+// RichText baseline-aligns mixed-size segments — a bigger emoji would visually
+// float above the text line — we only upsize when the *entire* message body is
+// emojis and whitespace. That mirrors Discord/Slack behaviour and avoids the
+// baseline misalignment caused by inline size mixing.
+func upsizeEmojiSegments(rt *widget.RichText) {
+	if !isEmojiOnlyMessage(rt) {
+		return
+	}
+	for _, seg := range rt.Segments {
+		if ts, ok := seg.(*widget.TextSegment); ok {
+			ts.Style.SizeName = sizeNameChatEmoji
+		}
+	}
+}
+
+// isEmojiOnlyMessage returns true if every text segment in rt contains only
+// emoji runes and whitespace (so we can safely enlarge the whole message).
+func isEmojiOnlyMessage(rt *widget.RichText) bool {
+	hasEmoji := false
+	for _, seg := range rt.Segments {
+		ts, ok := seg.(*widget.TextSegment)
+		if !ok {
+			return false
+		}
+		for _, r := range ts.Text {
+			if r == ' ' || r == '\t' || r == '\n' {
+				continue
+			}
+			if !isEmojiRune(r) {
+				return false
+			}
+			hasEmoji = true
+		}
+	}
+	return hasEmoji
+}
+
+type emojiRun struct {
+	text    string
+	isEmoji bool
+}
+
+// splitByEmoji segments s into runs of consecutive emoji-grapheme runes and
+// non-emoji text. A ZWJ / variation selector / skin-tone modifier keeps the
+// current run going; they never start a new emoji run on their own.
+func splitByEmoji(s string) []emojiRun {
+	if s == "" {
+		return nil
+	}
+	var runs []emojiRun
+	var cur emojiRun
+	flush := func() {
+		if cur.text != "" {
+			runs = append(runs, cur)
+		}
+		cur = emojiRun{}
+	}
+	for _, r := range s {
+		emoji := isEmojiRune(r)
+		// ZWJ / VS are only "emoji-ish" when already inside an emoji run; otherwise
+		// they're inert punctuation that should stay in text runs.
+		if (r == 0x200D || r == 0xFE0F || r == 0xFE0E) && !cur.isEmoji {
+			emoji = false
+		}
+		if cur.text == "" {
+			cur = emojiRun{isEmoji: emoji}
+		} else if emoji != cur.isEmoji {
+			flush()
+			cur = emojiRun{isEmoji: emoji}
+		}
+		cur.text += string(r)
+	}
+	flush()
+	return runs
+}
+
 // ── Message renderer ──────────────────────────────────────────────────────────
 
 func renderMessage(m chatMessage) fyne.CanvasObject {
@@ -48,6 +144,7 @@ func renderMessage(m chatMessage) fyne.CanvasObject {
 	msgBody := func(text string) fyne.CanvasObject {
 		rt := widget.NewRichTextFromMarkdown(text)
 		rt.Wrapping = fyne.TextWrapWord
+		upsizeEmojiSegments(rt)
 		return rt
 	}
 	msgRow := func(ts, from string, fromCol color.Color, text string) fyne.CanvasObject {

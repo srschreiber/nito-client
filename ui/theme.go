@@ -113,8 +113,14 @@ func (nitoTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
 	return theme.DefaultTheme().Icon(name)
 }
 
+// sizeNameChatEmoji is a custom theme size name used by the chat message
+// renderer to render emoji runs roughly 2× body text size.
+const sizeNameChatEmoji fyne.ThemeSizeName = "nitoChatEmoji"
+
 func (nitoTheme) Size(name fyne.ThemeSizeName) float32 {
 	switch name {
+	case sizeNameChatEmoji:
+		return 36 // ~2.8x SizeNameText — used for emoji-only messages, so no mixed-size baseline issues
 	case theme.SizeNameText:
 		return 13
 	case theme.SizeNamePadding:
