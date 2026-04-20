@@ -188,6 +188,45 @@ func verifyStatusIcon(username string) fyne.CanvasObject {
 	return NewIconWithTooltip(container.NewStack(bg, container.NewCenter(icon)), tooltip)
 }
 
+// roomTrustIcon returns a small tooltip-icon reflecting the local trust level
+// of a room's current-key rotator. Returns nil when the room has no rotator
+// info (legacy, no manifest) or when the rotator is ourselves — in both
+// cases there's nothing useful to show next to the room row.
+func roomTrustIcon(r apitypes.RoomEntry) fyne.CanvasObject {
+	if r.RotatorUsername == "" {
+		return nil
+	}
+	if r.RotatorUsername == connection.GetSessionUsername() {
+		return nil
+	}
+	var rec keys.TrustedKey
+	var ok bool
+	if r.RotatorDeviceID != "" {
+		rec, ok = keys.LoadPeerPublicKeyByDevice(r.RotatorUsername, r.RotatorDeviceID)
+	} else {
+		rec, ok = keys.LoadPeerPublicKey(r.RotatorUsername)
+	}
+	var glyph string
+	var col color.Color
+	var tooltip string
+	switch {
+	case !ok:
+		glyph = "?"
+		col = liveDim
+		tooltip = "Room key signed by " + r.RotatorUsername + " — no key on record yet; will TOFU-pin on join."
+	case rec.Verified:
+		glyph = "✓"
+		col = colGreen
+		tooltip = "Room key signed by verified user " + r.RotatorUsername + "."
+	default:
+		glyph = "⚠"
+		col = colAmber
+		tooltip = "Room key signed by " + r.RotatorUsername + ", who is TOFU-pinned but NOT verified. Right-click their name in members to verify."
+	}
+	icon := txt(glyph, col, 12, true, true)
+	return NewIconWithTooltip(icon, tooltip)
+}
+
 // refreshRotatorBanner repopulates the banner under the room header with the
 // current room-key rotator and their trust state. Shows nothing (zero-height
 // banner) when there's no active room or no manifest rotator recorded.
@@ -203,17 +242,29 @@ func (cp *ChatPanel) refreshRotatorBanner() {
 		return
 	}
 	me := connection.GetSessionUsername()
+	rotatorDevice := connection.GetSessionRoomRotatorDevice()
 	var label *canvas.Text
 	switch {
 	case rotator == me:
 		label = txt("🔑 Room key last rotated by you", liveDim, 11, false, true)
 	default:
-		rec, ok := keys.LoadPeerPublicKey(rotator)
+		// Check the specific (rotator, device) trust record since that's
+		// what the manifest signature binds to.
+		var rec keys.TrustedKey
+		var ok bool
+		if rotatorDevice != "" {
+			rec, ok = keys.LoadPeerPublicKeyByDevice(rotator, rotatorDevice)
+		} else {
+			rec, ok = keys.LoadPeerPublicKey(rotator)
+		}
 		verified := ok && rec.Verified
 		if verified {
-			label = txt("🔑 Room key last rotated by ✓ "+rotator+" (verified)", colGreen, 11, false, true)
+			label = txt("🔑 Room key signed by verified user "+rotator+".", colGreen, 11, false, true)
 		} else {
-			label = txt("🔑 Room key last rotated by ⚠ "+rotator+" (NOT verified — right-click them to verify)", colAmber, 11, false, true)
+			// Be explicit: traffic IS encrypted, but with a key whose device
+			// identity hasn't been verified out-of-band. colAlert is the
+			// profile-independent warning color.
+			label = txt("⚠ Traffic is encrypted by a key from an UNTRUSTED device of "+rotator+". Right-click "+rotator+" → Verify to confirm their identity.", colAlert, 11, false, true)
 		}
 	}
 	cp.rotatorBanner.Objects = []fyne.CanvasObject{
@@ -223,13 +274,19 @@ func (cp *ChatPanel) refreshRotatorBanner() {
 	cp.rotatorBanner.Refresh()
 }
 
-// refreshTrustIndicators rebuilds the member list + any open DM view for
-// username so the ✓/⚠ icons re-evaluate against the current on-disk trust
-// state. Also refreshes the room rotator banner in case the user we just
-// verified is the one who last rotated this room's key. Called after a
-// verify flow finishes successfully.
+// refreshTrustIndicators rebuilds the member list, room list, rotator banner,
+// and any open DM view so every ✓/⚠/? icon re-evaluates against the current
+// on-disk trust state. Called after a verify flow finishes successfully — in
+// particular, the room-list icon should flip for any room whose rotator is
+// the user we just verified.
 func (cp *ChatPanel) refreshTrustIndicators(username string) {
 	cp.refreshRotatorBanner()
+	// Re-fetch rooms so SetRooms re-renders per-row trust icons.
+	go func() {
+		if rooms, err := connection.ListRooms(); err == nil {
+			fyne.Do(func() { cp.SetRooms(rooms) })
+		}
+	}()
 	if cp.currentRoomID != "" {
 		go func(roomID string) {
 			members, err := connection.ListRoomMembers(roomID)
@@ -641,11 +698,20 @@ func (cp *ChatPanel) SetRooms(rooms []apitypes.RoomEntry) {
 		}
 	}
 
+	// leftFor packs the room marker + trust icon (if any) into a single left
+	// cell for container.NewBorder.
+	leftFor := func(bullet *canvas.Text, r apitypes.RoomEntry) fyne.CanvasObject {
+		if trust := roomTrustIcon(r); trust != nil {
+			return container.NewHBox(bullet, trust)
+		}
+		return bullet
+	}
+
 	for _, r := range owned {
 		r := r
-		icon := monoTxt("◆ ", liveAccent)
 		name := truncLabel(r.Name, colText, true)
-		row := container.NewPadded(container.NewBorder(nil, nil, icon, nil, name))
+		left := leftFor(monoTxt("◆ ", liveAccent), r)
+		row := container.NewPadded(container.NewBorder(nil, nil, left, nil, name))
 		rows = append(rows, NewHoverRow(row, func() { cp.selectRoom(r.ID, r.Name) }))
 	}
 
@@ -653,9 +719,9 @@ func (cp *ChatPanel) SetRooms(rooms []apitypes.RoomEntry) {
 		rows = append(rows, vspace(4), txt("joined rooms", liveDimMid, 11, false, true))
 		for _, r := range joined {
 			r := r
-			icon := monoTxt("• ", colText)
 			name := truncLabel(r.Name, colText, false)
-			row := container.NewPadded(container.NewBorder(nil, nil, icon, nil, name))
+			left := leftFor(monoTxt("• ", colText), r)
+			row := container.NewPadded(container.NewBorder(nil, nil, left, nil, name))
 			rows = append(rows, NewHoverRow(row, func() { cp.selectRoom(r.ID, r.Name) }))
 		}
 	}

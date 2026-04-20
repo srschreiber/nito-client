@@ -76,10 +76,10 @@ func ListRooms() ([]apitypes.RoomEntry, error) {
 // given room and verifies the accompanying signed manifest. Returns the
 // manifest's `rotated_by` username alongside so the caller can decide
 // whether the rotator's identity is sufficiently trusted.
-func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator string, err error) {
+func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator, rotatorDevice string, err error) {
 	s := CurrentSession()
 	if s == nil {
-		return "", 0, "", errors.New("not connected")
+		return "", 0, "", "", errors.New("not connected")
 	}
 	resp, err := signedGet(
 		s.v0("/rooms/key?room_id="+roomID),
@@ -87,15 +87,15 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator s
 		"/api/v0/rooms/key",
 	)
 	if err != nil {
-		return "", 0, "", fmt.Errorf("get room key: %w", err)
+		return "", 0, "", "", fmt.Errorf("get room key: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", 0, "", fmt.Errorf("get room key: broker returned %s", resp.Status)
+		return "", 0, "", "", fmt.Errorf("get room key: broker returned %s", resp.Status)
 	}
 	var result apitypes.GetRoomKeyResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", 0, "", fmt.Errorf("get room key: decode: %w", err)
+		return "", 0, "", "", fmt.Errorf("get room key: decode: %w", err)
 	}
 
 	// Verify the manifest signature against the rotator's public key. The
@@ -107,40 +107,37 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator s
 	if result.VersionManifestSignature != "" {
 		rotator = result.VersionManifest.RotatedBy
 		if rotator == "" {
-			return "", 0, "", fmt.Errorf("get room key: manifest has no rotator")
+			return "", 0, "", "", fmt.Errorf("get room key: manifest has no rotator")
 		}
-		deviceID := ""
 		if result.VersionManifest.DeviceID != nil {
-			deviceID = *result.VersionManifest.DeviceID
+			rotatorDevice = *result.VersionManifest.DeviceID
 		}
 		var pubPEM string
-		if deviceID == "" {
+		if rotatorDevice == "" {
 			pubPEM, err = GetOrStoreUserPublicKey(rotator)
 			if err != nil {
-				return "", 0, "", fmt.Errorf("get room key: fetch rotator public key: %w", err)
+				return "", 0, "", "", fmt.Errorf("get room key: fetch rotator public key: %w", err)
 			}
 		} else {
-			rec, ok := keys.LoadPeerPublicKeyByDevice(rotator, deviceID)
+			rec, ok := keys.LoadPeerPublicKeyByDevice(rotator, rotatorDevice)
 			if !ok {
 				// TODO: support fetching a per-device public key from the broker
 				// given (username, device_id) — then TOFU-pin it like the
 				// root-device path does. Needs a new broker endpoint
 				// (e.g. GET /users/public-key?username=X&device_id=Y) plus a
 				// client helper that mirrors GetOrStoreUserPublicKey's
-				// disk-first + cache-on-miss semantics. Until then, non-root
-				// device signatures can only be verified against keys the
-				// user has already pinned locally.
-				return "", 0, "", fmt.Errorf("get room key: no pinned key for %s/device %s", rotator, deviceID)
+				// disk-first + cache-on-miss semantics.
+				return "", 0, "", "", fmt.Errorf("get room key: no pinned key for %s/device %s", rotator, rotatorDevice)
 			}
 			pubPEM = rec.PublicKey
 		}
 		if err := keys.VerifyRoomKeyManifest(&result.VersionManifest, result.VersionManifestSignature, pubPEM); err != nil {
-			return "", 0, "", fmt.Errorf("get room key: manifest signature invalid (rotator=%s device=%q): %w", rotator, deviceID, err)
+			return "", 0, "", "", fmt.Errorf("get room key: manifest signature invalid (rotator=%s device=%q): %w", rotator, rotatorDevice, err)
 		}
-		clientlog.Info("manifest signature valid for room %s key version %d (rotated_by=%s device_id=%q)", roomID, result.VersionManifest.CurVersionNum, rotator, deviceID)
+		clientlog.Info("manifest signature valid for room %s key version %d (rotated_by=%s device_id=%q)", roomID, result.VersionManifest.CurVersionNum, rotator, rotatorDevice)
 	}
 
-	return result.EncryptedRoomKey, result.KeyVersion, rotator, nil
+	return result.EncryptedRoomKey, result.KeyVersion, rotator, rotatorDevice, nil
 }
 
 // getRoomInfo fetches the caller's room info (e.g. sent message count) for the given room.

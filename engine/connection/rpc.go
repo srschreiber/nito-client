@@ -39,7 +39,7 @@ func SetVoiceMessageHandler(h func(rpcName string, payload []byte)) {
 
 // Connect establishes a persistent WebSocket connection to the broker.
 // jwtToken must be obtained first via Login.
-func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
+func Connect(ctx context.Context, brokerURL, userID, deviceID, jwtToken string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -52,7 +52,7 @@ func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	brokerURL = normalizeURL(brokerURL)
 	keys.SetActiveBroker(brokerURL)
 	credMu.Lock()
-	storedBroker, storedUserID, storedJWT = brokerURL, userID, jwtToken
+	storedBroker, storedUserID, storedDeviceID, storedJWT = brokerURL, userID, deviceID, jwtToken
 	credMu.Unlock()
 	sig, err := keys.Sign(userID+":/ws", userID)
 	if err != nil {
@@ -96,7 +96,7 @@ func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	keyVerifyConfirmChan = make(chan []byte, 8)
 	lateVerifyRespChan = make(chan string, 8)
 	conn = c
-	session = &Session{Username: userID, BrokerURL: brokerURL, JWTToken: jwtToken, KeyManager: map[string]*keys.RoomKeyChain{}}
+	session = &Session{Username: userID, DeviceID: deviceID, BrokerURL: brokerURL, JWTToken: jwtToken, KeyManager: map[string]*keys.RoomKeyChain{}}
 	notifChan = nc
 
 	go readLoop(c, echoChan, roomMessageChan, dmChan, nc, keyVerifyChallChan, keyVerifyConfirmChan)
@@ -109,12 +109,12 @@ func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 // dial fails (e.g. JWT expired, broker unreachable).
 func Reconnect(ctx context.Context) error {
 	credMu.Lock()
-	url, uid, jwt := storedBroker, storedUserID, storedJWT
+	url, uid, dev, jwt := storedBroker, storedUserID, storedDeviceID, storedJWT
 	credMu.Unlock()
 	if url == "" || uid == "" || jwt == "" {
 		return errors.New("no prior connection credentials")
 	}
-	return Connect(ctx, url, uid, jwt)
+	return Connect(ctx, url, uid, dev, jwt)
 }
 
 func Disconnect() {

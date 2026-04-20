@@ -48,6 +48,12 @@ type RoomEntry struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	IsOwner bool   `json:"isOwner"`
+	// Rotator identity on the current key version. Lets the client render a
+	// trust indicator per room in the sidebar without fetching every manifest.
+	// RotatorDeviceID is "" for root-device signatures. Both empty if the
+	// room has no manifest recorded (legacy rooms).
+	RotatorUsername string `json:"rotatorUsername,omitempty"`
+	RotatorDeviceID string `json:"rotatorDeviceId,omitempty"`
 }
 
 type ListRoomsResponse struct {

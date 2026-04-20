@@ -35,15 +35,17 @@ type RoomInfo struct {
 }
 
 type Session struct {
-	Username         string // the authenticated user's username; used as the identity token on every broker call
-	BrokerURL        string
-	JWTToken         string                        // JWT token for API authentication
-	RoomID           *string                       // currently selected room
-	EncryptedRoomKey *string                       // encrypted with pub key
-	KeyManager       map[string]*keys.RoomKeyChain // in-memory cache of room key chains for each room, indexed by room ID
-	RoomKeyVersion   *int                          // key version for the current room's key
-	RoomKeyRotator   string                        // username who signed the current room key's manifest (empty if no manifest)
-	RoomInfo         *RoomInfo                     // info about this user's activity in the selected room
+	Username          string // the authenticated user's username; used as the identity token on every broker call
+	DeviceID          string // server-assigned device id from Login/Register; empty = root device
+	BrokerURL         string
+	JWTToken          string                        // JWT token for API authentication
+	RoomID            *string                       // currently selected room
+	EncryptedRoomKey  *string                       // encrypted with pub key
+	KeyManager        map[string]*keys.RoomKeyChain // in-memory cache of room key chains for each room, indexed by room ID
+	RoomKeyVersion    *int                          // key version for the current room's key
+	RoomKeyRotator    string                        // username who signed the current room key's manifest (empty if no manifest)
+	RoomKeyRotatorDev string                        // device id of the rotator (empty = root device)
+	RoomInfo          *RoomInfo                     // info about this user's activity in the selected room
 }
 
 // v0 returns the full HTTP URL for the given /api/v0 path (e.g. "/rooms").
@@ -70,10 +72,11 @@ var (
 	session *Session
 
 	// Last successful connection credentials; used by Reconnect.
-	credMu       sync.Mutex
-	storedBroker string
-	storedUserID string
-	storedJWT    string
+	credMu         sync.Mutex
+	storedBroker   string
+	storedUserID   string
+	storedDeviceID string
+	storedJWT      string
 )
 
 // CurrentSession returns a pointer to the active session, or nil if disconnected.
@@ -123,6 +126,18 @@ func GetSessionUsername() string {
 		return ""
 	}
 	return session.Username
+}
+
+// GetSessionDeviceID returns the server-assigned device id for the current
+// session, or "" if none is active. Empty string also means "root device"
+// when passing to wire types like RoomKeyManifest.DeviceID.
+func GetSessionDeviceID() string {
+	mu.Lock()
+	defer mu.Unlock()
+	if session == nil {
+		return ""
+	}
+	return session.DeviceID
 }
 
 // GetOrCreateRoomKeyChain returns the ratcheting AES-key chain for the active
@@ -191,18 +206,22 @@ func GetRoomKeyBytes() ([]byte, error) {
 }
 
 // UnverifiedRotatorError is returned by SetSessionRoom when the room's current
-// key was signed by a rotator whose public key is only TOFU-pinned — i.e. the
-// signature is mathematically valid but the UI hasn't cryptographically
-// verified that identity through the mutual-handshake flow. The UI should
-// warn the user, offer to run verification, and retry via
+// key was signed by a rotator (username + device) whose public key is only
+// TOFU-pinned — i.e. the signature is mathematically valid but the UI hasn't
+// cryptographically verified that identity through the mutual-handshake flow.
+// The UI should warn the user, offer to run verification, and retry via
 // SetSessionRoomTrustingUnverified to bypass the check.
 type UnverifiedRotatorError struct {
-	RoomID  string
-	Rotator string
+	RoomID   string
+	Rotator  string
+	DeviceID string // empty = root device
 }
 
 func (e *UnverifiedRotatorError) Error() string {
-	return fmt.Sprintf("room %s: key rotator %q is not verified out-of-band", e.RoomID, e.Rotator)
+	if e.DeviceID == "" {
+		return fmt.Sprintf("room %s: key rotator %q is not verified out-of-band", e.RoomID, e.Rotator)
+	}
+	return fmt.Sprintf("room %s: key rotator %q/device %s is not verified out-of-band", e.RoomID, e.Rotator, e.DeviceID)
 }
 
 // SetSessionRoom joins the given room, enforcing that the room-key rotator's
@@ -231,19 +250,26 @@ func setSessionRoomWithTrust(roomID string, allowUnverified bool) error {
 
 	// Fetch room key and room info outside the lock to avoid deadlock
 	// (both call CurrentSession which also locks mu).
-	rk, kv, rotator, err := getMyRoomKey(roomID)
+	rk, kv, rotator, rotatorDevice, err := getMyRoomKey(roomID)
 	if err != nil {
 		return fmt.Errorf("room-select: retrieve room key failed: %w", err)
 	}
 
 	// Trust check: the rotator's manifest signature already verified, but we
 	// want an explicit user-approved TOFU-bypass before we commit to using
-	// this key. Skip the check if the rotator is ourselves — we trust our own
-	// key store implicitly — or if the caller opted in via the bypass entry.
+	// this key. Skip the check if the rotator is ourselves, or if the caller
+	// opted into the bypass. For non-root devices we check the specific
+	// (user, device) pinned record; for root we use the primary lookup.
 	if !allowUnverified && rotator != "" && rotator != me {
-		rec, ok := keys.LoadPeerPublicKey(rotator)
+		var rec keys.TrustedKey
+		var ok bool
+		if rotatorDevice != "" {
+			rec, ok = keys.LoadPeerPublicKeyByDevice(rotator, rotatorDevice)
+		} else {
+			rec, ok = keys.LoadPeerPublicKey(rotator)
+		}
 		if !ok || !rec.Verified {
-			return &UnverifiedRotatorError{RoomID: roomID, Rotator: rotator}
+			return &UnverifiedRotatorError{RoomID: roomID, Rotator: rotator, DeviceID: rotatorDevice}
 		}
 	}
 
@@ -261,6 +287,7 @@ func setSessionRoomWithTrust(roomID string, allowUnverified bool) error {
 	session.EncryptedRoomKey = &rk
 	session.RoomKeyVersion = &kv
 	session.RoomKeyRotator = rotator
+	session.RoomKeyRotatorDev = rotatorDevice
 	session.RoomInfo = info
 	clientlog.Info("joined room %s", roomID)
 	return nil
@@ -276,4 +303,15 @@ func GetSessionRoomRotator() string {
 		return ""
 	}
 	return session.RoomKeyRotator
+}
+
+// GetSessionRoomRotatorDevice returns the device id that signed the current
+// room's manifest (empty = root device).
+func GetSessionRoomRotatorDevice() string {
+	mu.Lock()
+	defer mu.Unlock()
+	if session == nil {
+		return ""
+	}
+	return session.RoomKeyRotatorDev
 }

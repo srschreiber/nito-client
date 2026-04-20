@@ -85,11 +85,11 @@ func CompleteLogin(ctx context.Context, password string) (string, Signal, error)
 	pendingLoginBroker = ""
 	pendingLoginUsername = ""
 
-	token, err := connection.Login(ctx, broker, username, password)
+	token, deviceID, err := connection.Login(ctx, broker, username, password)
 	if err != nil {
 		return "", SignalNone, err
 	}
-	if err := connection.Connect(ctx, broker, username, token); err != nil {
+	if err := connection.Connect(ctx, broker, username, deviceID, token); err != nil {
 		return "", SignalNone, fmt.Errorf("connect: %w", err)
 	}
 	return fmt.Sprintf("logged in to %s as %q", connection.BrokerURL(), username), SignalConnected, nil
