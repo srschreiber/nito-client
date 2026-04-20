@@ -42,6 +42,7 @@ type Session struct {
 	EncryptedRoomKey *string                       // encrypted with pub key
 	KeyManager       map[string]*keys.RoomKeyChain // in-memory cache of room key chains for each room, indexed by room ID
 	RoomKeyVersion   *int                          // key version for the current room's key
+	RoomKeyRotator   string                        // username who signed the current room key's manifest (empty if no manifest)
 	RoomInfo         *RoomInfo                     // info about this user's activity in the selected room
 }
 
@@ -259,7 +260,20 @@ func setSessionRoomWithTrust(roomID string, allowUnverified bool) error {
 	session.RoomID = &roomID
 	session.EncryptedRoomKey = &rk
 	session.RoomKeyVersion = &kv
+	session.RoomKeyRotator = rotator
 	session.RoomInfo = info
 	clientlog.Info("joined room %s", roomID)
 	return nil
+}
+
+// GetSessionRoomRotator returns the username that signed the current room's
+// key manifest, or "" if none is active. UI uses this to display a trust
+// banner at the top of the room view.
+func GetSessionRoomRotator() string {
+	mu.Lock()
+	defer mu.Unlock()
+	if session == nil {
+		return ""
+	}
+	return session.RoomKeyRotator
 }

@@ -188,10 +188,48 @@ func verifyStatusIcon(username string) fyne.CanvasObject {
 	return NewIconWithTooltip(container.NewStack(bg, container.NewCenter(icon)), tooltip)
 }
 
+// refreshRotatorBanner repopulates the banner under the room header with the
+// current room-key rotator and their trust state. Shows nothing (zero-height
+// banner) when there's no active room or no manifest rotator recorded.
+// Must be called on the Fyne thread.
+func (cp *ChatPanel) refreshRotatorBanner() {
+	if cp.rotatorBanner == nil {
+		return
+	}
+	rotator := connection.GetSessionRoomRotator()
+	if rotator == "" {
+		cp.rotatorBanner.Objects = nil
+		cp.rotatorBanner.Refresh()
+		return
+	}
+	me := connection.GetSessionUsername()
+	var label *canvas.Text
+	switch {
+	case rotator == me:
+		label = txt("🔑 Room key last rotated by you", liveDim, 11, false, true)
+	default:
+		rec, ok := keys.LoadPeerPublicKey(rotator)
+		verified := ok && rec.Verified
+		if verified {
+			label = txt("🔑 Room key last rotated by ✓ "+rotator+" (verified)", colGreen, 11, false, true)
+		} else {
+			label = txt("🔑 Room key last rotated by ⚠ "+rotator+" (NOT verified — right-click them to verify)", colAmber, 11, false, true)
+		}
+	}
+	cp.rotatorBanner.Objects = []fyne.CanvasObject{
+		container.NewPadded(label),
+		hline(),
+	}
+	cp.rotatorBanner.Refresh()
+}
+
 // refreshTrustIndicators rebuilds the member list + any open DM view for
 // username so the ✓/⚠ icons re-evaluate against the current on-disk trust
-// state. Called after a verify flow finishes successfully.
+// state. Also refreshes the room rotator banner in case the user we just
+// verified is the one who last rotated this room's key. Called after a
+// verify flow finishes successfully.
 func (cp *ChatPanel) refreshTrustIndicators(username string) {
+	cp.refreshRotatorBanner()
 	if cp.currentRoomID != "" {
 		go func(roomID string) {
 			members, err := connection.ListRoomMembers(roomID)
@@ -324,14 +362,15 @@ type ChatPanel struct {
 	w fyne.Window
 
 	// Room area
-	content      *fyne.Container
-	msgBox       *fyne.Container   // VBox of room messages
-	msgScroll    *container.Scroll // VScroll wrapping msgBox
-	roomHeader   *canvas.Text      // "# roomname"
-	roomListBox  *fyne.Container   // VBox of room sidebar rows
-	memberBox    *fyne.Container   // VBox of member rows
-	chatRight    *fyne.Container   // Stack: roomArea + DM views
-	inputWrapper *fyne.Container   // Bottom input bar placeholder
+	content       *fyne.Container
+	msgBox        *fyne.Container   // VBox of room messages
+	msgScroll     *container.Scroll // VScroll wrapping msgBox
+	roomHeader    *canvas.Text      // "# roomname"
+	rotatorBanner *fyne.Container   // shows who last rotated the room key + trust state
+	roomListBox   *fyne.Container   // VBox of room sidebar rows
+	memberBox     *fyne.Container   // VBox of member rows
+	chatRight     *fyne.Container   // Stack: roomArea + DM views
+	inputWrapper  *fyne.Container   // Bottom input bar placeholder
 
 	// Current room
 	messages        []chatMessage
@@ -362,9 +401,11 @@ func NewChatPanel(w fyne.Window) *ChatPanel {
 	cp.roomHeader = sectionBadge("# —")
 	cp.msgBox = container.NewVBox()
 	cp.msgScroll = container.NewVScroll(cp.msgBox)
+	cp.rotatorBanner = container.NewVBox() // populated by refreshRotatorBanner
 	header := container.NewVBox(
 		container.NewHBox(cp.roomHeader),
 		vspace(2), hline(),
+		cp.rotatorBanner,
 	)
 	cp.roomArea = container.NewBorder(header, nil, nil, nil, cp.msgScroll)
 
@@ -747,6 +788,7 @@ func (cp *ChatPanel) selectRoom(roomID, roomName string) {
 			cp.currentRoomName = roomName
 			cp.messages = allMsgs
 			cp.rebuildMsgBox()
+			cp.refreshRotatorBanner()
 			cp.showRoomArea()
 			if members != nil {
 				cp.SetMembers(members)
@@ -805,6 +847,7 @@ func (cp *ChatPanel) promptUnverifiedRotator(roomID, roomName, rotator string) {
 				cp.currentRoomName = roomName
 				cp.messages = allMsgs
 				cp.rebuildMsgBox()
+				cp.refreshRotatorBanner()
 				cp.showRoomArea()
 				if members != nil {
 					cp.SetMembers(members)
