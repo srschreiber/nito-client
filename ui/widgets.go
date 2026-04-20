@@ -265,6 +265,111 @@ func (b *PillPlayBtn) MouseOut() {
 }
 func (b *PillPlayBtn) Cursor() desktop.Cursor { return desktop.PointerCursor }
 
+// ── IconWithTooltip ───────────────────────────────────────────────────────────
+
+// IconWithTooltip wraps a small canvas object (usually an icon glyph) and
+// shows a floating text tooltip card on hover. Implemented via
+// canvas.Overlays so it doesn't steal focus from nearby Entry widgets.
+type IconWithTooltip struct {
+	widget.BaseWidget
+	content     fyne.CanvasObject
+	tooltipText string
+
+	// overlay is non-nil while the tooltip is currently on screen. We guard
+	// show/hide on this so a spurious re-entry (e.g. cursor crossing an
+	// internal widget boundary or Fyne emitting back-to-back MouseOut/
+	// MouseIn while the cursor is still inside us) doesn't flicker the
+	// tooltip. hideTimer debounces MouseOut: a MouseIn that fires within
+	// the debounce window cancels the scheduled hide.
+	overlay   *fyne.Container
+	canvas    fyne.Canvas
+	hideTimer *time.Timer
+}
+
+func NewIconWithTooltip(content fyne.CanvasObject, tooltip string) *IconWithTooltip {
+	w := &IconWithTooltip{content: content, tooltipText: tooltip}
+	w.ExtendBaseWidget(w)
+	return w
+}
+
+func (w *IconWithTooltip) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(w.content)
+}
+
+func (w *IconWithTooltip) MouseIn(*desktop.MouseEvent)    { w.showTooltip() }
+func (w *IconWithTooltip) MouseMoved(*desktop.MouseEvent) {}
+func (w *IconWithTooltip) MouseOut()                      { w.scheduleHide() }
+
+func (w *IconWithTooltip) showTooltip() {
+	// Cancel any pending hide from a stale MouseOut — this MouseIn means the
+	// cursor is still (or again) in the hit zone.
+	if w.hideTimer != nil {
+		w.hideTimer.Stop()
+		w.hideTimer = nil
+	}
+	// Already visible → no-op. Prevents flicker from repeated MouseIn events.
+	if w.overlay != nil {
+		return
+	}
+	if w.tooltipText == "" {
+		return
+	}
+	c := fyne.CurrentApp().Driver().CanvasForObject(w)
+	if c == nil {
+		return
+	}
+	abs := fyne.CurrentApp().Driver().AbsolutePositionForObject(w)
+	sz := w.Size()
+
+	bg := canvas.NewRectangle(liveSurface2)
+	bg.CornerRadius = 4
+	bg.StrokeColor = liveBorder
+	bg.StrokeWidth = 1
+	label := monoTxt(w.tooltipText, colText)
+	card := container.NewStack(bg, container.NewPadded(label))
+	ms := card.MinSize()
+
+	// Place the tooltip just to the right of the icon. If that would push it
+	// off the canvas, flip it to the left.
+	x := abs.X + sz.Width + 4
+	if cs := c.Size(); x+ms.Width > cs.Width-4 {
+		x = abs.X - ms.Width - 4
+	}
+	if x < 4 {
+		x = 4
+	}
+	card.Move(fyne.NewPos(x, abs.Y))
+	card.Resize(ms)
+
+	w.overlay = container.NewWithoutLayout(card)
+	w.canvas = c
+	c.Overlays().Add(w.overlay)
+}
+
+// scheduleHide defers the hide by a short window. If a MouseIn arrives before
+// the timer fires, the hide is cancelled — papering over Fyne's occasional
+// spurious MouseOut/MouseIn cycles as the cursor moves inside the widget.
+func (w *IconWithTooltip) scheduleHide() {
+	if w.hideTimer != nil {
+		w.hideTimer.Stop()
+	}
+	// Long-ish debounce (350 ms) because Fyne's hover events fire at boundary
+	// crossings between stacked children and the re-entering MouseIn doesn't
+	// always beat a shorter timer. This keeps the tooltip stable while the
+	// cursor is near the icon without perceptibly delaying actual exits.
+	w.hideTimer = time.AfterFunc(350*time.Millisecond, func() {
+		fyne.Do(w.hideTooltip)
+	})
+}
+
+func (w *IconWithTooltip) hideTooltip() {
+	if w.overlay != nil && w.canvas != nil {
+		w.canvas.Overlays().Remove(w.overlay)
+	}
+	w.overlay = nil
+	w.canvas = nil
+}
+
 // ── HoverRow ──────────────────────────────────────────────────────────────────
 
 // HoverRow is a tappable row that highlights its background on hover.

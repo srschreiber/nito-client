@@ -155,6 +155,73 @@ func splitByEmoji(s string) []emojiRun {
 	return runs
 }
 
+// verifyStatusIcon returns a hover-tooltipped glyph reflecting a peer's trust
+// state. ✓ green = cryptographically verified via the mutual-handshake flow;
+// ⚠ amber = TOFU-pinned or unknown. Used in the member list and DM header.
+func verifyStatusIcon(username string) fyne.CanvasObject {
+	rec, ok := keys.LoadPeerPublicKey(username)
+	var glyph string
+	var col color.Color
+	var tooltip string
+	switch {
+	case !ok:
+		glyph = "⚠ "
+		col = colAmber
+		tooltip = "No key on record for " + username + " — will TOFU-pin on first use."
+	case rec.Verified:
+		glyph = "✓ "
+		col = colGreen
+		tooltip = username + "'s key is cryptographically verified."
+	default:
+		glyph = "⚠ "
+		col = colAmber
+		tooltip = username + "'s key is pinned (TOFU) but NOT verified. When they're online, right-click their name → Verify to confirm their identity."
+	}
+	// Icon bumped to 16pt (~33% bigger than surrounding text) with a subtle
+	// theme-tinted backdrop so the hover zone is visually discoverable.
+	// container.NewCenter keeps the glyph vertically centered inside the
+	// 26×26 backdrop regardless of its native ascender height.
+	icon := txt(glyph, col, 16, true, true)
+	bg := canvas.NewRectangle(liveSurface2)
+	bg.CornerRadius = 4
+	bg.SetMinSize(fyne.NewSize(26, 26))
+	return NewIconWithTooltip(container.NewStack(bg, container.NewCenter(icon)), tooltip)
+}
+
+// refreshTrustIndicators rebuilds the member list + any open DM view for
+// username so the ✓/⚠ icons re-evaluate against the current on-disk trust
+// state. Called after a verify flow finishes successfully.
+func (cp *ChatPanel) refreshTrustIndicators(username string) {
+	if cp.currentRoomID != "" {
+		go func(roomID string) {
+			members, err := connection.ListRoomMembers(roomID)
+			if err != nil {
+				return
+			}
+			fyne.Do(func() { cp.SetMembers(members) })
+		}(cp.currentRoomID)
+	}
+	// If a DM view is already open for this user, swap it for a freshly
+	// built one — that's the only way to update the header icon since the
+	// header is built once in buildDMView.
+	if oldView, ok := cp.dmViews[username]; ok {
+		msgBox := cp.dmMsgBoxes[username]
+		wasVisible := oldView.Visible()
+		newView := cp.buildDMView(msgBox, username)
+		if !wasVisible {
+			newView.Hide()
+		}
+		for i, o := range cp.chatRight.Objects {
+			if o == oldView {
+				cp.chatRight.Objects[i] = newView
+				break
+			}
+		}
+		cp.dmViews[username] = newView
+		cp.chatRight.Refresh()
+	}
+}
+
 // ── Message renderer ──────────────────────────────────────────────────────────
 
 func renderMessage(m chatMessage) fyne.CanvasObject {
@@ -178,14 +245,16 @@ func renderMessage(m chatMessage) fyne.CanvasObject {
 		return NewSelectableRichText(text)
 	}
 	msgRow := func(ts, from string, fromCol color.Color, text string) fyne.CanvasObject {
-		// Meta (timestamp + from) sits above the body instead of to the left.
-		// Keeping it on the left forced canvas.Text widths as the row's hard
-		// minimum, which pinned the HSplit divider once any message existed.
+		// Meta (timestamp + colored username) sits on the left of the row
+		// with the body flowing on the same line. canvas.Text so the color
+		// survives — its natural width becomes the row's horizontal minimum
+		// (~120 px), which still lets the HSplit divider move; the body
+		// (SelectableRichText) reports 0 min-width and wraps freely.
 		meta := container.NewHBox(
 			txt(ts+" ", liveDim, 12, false, true),
-			txt(from, fromCol, 13, true, true),
+			txt(from+"  ", fromCol, 13, true, true),
 		)
-		return container.NewPadded(container.NewVBox(meta, msgBody(text)))
+		return container.NewPadded(container.NewBorder(nil, nil, meta, nil, msgBody(text)))
 	}
 
 	switch m.kind {
@@ -575,16 +644,29 @@ func (cp *ChatPanel) SetMembers(members []apitypes.RoomMemberEntry) {
 			nameCol = liveDim
 		}
 		nameLabel := truncLabel(m.Username, nameCol, false)
-		row := container.NewPadded(container.NewBorder(nil, nil, dot, nil, nameLabel))
+		// Self has no verification state to show. When the verify icon is
+		// present it's taller than the online-dot, so wrap the dot in
+		// NewCenter to keep them vertically aligned inside the HBox.
+		var left fyne.CanvasObject = dot
+		if m.Username != myID {
+			left = container.NewHBox(container.NewCenter(dot), verifyStatusIcon(m.Username))
+		}
+		// Border's center gets the full row height (driven by `left`), and
+		// widget.Label vertically-centers its text inside that — so the
+		// username stays on the same visual baseline as the icon.
+		row := container.NewPadded(container.NewBorder(nil, nil, left, nil, nameLabel))
 		if m.Online && m.Username != myID {
 			username := m.Username
 			hr := NewHoverRow(row, func() { cp.openDM(username) })
 			hr.OnSecondaryTap = func(pos fyne.Position) {
 				menuItems := []*fyne.MenuItem{
 					fyne.NewMenuItem("Message", func() { cp.openDM(username) }),
-					fyne.NewMenuItem("Verify", func() {
+				}
+				// Only offer Verify if the user isn't already cryptographically
+				// verified — running the flow again would be pointless.
+				if rec, ok := keys.LoadPeerPublicKey(username); !ok || !rec.Verified {
+					menuItems = append(menuItems, fyne.NewMenuItem("Verify", func() {
 						showVerifyPopup(username, cp.w, func(keyPEM string) {
-							// Update stored record to verified.
 							existing, _ := keys.LoadPeerPublicKey(username)
 							_ = keys.SavePeerPublicKey(username, keys.TrustedKey{
 								PublicKey: keyPEM,
@@ -592,9 +674,12 @@ func (cp *ChatPanel) SetMembers(members []apitypes.RoomMemberEntry) {
 								Method:    keys.TrustMethodVerified,
 								AddedAt:   existing.AddedAt,
 							})
-							fyne.Do(func() { showToast(cp.w, username+" verified", toastSuccess) })
+							fyne.Do(func() {
+								showToast(cp.w, username+" verified", toastSuccess)
+								cp.refreshTrustIndicators(username)
+							})
 						})
-					}),
+					}))
 				}
 				menu := fyne.NewMenu("", menuItems...)
 				widget.ShowPopUpMenuAtPosition(menu, cp.w.Canvas(), pos)
@@ -847,7 +932,7 @@ func (cp *ChatPanel) buildDMView(msgBox *fyne.Container, username string) fyne.C
 		func() { cp.showRoomArea() },
 	)
 	header := container.NewVBox(
-		container.NewHBox(backLabel, vspace(8), sectionBadge("@ "+username)),
+		container.NewHBox(backLabel, vspace(8), sectionBadge("@ "+username), verifyStatusIcon(username)),
 		vspace(2), hline(),
 	)
 

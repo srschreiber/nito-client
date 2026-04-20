@@ -137,6 +137,7 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator s
 		if err := keys.VerifyRoomKeyManifest(&result.VersionManifest, result.VersionManifestSignature, pubPEM); err != nil {
 			return "", 0, "", fmt.Errorf("get room key: manifest signature invalid (rotator=%s device=%q): %w", rotator, deviceID, err)
 		}
+		clientlog.Info("manifest signature valid for room %s key version %d (rotated_by=%s device_id=%q)", roomID, result.VersionManifest.CurVersionNum, rotator, deviceID)
 	}
 
 	return result.EncryptedRoomKey, result.KeyVersion, rotator, nil
