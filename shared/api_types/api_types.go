@@ -54,10 +54,19 @@ type RoomEntry struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	IsOwner bool   `json:"isOwner"`
-	// Rotator identity on the current key version. Lets the client render a
-	// trust indicator per room in the sidebar without fetching every manifest.
-	// RotatorDeviceID is "" for root-device signatures. Both empty if the
-	// room has no manifest recorded (legacy rooms).
+
+	// SignedByUsername / SignedByDeviceID describe the room's
+	// *creation* signature (rooms.signature + rooms.signed_by_device_id).
+	// This is immutable — set once at room creation — and is what the
+	// sidebar trust icon reflects. Both empty for legacy rooms created
+	// before row signatures were stored.
+	SignedByUsername string `json:"signedByUsername,omitempty"`
+	SignedByDeviceID string `json:"signedByDeviceId,omitempty"`
+
+	// RotatorUsername / RotatorDeviceID describe the *current* key
+	// version's manifest signer (from the latest room_key_versions row).
+	// Distinct from the room signature because it changes on every key
+	// rotation. Used by the rotator banner inside the active room.
 	RotatorUsername string `json:"rotatorUsername,omitempty"`
 	RotatorDeviceID string `json:"rotatorDeviceId,omitempty"`
 }

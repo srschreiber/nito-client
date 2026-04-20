@@ -188,52 +188,98 @@ func verifyStatusIcon(username string) fyne.CanvasObject {
 	return NewIconWithTooltip(container.NewStack(bg, container.NewCenter(icon)), tooltip)
 }
 
-// roomTrustIcon returns a small tooltip-icon reflecting the local trust level
-// of a room's current-key rotator. Returns nil only when the rotator is
-// ourselves (no useful signal to show). Legacy rooms with no manifest
-// surface a distinct "unknown" glyph so users don't mistake silence for
-// safety — a room that predates manifest support has NO trust information.
-func roomTrustIcon(r apitypes.RoomEntry) fyne.CanvasObject {
-	// Self-rotated rooms need no icon.
-	if r.RotatorUsername != "" && r.RotatorUsername == connection.GetSessionUsername() {
-		return nil
+// peerTrustState returns (verified, known) for a given (user, device) pin.
+// verified=true means the user cryptographically ran the mutual-handshake.
+// known=false means no record on disk (will TOFU on first fetch).
+func peerTrustState(username, deviceID string) (verified, known bool) {
+	if username == "" {
+		return false, false
 	}
-	// Legacy (pre-manifest) room: surface the lack of trust info rather than
-	// falling silent. colAlert because "no signed manifest at all" is
-	// strictly weaker than TOFU and users should know.
-	if r.RotatorUsername == "" {
+	var rec keys.TrustedKey
+	var ok bool
+	if deviceID != "" {
+		rec, ok = keys.LoadPeerPublicKeyByDevice(username, deviceID)
+	} else {
+		rec, ok = keys.LoadPeerPublicKey(username)
+	}
+	return ok && rec.Verified, ok
+}
+
+// roomTrustIcon returns the sidebar trust icon for a room. The icon reflects
+// the *weakest* of the two trust signals the broker reports per room:
+//
+//  1. The creator signature on rooms.signature (immutable, set at creation).
+//  2. The current key-rotation manifest (version_manifest_signature).
+//
+// A room is only shown as "fully trusted" (✓ green) when *both* signals are
+// present and signed by users we've cryptographically verified. Missing
+// signals are called out distinctly because silence is a security smell.
+func roomTrustIcon(r apitypes.RoomEntry) fyne.CanvasObject {
+	me := connection.GetSessionUsername()
+
+	// Fully legacy: no creation signature AND no key manifest rotator. We
+	// can't verify anything about this room's provenance. Loud red alert.
+	if r.SignedByUsername == "" && r.RotatorUsername == "" {
 		return NewIconWithTooltip(
 			txt("!", colAlert, 12, true, true),
-			"No signed key manifest for this room (legacy room). The rotator's identity cannot be verified.",
+			"This room has no creation signature or signed key manifest (legacy room). Neither the creator nor the current key rotator can be verified.",
 		)
 	}
 
-	var rec keys.TrustedKey
-	var ok bool
-	if r.RotatorDeviceID != "" {
-		rec, ok = keys.LoadPeerPublicKeyByDevice(r.RotatorUsername, r.RotatorDeviceID)
-	} else {
-		rec, ok = keys.LoadPeerPublicKey(r.RotatorUsername)
+	// Inspect each signal. "self" counts as trusted on that axis.
+	creatorVerified := r.SignedByUsername == me
+	creatorKnown := r.SignedByUsername != ""
+	if !creatorVerified && creatorKnown {
+		creatorVerified, creatorKnown = peerTrustState(r.SignedByUsername, r.SignedByDeviceID)
 	}
-	var glyph string
-	var col color.Color
-	var tooltip string
-	switch {
-	case !ok:
-		glyph = "?"
-		col = liveDim
-		tooltip = "Room key signed by " + r.RotatorUsername + " — no key on record yet; will TOFU-pin on join."
-	case rec.Verified:
-		glyph = "✓"
-		col = colGreen
-		tooltip = "Room key signed by verified user " + r.RotatorUsername + "."
-	default:
-		glyph = "⚠"
-		col = colAmber
-		tooltip = "Room key signed by " + r.RotatorUsername + ", who is TOFU-pinned but NOT verified. Right-click their name in members to verify."
+	rotatorVerified := r.RotatorUsername == me
+	rotatorKnown := r.RotatorUsername != ""
+	if !rotatorVerified && rotatorKnown {
+		rotatorVerified, rotatorKnown = peerTrustState(r.RotatorUsername, r.RotatorDeviceID)
 	}
-	icon := txt(glyph, col, 12, true, true)
-	return NewIconWithTooltip(icon, tooltip)
+
+	// Both signals present and both signers fully verified → green check.
+	if r.SignedByUsername != "" && r.RotatorUsername != "" && creatorVerified && rotatorVerified {
+		tip := "Room creation signed by " + r.SignedByUsername + " (verified) and current key rotated by " + r.RotatorUsername + " (verified)."
+		if r.SignedByUsername == me && r.RotatorUsername == me {
+			tip = "Both the room creation and the current key were signed by you."
+		}
+		return NewIconWithTooltip(txt("✓", colGreen, 12, true, true), tip)
+	}
+
+	// Degraded state — explain why in the tooltip. Red alert for outright
+	// missing signals (legacy column, broker didn't send one); amber for
+	// TOFU-only (signature is there, identity just not verified).
+	missing := []string{}
+	if r.SignedByUsername == "" {
+		missing = append(missing, "no room creation signature")
+	}
+	if r.RotatorUsername == "" {
+		missing = append(missing, "no signed key manifest")
+	}
+	if len(missing) > 0 {
+		return NewIconWithTooltip(
+			txt("!", colAlert, 12, true, true),
+			"Partial trust info: "+strings.Join(missing, "; ")+". Cannot verify this room's provenance.",
+		)
+	}
+
+	// Both signals present; at least one signer is TOFU/unknown.
+	parts := []string{}
+	describe := func(role, who string, verified, known bool) {
+		switch {
+		case !known:
+			parts = append(parts, role+" signer "+who+" has no key on record (will TOFU on join)")
+		case !verified:
+			parts = append(parts, role+" signer "+who+" is TOFU-pinned but NOT verified")
+		}
+	}
+	describe("room creation", r.SignedByUsername, creatorVerified, creatorKnown)
+	describe("key rotation", r.RotatorUsername, rotatorVerified, rotatorKnown)
+	return NewIconWithTooltip(
+		txt("⚠", colAmber, 12, true, true),
+		strings.Join(parts, "; ")+". Right-click their name in members to verify.",
+	)
 }
 
 // refreshRotatorBanner repopulates the banner under the room header with the
