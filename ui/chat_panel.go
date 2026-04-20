@@ -189,16 +189,25 @@ func verifyStatusIcon(username string) fyne.CanvasObject {
 }
 
 // roomTrustIcon returns a small tooltip-icon reflecting the local trust level
-// of a room's current-key rotator. Returns nil when the room has no rotator
-// info (legacy, no manifest) or when the rotator is ourselves — in both
-// cases there's nothing useful to show next to the room row.
+// of a room's current-key rotator. Returns nil only when the rotator is
+// ourselves (no useful signal to show). Legacy rooms with no manifest
+// surface a distinct "unknown" glyph so users don't mistake silence for
+// safety — a room that predates manifest support has NO trust information.
 func roomTrustIcon(r apitypes.RoomEntry) fyne.CanvasObject {
+	// Self-rotated rooms need no icon.
+	if r.RotatorUsername != "" && r.RotatorUsername == connection.GetSessionUsername() {
+		return nil
+	}
+	// Legacy (pre-manifest) room: surface the lack of trust info rather than
+	// falling silent. colAlert because "no signed manifest at all" is
+	// strictly weaker than TOFU and users should know.
 	if r.RotatorUsername == "" {
-		return nil
+		return NewIconWithTooltip(
+			txt("!", colAlert, 12, true, true),
+			"No signed key manifest for this room (legacy room). The rotator's identity cannot be verified.",
+		)
 	}
-	if r.RotatorUsername == connection.GetSessionUsername() {
-		return nil
-	}
+
 	var rec keys.TrustedKey
 	var ok bool
 	if r.RotatorDeviceID != "" {
@@ -236,8 +245,16 @@ func (cp *ChatPanel) refreshRotatorBanner() {
 		return
 	}
 	rotator := connection.GetSessionRoomRotator()
+	// Empty rotator means the server didn't return a manifest for this
+	// room's current key — legacy room. We don't want to stay silent here;
+	// users should know there's no signature backing this room.
 	if rotator == "" {
-		cp.rotatorBanner.Objects = nil
+		if cp.currentRoomID == "" {
+			cp.rotatorBanner.Objects = nil
+		} else {
+			label := txt("⚠ This room has no signed key manifest — the rotator's identity cannot be verified (legacy room).", colAlert, 11, false, true)
+			cp.rotatorBanner.Objects = []fyne.CanvasObject{container.NewPadded(label), hline()}
+		}
 		cp.rotatorBanner.Refresh()
 		return
 	}

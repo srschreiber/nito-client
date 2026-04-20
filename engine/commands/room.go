@@ -59,7 +59,21 @@ func roomCreateCmd(args []Argument) (string, error) {
 		return "", fmt.Errorf("room-create: sign manifest: %w", err)
 	}
 
-	id, roomName, err := connection.CreateRoom(name, encryptedKey, manifest, manifestSig)
+	// Row-level room attestation (rooms.signature). Signed over
+	// "device_id;name;owner" alphabetically joined. Broker stores but does
+	// not yet verify — future verification pass will re-derive these bytes
+	// from the stored row + device record.
+	deviceID := connection.GetSessionDeviceID()
+	roomSig, err := keys.SignAttestation(map[string]string{
+		"device_id": deviceID,
+		"name":      name,
+		"owner":     username,
+	}, username)
+	if err != nil {
+		return "", fmt.Errorf("room-create: sign room: %w", err)
+	}
+
+	id, roomName, err := connection.CreateRoom(name, encryptedKey, manifest, manifestSig, roomSig, deviceID)
 	if err != nil {
 		return "", err
 	}
@@ -169,7 +183,21 @@ func InviteUserWithKey(username, keyPEM string) (string, error) {
 		return "", fmt.Errorf("room-invite: encrypt for invitee: %w", err)
 	}
 
-	if err := connection.InviteUser(roomID, username, encryptedForInvitee); err != nil {
+	// Row-level membership attestation (room_members.signature). Signed by
+	// the INVITER over "device_id;invited_username;room_id" alphabetically.
+	// Broker stores without verifying for now.
+	me := connection.GetSessionUsername()
+	deviceID := connection.GetSessionDeviceID()
+	membershipSig, err := keys.SignAttestation(map[string]string{
+		"device_id":        deviceID,
+		"invited_username": username,
+		"room_id":          roomID,
+	}, me)
+	if err != nil {
+		return "", fmt.Errorf("room-invite: sign membership: %w", err)
+	}
+
+	if err := connection.InviteUser(roomID, username, encryptedForInvitee, membershipSig, deviceID); err != nil {
 		return "", err
 	}
 

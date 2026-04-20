@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -81,6 +82,24 @@ func SignRoomKeyManifest(m *apitypes.RoomKeyManifest, username string) (string, 
 // Returns nil if the signature is valid.
 func VerifyRoomKeyManifest(m *apitypes.RoomKeyManifest, sigB64, publicKeyPEM string) error {
 	return VerifyWithPublicKey(manifestSignable(m), sigB64, publicKeyPEM)
+}
+
+// SignAttestation signs a canonical "field1;field2;...;fieldN" string where
+// the provided pairs have been sorted alphabetically by key and joined by ';'.
+// Shared by row-level attestations (rooms.signature, room_members.signature,
+// user_room_roles.signature) that need deterministic bytes independent of
+// JSON key ordering. Values must not themselves contain ';'.
+func SignAttestation(pairs map[string]string, username string) (string, error) {
+	keysSorted := make([]string, 0, len(pairs))
+	for k := range pairs {
+		keysSorted = append(keysSorted, k)
+	}
+	sort.Strings(keysSorted)
+	parts := make([]string, len(keysSorted))
+	for i, k := range keysSorted {
+		parts[i] = pairs[k]
+	}
+	return Sign(strings.Join(parts, ";"), username)
 }
 
 // VerifyWithPublicKey verifies sigB64 (base64 RSA-PSS-SHA256) over message

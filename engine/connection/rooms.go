@@ -17,8 +17,10 @@ import (
 // CreateRoom creates a new room on the broker. Requires an active session.
 // encryptedRoomKey is the base64 RSA-OAEP ciphertext of the room's AES key.
 // manifest + manifestSig are the signed metadata every member will use to
-// detect if the broker later substitutes a different key.
-func CreateRoom(name, encryptedRoomKey string, manifest apitypes.RoomKeyManifest, manifestSig string) (id, roomName string, err error) {
+// detect if the broker later substitutes a different key. roomSig + roomSigDev
+// are the creator's attestation over the row itself (rooms.signature column;
+// immutable, set at creation — the broker stores without verifying for now).
+func CreateRoom(name, encryptedRoomKey string, manifest apitypes.RoomKeyManifest, manifestSig, roomSig, roomSigDev string) (id, roomName string, err error) {
 	s := CurrentSession()
 	if s == nil {
 		return "", "", errors.New("not connected")
@@ -29,6 +31,8 @@ func CreateRoom(name, encryptedRoomKey string, manifest apitypes.RoomKeyManifest
 		EncryptedRoomKey:         encryptedRoomKey,
 		VersionManifest:          manifest,
 		VersionManifestSignature: manifestSig,
+		RoomSignature:            roomSig,
+		RoomSignedByDevice:       roomSigDev,
 	})
 	resp, err := signedPost(s.v0("/rooms"), s.Username, "/api/v0/rooms", body)
 	if err != nil {
@@ -165,16 +169,21 @@ func getRoomInfo(roomID string) (*RoomInfo, error) {
 	return &RoomInfo{SentMessageCount: result.SentMessageCount}, nil
 }
 
-// InviteUser invites a user to a room, sending their encrypted copy of the room key.
-func InviteUser(roomID, invitedUsername, encryptedRoomKey string) error {
+// InviteUser invites a user to a room, sending their encrypted copy of the
+// room key. membershipSig + membershipSigDev are the inviter's attestation
+// over the membership row (room_members.signature; stored without broker
+// verification until the verification pass ships).
+func InviteUser(roomID, invitedUsername, encryptedRoomKey, membershipSig, membershipSigDev string) error {
 	s := CurrentSession()
 	if s == nil {
 		return errors.New("not connected")
 	}
-	body, _ := json.Marshal(map[string]string{
-		"roomId":           roomID,
-		"invitedUsername":  invitedUsername,
-		"encryptedRoomKey": encryptedRoomKey,
+	body, _ := json.Marshal(apitypes.InviteUserRequest{
+		RoomID:                   roomID,
+		InvitedUsername:          invitedUsername,
+		EncryptedRoomKey:         encryptedRoomKey,
+		MembershipSignature:      membershipSig,
+		MembershipSignedByDevice: membershipSigDev,
 	})
 	resp, err := signedPost(s.v0("/rooms/invite"), s.Username, "/api/v0/rooms/invite", body)
 	if err != nil {

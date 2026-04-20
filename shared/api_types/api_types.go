@@ -37,6 +37,12 @@ type CreateRoomRequest struct {
 	EncryptedRoomKey         string          `json:"encryptedRoomKey" validate:"required"`
 	VersionManifest          RoomKeyManifest `json:"versionManifest" validate:"required"`
 	VersionManifestSignature string          `json:"versionManifestSignature" validate:"required"`
+	// RoomSignature is the creator's attestation over the canonical room
+	// bytes "device_id;name;owner" (alphabetical, ';'-joined). Stored
+	// on rooms.signature for future ownership verification. Broker may
+	// accept it without verifying until the verification pass ships.
+	RoomSignature      string `json:"roomSignature,omitempty"`
+	RoomSignedByDevice string `json:"roomSignedByDeviceId,omitempty"`
 }
 
 type CreateRoomResponse struct {
@@ -64,6 +70,12 @@ type InviteUserRequest struct {
 	RoomID           string `json:"roomId" validate:"required"`
 	InvitedUsername  string `json:"invitedUsername" validate:"required"`
 	EncryptedRoomKey string `json:"encryptedRoomKey" validate:"required"`
+	// MembershipSignature is the inviter's attestation over
+	// "device_id;invited_username;room_id" (alphabetical, ';'-joined).
+	// Stored on room_members.signature. Broker may accept without
+	// verifying until the verification pass ships.
+	MembershipSignature      string `json:"membershipSignature,omitempty"`
+	MembershipSignedByDevice string `json:"membershipSignedByDeviceId,omitempty"`
 }
 
 type InviteUserResponse struct {
