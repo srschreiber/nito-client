@@ -119,7 +119,7 @@ version is accompanied by a signed manifest:
 RoomKeyManifest {
   cur_key_hash     // hex sha256 of the raw room key
   cur_version_num  // monotonic, starts at 1
-  device_id        // which device of rotated_by signed this; empty = root device
+  device_id        // which device of rotated_by signed this — sha256(DER(pub_key)), hex
   nonce            // 16 random bytes, base64
   prev_key_hash    // sha256 of prior key, empty on first version
   prev_version_num // 0 on first version
@@ -137,15 +137,19 @@ JSON-encoding ambiguity.
 Every client fetching a room key:
 
 1. Downloads the manifest + signature alongside their encrypted key copy.
-2. Resolves `rotated_by`'s public key via `GetOrStoreUserPublicKey`. That
-   helper is **disk-first**: if a local pin (verified or TOFU) exists, the
-   broker is not contacted at all. When `rotated_by` is the signed-in user,
-   the key is read from our own on-disk keystore (written at registration)
-   — the broker never gets a say about our own identity. If nothing is
-   pinned yet, it falls back to the broker once and TOFU-pins the result.
-3. Verifies the signature. A mismatch aborts the join and surfaces an error
-   rather than silently trusting the substituted key.
-4. Checks the rotator's *trust level*. If the rotator is only TOFU-pinned
+2. Resolves `rotated_by`'s public key. For self, the local on-disk PEM —
+   the broker never gets a say about our own identity. For peers, disk
+   first (verified or TOFU pin), falling back to the broker's
+   `/users/public-key` endpoint and TOFU-pinning the result.
+3. **Derives the expected device id** from that public key
+   (`sha256(DER(pub_key))`, hex) and rejects if it doesn't match
+   `manifest.device_id`. Because every device id on the wire is a pure
+   function of a public key, the broker can't swap a signature+key pair
+   onto a different pinned device id without the derivation falling out
+   of agreement.
+4. Verifies the signature. A mismatch aborts the join and surfaces an
+   error rather than silently trusting the substituted key.
+5. Checks the rotator's *trust level*. If the rotator is only TOFU-pinned
    (not cryptographically verified out-of-band), the client surfaces an
    `UnverifiedRotatorError` to the UI. The UI shows a warning popup: users
    can run the mutual-verify handshake against the rotator first or
@@ -159,6 +163,10 @@ can't roll back to an earlier compromised key without the rotator's
 cooperation; `nonce` + `timestamp` prevent replay of an old manifest; and
 `device_id` scopes the signature to a single device within a user's account,
 so a compromised non-root device can't silently rotate keys as the root user.
+Because the id is derived (`sha256(DER(pub_key))`) rather than broker-assigned,
+the broker has no ambient authority to relabel one device's signature as
+another's — any relabelling produces a derivation mismatch and the client
+rejects.
 
 **Limits of this defense.** A fully compromised broker can still trick a
 client on *first contact* by forging a fresh identity, signing a substituted

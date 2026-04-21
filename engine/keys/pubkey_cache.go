@@ -29,9 +29,11 @@ const (
 	TrustMethodVerified TrustMethod = "verified"
 )
 
-// TrustedKey is the on-disk record for a peer's trusted public key.
+// TrustedKey is the on-disk record for a peer's trusted public key. DeviceID
+// is a function of PublicKey — SavePeerPublicKey derives it on write, callers
+// must not set it manually.
 type TrustedKey struct {
-	DeviceID  string      `json:"device_id"`  // empty string = root device
+	DeviceID  string      `json:"device_id"`  // sha256(DER(PublicKey)), hex
 	PublicKey string      `json:"public_key"` // PEM-encoded RSA public key
 	Verified  bool        `json:"verified"`
 	AddedAt   int64       `json:"added_at"` // unix timestamp
@@ -104,11 +106,21 @@ func savePeerPublicKeysList(username string, records []TrustedKey) error {
 	return os.WriteFile(path, data, 0600)
 }
 
-// SavePeerPublicKey upserts rec into the user's key file, matching on
-// DeviceID: an existing entry for the same device is replaced, otherwise
-// the record is appended. Legacy v1 files are migrated to the array form
-// the first time they're written back.
+// SavePeerPublicKey upserts rec into the user's key file, matching on the
+// device id derived from rec.PublicKey: an existing entry for the same
+// device is replaced, otherwise the record is appended. rec.DeviceID is
+// always overwritten with the derivation — callers cannot forge it. Legacy
+// v1 files are migrated to the array form the first time they're written
+// back.
 func SavePeerPublicKey(username string, rec TrustedKey) error {
+	if rec.PublicKey == "" {
+		return fmt.Errorf("save peer key: public key required")
+	}
+	derivedID, err := DeviceIDFromPublicKeyPEM(rec.PublicKey)
+	if err != nil {
+		return fmt.Errorf("save peer key: derive device id: %w", err)
+	}
+	rec.DeviceID = derivedID
 	if rec.AddedAt == 0 {
 		rec.AddedAt = time.Now().Unix()
 	}

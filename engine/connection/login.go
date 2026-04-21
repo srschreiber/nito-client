@@ -46,10 +46,11 @@ func Register(ctx context.Context, brokerURL, username, password, publicKey stri
 }
 
 // Login performs the full authentication flow against the broker:
-// requests a challenge, signs it, and exchanges credentials for a JWT token.
-// Returns the JWT and the server-assigned device id so the caller can pass
-// both to Connect.
-func Login(ctx context.Context, brokerURL, username, password string) (token, deviceID string, err error) {
+// requests a challenge, signs it, and exchanges credentials for a JWT
+// token. The server-assigned DeviceID on the response is ignored — the
+// client derives its own device id from the local public key at Connect
+// time, so a broker can never swap a session to a different id.
+func Login(ctx context.Context, brokerURL, username, password string) (token string, err error) {
 	brokerURL = normalizeURL(brokerURL)
 	keys.SetActiveBroker(brokerURL)
 
@@ -57,27 +58,27 @@ func Login(ctx context.Context, brokerURL, username, password string) (token, de
 	challengeBody, _ := json.Marshal(apitypes.LoginChallengeRequest{Username: username})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+brokerURL+"/api/v0/login/challenge", bytes.NewReader(challengeBody))
 	if err != nil {
-		return "", "", fmt.Errorf("login challenge: %w", err)
+		return "", fmt.Errorf("login challenge: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", "", fmt.Errorf("login challenge: %w", err)
+		return "", fmt.Errorf("login challenge: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("login challenge: broker returned %s", resp.Status)
+		return "", fmt.Errorf("login challenge: broker returned %s", resp.Status)
 	}
 	var challengeResp apitypes.LoginChallengeResponse
 	if err := json.NewDecoder(resp.Body).Decode(&challengeResp); err != nil {
-		return "", "", fmt.Errorf("login challenge: decode: %w", err)
+		return "", fmt.Errorf("login challenge: decode: %w", err)
 	}
 
 	// Sign "login:<username>:<challenge>" with our private key.
 	msg := fmt.Sprintf("login:%s:%s", username, challengeResp.Challenge)
 	sig, err := keys.Sign(msg, username)
 	if err != nil {
-		return "", "", fmt.Errorf("login sign: %w", err)
+		return "", fmt.Errorf("login sign: %w", err)
 	}
 
 	// Exchange credentials + signature for a JWT.
@@ -89,22 +90,22 @@ func Login(ctx context.Context, brokerURL, username, password string) (token, de
 	})
 	loginReq, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+brokerURL+"/api/v0/login", bytes.NewReader(loginBody))
 	if err != nil {
-		return "", "", fmt.Errorf("login: %w", err)
+		return "", fmt.Errorf("login: %w", err)
 	}
 	loginReq.Header.Set("Content-Type", "application/json")
 	loginResp, err := http.DefaultClient.Do(loginReq)
 	if err != nil {
-		return "", "", fmt.Errorf("login: %w", err)
+		return "", fmt.Errorf("login: %w", err)
 	}
 	defer loginResp.Body.Close()
 	if loginResp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("login: broker returned %s", loginResp.Status)
+		return "", fmt.Errorf("login: broker returned %s", loginResp.Status)
 	}
 	var result apitypes.LoginResponse
 	if err := json.NewDecoder(loginResp.Body).Decode(&result); err != nil {
-		return "", "", fmt.Errorf("login: decode: %w", err)
+		return "", fmt.Errorf("login: decode: %w", err)
 	}
-	return result.Token, result.DeviceID, nil
+	return result.Token, nil
 }
 
 // GetOrStoreUserPublicKey returns the PEM-encoded public key for a username.

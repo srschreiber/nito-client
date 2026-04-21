@@ -36,7 +36,7 @@ type RoomInfo struct {
 
 type Session struct {
 	Username          string // the authenticated user's username; used as the identity token on every broker call
-	DeviceID          string // server-assigned device id from Login/Register; empty = root device
+	DeviceID          string // sha256(DER(local public key)), hex — derived at Connect, never trusted from the broker
 	BrokerURL         string
 	JWTToken          string                        // JWT token for API authentication
 	RoomID            *string                       // currently selected room
@@ -72,11 +72,10 @@ var (
 	session *Session
 
 	// Last successful connection credentials; used by Reconnect.
-	credMu         sync.Mutex
-	storedBroker   string
-	storedUserID   string
-	storedDeviceID string
-	storedJWT      string
+	credMu       sync.Mutex
+	storedBroker string
+	storedUserID string
+	storedJWT    string
 )
 
 // CurrentSession returns a pointer to the active session, or nil if disconnected.
@@ -128,9 +127,9 @@ func GetSessionUsername() string {
 	return session.Username
 }
 
-// GetSessionDeviceID returns the server-assigned device id for the current
-// session, or "" if none is active. Empty string also means "root device"
-// when passing to wire types like RoomKeyManifest.DeviceID.
+// GetSessionDeviceID returns the derived device id for the current session,
+// or "" if none is active. The value is sha256(DER(local public key)) in
+// hex — the same derivation every peer uses when verifying our signatures.
 func GetSessionDeviceID() string {
 	mu.Lock()
 	defer mu.Unlock()

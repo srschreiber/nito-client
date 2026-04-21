@@ -50,18 +50,12 @@ func GenerateManifestNonce() (string, error) {
 	return base64.RawStdEncoding.EncodeToString(b), nil
 }
 
-// manifestSignable builds the canonical bytes described above. A nil DeviceID
-// (root device) is serialised as an empty string so both signer and verifier
-// produce identical bytes regardless of whether the pointer is set.
+// manifestSignable builds the canonical bytes described above.
 func manifestSignable(m *apitypes.RoomKeyManifest) string {
-	deviceID := ""
-	if m.DeviceID != nil {
-		deviceID = *m.DeviceID
-	}
 	return strings.Join([]string{
 		m.CurKeyHash,
 		strconv.Itoa(m.CurVersionNum),
-		deviceID,
+		m.DeviceID,
 		m.Nonce,
 		m.PrevKeyHash,
 		strconv.Itoa(m.PrevVersionNum),

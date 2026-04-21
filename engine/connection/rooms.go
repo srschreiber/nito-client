@@ -102,43 +102,58 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator, 
 		return "", 0, "", "", fmt.Errorf("get room key: decode: %w", err)
 	}
 
-	// Verify the manifest signature against the rotator's public key. The
-	// rotator is named inside the manifest (`rotated_by`) along with the
-	// specific device that signed (`device_id`). Root-device signatures
-	// (empty device_id) fall through to GetOrStoreUserPublicKey which does
-	// disk-first + TOFU-on-miss. Non-root devices must already be pinned
-	// locally — per-device key fetching is a separate capability.
+	// Verify the manifest signature against the rotator's public key. Device
+	// ids are sha256(DER(pub_key)) hex, so the manifest's claimed device_id
+	// must match the derivation of whichever pub key we end up verifying
+	// with — otherwise the broker could substitute a different (user, key)
+	// pair whose signature happens to verify. Self uses the on-disk PEM;
+	// peers use the pinned PEM (or TOFU-fetch from the broker under the
+	// same derivation check).
 	if result.VersionManifestSignature != "" {
 		rotator = result.VersionManifest.RotatedBy
 		if rotator == "" {
 			return "", 0, "", "", fmt.Errorf("get room key: manifest has no rotator")
 		}
-		if result.VersionManifest.DeviceID != nil {
-			rotatorDevice = *result.VersionManifest.DeviceID
+		rotatorDevice = result.VersionManifest.DeviceID
+		if rotatorDevice == "" {
+			return "", 0, "", "", fmt.Errorf("get room key: manifest has no device id")
 		}
 		var pubPEM string
-		if rotatorDevice == "" {
-			pubPEM, err = GetOrStoreUserPublicKey(rotator)
+		switch {
+		case rotator == s.Username:
+			// Self-signed manifest (we created this room, or we rotated
+			// its key). Always use our own on-disk public key — never
+			// the broker's view, which could be substituted.
+			pubPEM, err = keys.LoadPublicKeyPEM(rotator)
 			if err != nil {
-				return "", 0, "", "", fmt.Errorf("get room key: fetch rotator public key: %w", err)
+				return "", 0, "", "", fmt.Errorf("get room key: load self public key: %w", err)
 			}
-		} else {
-			rec, ok := keys.LoadPeerPublicKeyByDevice(rotator, rotatorDevice)
-			if !ok {
-				// TODO: support fetching a per-device public key from the broker
-				// given (username, device_id) — then TOFU-pin it like the
-				// root-device path does. Needs a new broker endpoint
-				// (e.g. GET /users/public-key?username=X&device_id=Y) plus a
-				// client helper that mirrors GetOrStoreUserPublicKey's
-				// disk-first + cache-on-miss semantics.
-				return "", 0, "", "", fmt.Errorf("get room key: no pinned key for %s/device %s", rotator, rotatorDevice)
+		default:
+			if rec, ok := keys.LoadPeerPublicKeyByDevice(rotator, rotatorDevice); ok {
+				pubPEM = rec.PublicKey
+			} else {
+				// TOFU-fetch. The derivation check below is what makes
+				// this safe: we will reject if the broker hands us a pub
+				// key that doesn't hash to the claimed device_id.
+				pubPEM, err = GetOrStoreUserPublicKey(rotator)
+				if err != nil {
+					return "", 0, "", "", fmt.Errorf("get room key: fetch rotator public key: %w", err)
+				}
 			}
-			pubPEM = rec.PublicKey
+		}
+		// Binding check: the key we're about to verify with must be the
+		// key whose id the manifest claims. Stops broker swaps cold.
+		derivedDevice, err := keys.DeviceIDFromPublicKeyPEM(pubPEM)
+		if err != nil {
+			return "", 0, "", "", fmt.Errorf("get room key: derive device id: %w", err)
+		}
+		if derivedDevice != rotatorDevice {
+			return "", 0, "", "", fmt.Errorf("get room key: device id mismatch (rotator=%s claimed=%s derived=%s)", rotator, rotatorDevice, derivedDevice)
 		}
 		if err := keys.VerifyRoomKeyManifest(&result.VersionManifest, result.VersionManifestSignature, pubPEM); err != nil {
-			return "", 0, "", "", fmt.Errorf("get room key: manifest signature invalid (rotator=%s device=%q): %w", rotator, rotatorDevice, err)
+			return "", 0, "", "", fmt.Errorf("get room key: manifest signature invalid (rotator=%s device=%s): %w", rotator, rotatorDevice, err)
 		}
-		clientlog.Info("manifest signature valid for room %s key version %d (rotated_by=%s device_id=%q)", roomID, result.VersionManifest.CurVersionNum, rotator, rotatorDevice)
+		clientlog.Info("manifest signature valid for room %s key version %d (rotated_by=%s device_id=%s)", roomID, result.VersionManifest.CurVersionNum, rotator, rotatorDevice)
 	}
 
 	return result.EncryptedRoomKey, result.KeyVersion, rotator, rotatorDevice, nil

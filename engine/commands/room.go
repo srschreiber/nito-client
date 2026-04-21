@@ -48,11 +48,13 @@ func roomCreateCmd(args []Argument) (string, error) {
 		RotatedBy:      username,
 		Timestamp:      time.Now().Unix(),
 	}
-	// Attach this session's device id so the manifest identifies which of
-	// the creator's devices signed it. Empty = root device, which we
-	// serialise as nil (omitempty) and the signable form handles as "".
-	if dev := connection.GetSessionDeviceID(); dev != "" {
-		manifest.DeviceID = &dev
+	// The manifest carries the signing device's id (sha256 of the signer's
+	// public key). Verifiers re-derive it from whichever pub key they're
+	// about to verify with and reject on mismatch, so the broker can't
+	// swap a pinned device id.
+	manifest.DeviceID = connection.GetSessionDeviceID()
+	if manifest.DeviceID == "" {
+		return "", fmt.Errorf("room-create: no session device id")
 	}
 	manifestSig, err := keys.SignRoomKeyManifest(&manifest, username)
 	if err != nil {

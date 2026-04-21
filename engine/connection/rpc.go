@@ -38,8 +38,10 @@ func SetVoiceMessageHandler(h func(rpcName string, payload []byte)) {
 }
 
 // Connect establishes a persistent WebSocket connection to the broker.
-// jwtToken must be obtained first via Login.
-func Connect(ctx context.Context, brokerURL, userID, deviceID, jwtToken string) error {
+// jwtToken must be obtained first via Login. The session device id is
+// derived locally from the user's on-disk public key — never trusted from
+// the broker — so a compromised broker can't swap it to one we've pinned.
+func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -51,8 +53,16 @@ func Connect(ctx context.Context, brokerURL, userID, deviceID, jwtToken string) 
 
 	brokerURL = normalizeURL(brokerURL)
 	keys.SetActiveBroker(brokerURL)
+	localPubPEM, err := keys.LoadPublicKeyPEM(userID)
+	if err != nil {
+		return fmt.Errorf("load local public key: %w", err)
+	}
+	deviceID, err := keys.DeviceIDFromPublicKeyPEM(localPubPEM)
+	if err != nil {
+		return fmt.Errorf("derive device id: %w", err)
+	}
 	credMu.Lock()
-	storedBroker, storedUserID, storedDeviceID, storedJWT = brokerURL, userID, deviceID, jwtToken
+	storedBroker, storedUserID, storedJWT = brokerURL, userID, jwtToken
 	credMu.Unlock()
 	sig, err := keys.Sign(userID+":/ws", userID)
 	if err != nil {
@@ -109,12 +119,12 @@ func Connect(ctx context.Context, brokerURL, userID, deviceID, jwtToken string) 
 // dial fails (e.g. JWT expired, broker unreachable).
 func Reconnect(ctx context.Context) error {
 	credMu.Lock()
-	url, uid, dev, jwt := storedBroker, storedUserID, storedDeviceID, storedJWT
+	url, uid, jwt := storedBroker, storedUserID, storedJWT
 	credMu.Unlock()
 	if url == "" || uid == "" || jwt == "" {
 		return errors.New("no prior connection credentials")
 	}
-	return Connect(ctx, url, uid, dev, jwt)
+	return Connect(ctx, url, uid, jwt)
 }
 
 func Disconnect() {
