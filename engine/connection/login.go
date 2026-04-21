@@ -108,6 +108,54 @@ func Login(ctx context.Context, brokerURL, username, password string) (token str
 	return result.Token, nil
 }
 
+// fetchUserPublicKey calls GET /users/public-key?username=X without touching
+// session state. Suitable for Connect-time self-checks where the session
+// isn't set up yet. Callers must not use this for peer trust decisions —
+// it returns the raw broker response with no TOFU pinning.
+func fetchUserPublicKey(brokerURL, username string) (string, error) {
+	resp, err := http.Get("http://" + brokerURL + "/api/v0/users/public-key?username=" + username)
+	if err != nil {
+		return "", fmt.Errorf("get public key: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("get public key: broker returned %s", resp.Status)
+	}
+	var result apitypes.GetUserPublicKeyResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("get public key: decode: %w", err)
+	}
+	return result.PublicKey, nil
+}
+
+// AssertBrokerServesOurPublicKey fetches the pubkey the broker holds for
+// username and rejects if it doesn't match the local PEM. Run at Connect
+// time: a compromised broker serving a forged identity under our username
+// is caught before any room key is touched. Compares by derived device id
+// so PEM whitespace variations don't produce false positives.
+func AssertBrokerServesOurPublicKey(brokerURL, username string) error {
+	localPEM, err := keys.LoadPublicKeyPEM(username)
+	if err != nil {
+		return fmt.Errorf("self-check: load local public key: %w", err)
+	}
+	localID, err := keys.DeviceIDFromPublicKeyPEM(localPEM)
+	if err != nil {
+		return fmt.Errorf("self-check: derive local device id: %w", err)
+	}
+	brokerPEM, err := fetchUserPublicKey(brokerURL, username)
+	if err != nil {
+		return fmt.Errorf("self-check: fetch broker copy: %w", err)
+	}
+	brokerID, err := keys.DeviceIDFromPublicKeyPEM(brokerPEM)
+	if err != nil {
+		return fmt.Errorf("self-check: derive broker device id: %w", err)
+	}
+	if brokerID != localID {
+		return fmt.Errorf("self-check: broker returned a different public key for %s (local=%s broker=%s) — possible broker compromise", username, localID, brokerID)
+	}
+	return nil
+}
+
 // GetOrStoreUserPublicKey returns the PEM-encoded public key for a username.
 //
 // The signed-in user's own key is always served from their local keystore

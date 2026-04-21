@@ -61,6 +61,13 @@ func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	if err != nil {
 		return fmt.Errorf("derive device id: %w", err)
 	}
+	// Self-check: before we trust anything else the broker says, verify it
+	// is serving our own public key under our own username. Catches the
+	// "broker invents a forged root device for you" attack at session
+	// start, long before any room key is fetched or signature verified.
+	if err := AssertBrokerServesOurPublicKey(brokerURL, userID); err != nil {
+		return err
+	}
 	credMu.Lock()
 	storedBroker, storedUserID, storedJWT = brokerURL, userID, jwtToken
 	credMu.Unlock()
