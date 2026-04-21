@@ -75,7 +75,7 @@ func roomCreateCmd(args []Argument) (string, error) {
 		return "", fmt.Errorf("room-create: sign room: %w", err)
 	}
 
-	id, roomName, err := connection.CreateRoom(name, encryptedKey, manifest, manifestSig, roomSig, deviceID)
+	id, roomName, err := connection.CreateRoom(name, encryptedKey, manifest, manifestSig, roomSig)
 	if err != nil {
 		return "", err
 	}
@@ -199,7 +199,7 @@ func InviteUserWithKey(username, keyPEM string) (string, error) {
 		return "", fmt.Errorf("room-invite: sign membership: %w", err)
 	}
 
-	if err := connection.InviteUser(roomID, username, encryptedForInvitee, membershipSig, deviceID); err != nil {
+	if err := connection.InviteUser(roomID, username, encryptedForInvitee, membershipSig); err != nil {
 		return "", err
 	}
 

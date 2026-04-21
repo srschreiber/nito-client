@@ -38,11 +38,11 @@ type CreateRoomRequest struct {
 	VersionManifest          RoomKeyManifest `json:"versionManifest" validate:"required"`
 	VersionManifestSignature string          `json:"versionManifestSignature" validate:"required"`
 	// RoomSignature is the creator's attestation over the canonical room
-	// bytes "device_id;name;owner" (alphabetical, ';'-joined). Stored
-	// on rooms.signature for future ownership verification. Broker may
-	// accept it without verifying until the verification pass ships.
-	RoomSignature      string `json:"roomSignature,omitempty"`
-	RoomSignedByDevice string `json:"roomSignedByDeviceId,omitempty"`
+	// bytes "device_id;name;owner" (alphabetical, ';'-joined). The
+	// device_id in the canonical form is derivable by the broker from
+	// the authed session's pubkey, so it's not transmitted here —
+	// duplicating it would just give attackers a field to lie about.
+	RoomSignature string `json:"roomSignature" validate:"required"`
 }
 
 type CreateRoomResponse struct {
@@ -81,10 +81,9 @@ type InviteUserRequest struct {
 	EncryptedRoomKey string `json:"encryptedRoomKey" validate:"required"`
 	// MembershipSignature is the inviter's attestation over
 	// "device_id;invited_username;room_id" (alphabetical, ';'-joined).
-	// Stored on room_members.signature. Broker may accept without
-	// verifying until the verification pass ships.
-	MembershipSignature      string `json:"membershipSignature,omitempty"`
-	MembershipSignedByDevice string `json:"membershipSignedByDeviceId,omitempty"`
+	// The device_id in the canonical form is derivable by the broker
+	// from the authed session's pubkey, so it's not transmitted here.
+	MembershipSignature string `json:"membershipSignature" validate:"required"`
 }
 
 type InviteUserResponse struct {
