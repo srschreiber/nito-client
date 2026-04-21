@@ -81,12 +81,27 @@ func Login(ctx context.Context, brokerURL, username, password string) (token str
 		return "", fmt.Errorf("login sign: %w", err)
 	}
 
+	// Identify which device (key) is logging in so the broker can pick
+	// the right pubkey to verify the signature against. Single-key-per-
+	// user today makes this advisory; multi-device makes it load-bearing.
+	// The broker must still verify the signature actually checks out
+	// against the named key — device_id alone is never authoritative.
+	pubPEM, err := keys.LoadPublicKeyPEM(username)
+	if err != nil {
+		return "", fmt.Errorf("login: load public key: %w", err)
+	}
+	deviceID, err := keys.DeviceIDFromPublicKeyPEM(pubPEM)
+	if err != nil {
+		return "", fmt.Errorf("login: derive device id: %w", err)
+	}
+
 	// Exchange credentials + signature for a JWT.
 	loginBody, _ := json.Marshal(apitypes.LoginRequest{
 		Username:  username,
 		Password:  password,
 		Challenge: challengeResp.Challenge,
 		Signature: sig,
+		DeviceID:  deviceID,
 	})
 	loginReq, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+brokerURL+"/api/v0/login", bytes.NewReader(loginBody))
 	if err != nil {

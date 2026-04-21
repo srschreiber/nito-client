@@ -16,7 +16,10 @@ type RegisterResponse struct {
 	ID                string `json:"id"`
 	Username          string `json:"username"`
 	AlreadyRegistered bool   `json:"alreadyRegistered,omitempty"`
-	DeviceID          string `json:"deviceId"`
+	// DeviceID echoes the broker's derivation of the registered pubkey
+	// (sha256(DER(pub_key)) hex). Advisory — client ignores it and
+	// re-derives locally to avoid trusting broker-provided ids.
+	DeviceID string `json:"deviceId"`
 }
 
 // Ping
