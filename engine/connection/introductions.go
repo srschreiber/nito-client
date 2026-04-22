@@ -66,7 +66,7 @@ func PublishIntroduction(intro apitypes.SignedIntroduction) error {
 		return fmt.Errorf("publish introduction: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("publish introduction: broker returned %s", resp.Status)
 	}
 	return nil
