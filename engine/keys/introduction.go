@@ -10,14 +10,13 @@ package keys
 // upgrade their trust in X from broker-TOFU to "introduced" without
 // running the full handshake themselves.
 //
-// Canonical signable form:
-//
-//	<Username>:<DeviceID>;INTRODUCED_BY:<VerifiedByUsername>:<VerifiedByDeviceID>
-//
-// DeviceID is re-derived from PublicKey at sign *and* verify time —
-// deriving rather than reading a struct field means an attacker can't
-// swap the PublicKey bytes without breaking the signature. Both device
-// ids are sha256(DER(pub_key)) hex, same derivation used everywhere.
+// The canonical signable form uses the same map-based attestation
+// machinery as rooms.signature / room_members.signature: keys sorted
+// alphabetically, values joined by ';'. The target's pubkey enters the
+// signable form as its derived device_id (sha256(DER(pub_key)) hex)
+// rather than the raw PEM — deriving rather than hashing the PEM string
+// means PEM whitespace variants produce identical bytes, and an
+// attacker can't swap the pubkey bytes without breaking the signature.
 
 import (
 	"fmt"
@@ -25,20 +24,23 @@ import (
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 )
 
-// introductionSignable builds the canonical bytes described above for
-// intro. Returns an error if the target PublicKey is unparseable.
-func introductionSignable(intro *apitypes.SignedIntroduction) (string, error) {
+// introductionAttestation builds the key/value pairs that form the
+// canonical bytes signed/verified for intro. "device_id" is the target's
+// derivation; "verified_by_device_id" is the signer's.
+func introductionAttestation(intro *apitypes.SignedIntroduction) (map[string]string, error) {
 	if intro.PublicKey == "" {
-		return "", fmt.Errorf("introduction: empty public key")
+		return nil, fmt.Errorf("introduction: empty public key")
 	}
 	targetDevice, err := DeviceIDFromPublicKeyPEM(intro.PublicKey)
 	if err != nil {
-		return "", fmt.Errorf("introduction: derive target device id: %w", err)
+		return nil, fmt.Errorf("introduction: derive target device id: %w", err)
 	}
-	return fmt.Sprintf("%s:%s;INTRODUCED_BY:%s:%s",
-		intro.Username, targetDevice,
-		intro.VerifiedByUsername, intro.VerifiedByDeviceID,
-	), nil
+	return map[string]string{
+		"device_id":             targetDevice,
+		"username":              intro.Username,
+		"verified_by_device_id": intro.VerifiedByDeviceID,
+		"verified_by_username":  intro.VerifiedByUsername,
+	}, nil
 }
 
 // SignIntroduction signs the canonical form of intro with signerUsername's
@@ -61,11 +63,11 @@ func SignIntroduction(intro *apitypes.SignedIntroduction, signerUsername string)
 	if intro.VerifiedByDeviceID != signerDevice {
 		return "", fmt.Errorf("introduction: VerifiedByDeviceID (%q) does not match signer derivation (%q)", intro.VerifiedByDeviceID, signerDevice)
 	}
-	msg, err := introductionSignable(intro)
+	pairs, err := introductionAttestation(intro)
 	if err != nil {
 		return "", err
 	}
-	return Sign(msg, signerUsername)
+	return SignAttestation(pairs, signerUsername)
 }
 
 // VerifyIntroduction verifies intro.VerifiedSignature against the supplied
@@ -85,9 +87,37 @@ func VerifyIntroduction(intro *apitypes.SignedIntroduction, verifierPubPEM strin
 	if intro.VerifiedByDeviceID != derivedVerifier {
 		return fmt.Errorf("verify introduction: device id mismatch (claimed=%s derived=%s)", intro.VerifiedByDeviceID, derivedVerifier)
 	}
-	msg, err := introductionSignable(intro)
+	pairs, err := introductionAttestation(intro)
 	if err != nil {
 		return err
 	}
-	return VerifyWithPublicKey(msg, intro.VerifiedSignature, verifierPubPEM)
+	return VerifyAttestation(pairs, intro.VerifiedSignature, verifierPubPEM)
+}
+
+// VerifyRoomAttestation verifies a rooms.signature over the canonical
+// pairs {device_id, name, owner}. signerPubPEM must be the resolved
+// public key for `owner` (obtained from ResolvePeerPublicKey; caller
+// decides whether verified-only or introduced-also is acceptable).
+//
+// Enforces that signerDeviceID matches the derivation of signerPubPEM —
+// same binding check as manifest / introduction verification — so the
+// broker can't hand us a valid signature paired with a device_id it
+// didn't actually come from.
+func VerifyRoomAttestation(roomName, owner, signerDeviceID, signature, signerPubPEM string) error {
+	if signature == "" {
+		return fmt.Errorf("verify room attestation: empty signature")
+	}
+	derivedSigner, err := DeviceIDFromPublicKeyPEM(signerPubPEM)
+	if err != nil {
+		return fmt.Errorf("verify room attestation: derive signer device id: %w", err)
+	}
+	if signerDeviceID != derivedSigner {
+		return fmt.Errorf("verify room attestation: device id mismatch (claimed=%s derived=%s)", signerDeviceID, derivedSigner)
+	}
+	pairs := map[string]string{
+		"device_id": signerDeviceID,
+		"name":      roomName,
+		"owner":     owner,
+	}
+	return VerifyAttestation(pairs, signature, signerPubPEM)
 }

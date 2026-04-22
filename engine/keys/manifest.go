@@ -78,12 +78,12 @@ func VerifyRoomKeyManifest(m *apitypes.RoomKeyManifest, sigB64, publicKeyPEM str
 	return VerifyWithPublicKey(manifestSignable(m), sigB64, publicKeyPEM)
 }
 
-// SignAttestation signs a canonical "field1;field2;...;fieldN" string where
-// the provided pairs have been sorted alphabetically by key and joined by ';'.
-// Shared by row-level attestations (rooms.signature, room_members.signature,
-// user_room_roles.signature) that need deterministic bytes independent of
-// JSON key ordering. Values must not themselves contain ';'.
-func SignAttestation(pairs map[string]string, username string) (string, error) {
+// attestationSignable builds the canonical "v1;v2;...;vN" bytes for a
+// key/value attestation: keys sorted alphabetically, values joined by ';'.
+// Shared between SignAttestation and VerifyAttestation so both sides
+// produce identical bytes without JSON-encoding ambiguity. Values must
+// not themselves contain ';'.
+func attestationSignable(pairs map[string]string) string {
 	keysSorted := make([]string, 0, len(pairs))
 	for k := range pairs {
 		keysSorted = append(keysSorted, k)
@@ -93,7 +93,23 @@ func SignAttestation(pairs map[string]string, username string) (string, error) {
 	for i, k := range keysSorted {
 		parts[i] = pairs[k]
 	}
-	return Sign(strings.Join(parts, ";"), username)
+	return strings.Join(parts, ";")
+}
+
+// SignAttestation signs the canonical form of pairs with username's private
+// key. Shared by row-level attestations (rooms.signature,
+// room_members.signature, signed introductions) that need deterministic
+// bytes independent of JSON key ordering.
+func SignAttestation(pairs map[string]string, username string) (string, error) {
+	return Sign(attestationSignable(pairs), username)
+}
+
+// VerifyAttestation verifies sigB64 over the canonical form of pairs using
+// publicKeyPEM. Mirror of SignAttestation for local-verify flows
+// (introductions, future trust-chain checks) that can't rely on the
+// broker doing the work.
+func VerifyAttestation(pairs map[string]string, sigB64, publicKeyPEM string) error {
+	return VerifyWithPublicKey(attestationSignable(pairs), sigB64, publicKeyPEM)
 }
 
 // VerifyWithPublicKey verifies sigB64 (base64 RSA-PSS-SHA256) over message

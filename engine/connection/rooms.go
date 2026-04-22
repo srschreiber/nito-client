@@ -76,14 +76,31 @@ func ListRooms() ([]apitypes.RoomEntry, error) {
 	return result.Rooms, nil
 }
 
+// roomKeyResult captures everything getMyRoomKey extracts from the
+// broker response — the encrypted key itself plus all the metadata
+// needed to verify room-level attestations (manifest signature, room
+// creation signature). Grouped into a struct so callers don't have to
+// unpack 8 naked return values.
+type roomKeyResult struct {
+	EncryptedKey     string
+	KeyVersion       int
+	Rotator          string
+	RotatorDevice    string
+	Name             string
+	RoomSignature    string
+	SignedByUsername string
+	SignedByDeviceID string
+}
+
 // getMyRoomKey fetches the caller's encrypted room key + version for the
-// given room and verifies the accompanying signed manifest. Returns the
-// manifest's `rotated_by` username alongside so the caller can decide
-// whether the rotator's identity is sufficiently trusted.
-func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator, rotatorDevice string, err error) {
+// given room and verifies the accompanying signed manifest. The returned
+// result also carries the room's creation attestation (name + signature
+// fields) so the caller can verify it in the same flow without a second
+// round-trip.
+func getMyRoomKey(roomID string) (*roomKeyResult, error) {
 	s := CurrentSession()
 	if s == nil {
-		return "", 0, "", "", errors.New("not connected")
+		return nil, errors.New("not connected")
 	}
 	resp, err := signedGet(
 		s.v0("/rooms/key?room_id="+roomID),
@@ -91,16 +108,17 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator, 
 		"/api/v0/rooms/key",
 	)
 	if err != nil {
-		return "", 0, "", "", fmt.Errorf("get room key: %w", err)
+		return nil, fmt.Errorf("get room key: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", 0, "", "", fmt.Errorf("get room key: broker returned %s", resp.Status)
+		return nil, fmt.Errorf("get room key: broker returned %s", resp.Status)
 	}
 	var result apitypes.GetRoomKeyResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", 0, "", "", fmt.Errorf("get room key: decode: %w", err)
+		return nil, fmt.Errorf("get room key: decode: %w", err)
 	}
+	var rotator, rotatorDevice string
 
 	// Verify the manifest signature against the rotator's public key. Device
 	// ids are sha256(DER(pub_key)) hex, so the manifest's claimed device_id
@@ -112,11 +130,11 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator, 
 	if result.VersionManifestSignature != "" {
 		rotator = result.VersionManifest.RotatedBy
 		if rotator == "" {
-			return "", 0, "", "", fmt.Errorf("get room key: manifest has no rotator")
+			return nil, fmt.Errorf("get room key: manifest has no rotator")
 		}
 		rotatorDevice = result.VersionManifest.DeviceID
 		if rotatorDevice == "" {
-			return "", 0, "", "", fmt.Errorf("get room key: manifest has no device id")
+			return nil, fmt.Errorf("get room key: manifest has no device id")
 		}
 		var pubPEM string
 		switch {
@@ -126,7 +144,7 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator, 
 			// the broker's view, which could be substituted.
 			pubPEM, err = keys.LoadPublicKeyPEM(rotator)
 			if err != nil {
-				return "", 0, "", "", fmt.Errorf("get room key: load self public key: %w", err)
+				return nil, fmt.Errorf("get room key: load self public key: %w", err)
 			}
 		default:
 			if rec, ok := keys.LoadPeerPublicKeyByDevice(rotator, rotatorDevice); ok {
@@ -137,7 +155,7 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator, 
 				// key that doesn't hash to the claimed device_id.
 				pubPEM, err = GetOrStoreUserPublicKey(rotator)
 				if err != nil {
-					return "", 0, "", "", fmt.Errorf("get room key: fetch rotator public key: %w", err)
+					return nil, fmt.Errorf("get room key: fetch rotator public key: %w", err)
 				}
 			}
 		}
@@ -145,18 +163,27 @@ func getMyRoomKey(roomID string) (encryptedKey string, keyVersion int, rotator, 
 		// key whose id the manifest claims. Stops broker swaps cold.
 		derivedDevice, err := keys.DeviceIDFromPublicKeyPEM(pubPEM)
 		if err != nil {
-			return "", 0, "", "", fmt.Errorf("get room key: derive device id: %w", err)
+			return nil, fmt.Errorf("get room key: derive device id: %w", err)
 		}
 		if derivedDevice != rotatorDevice {
-			return "", 0, "", "", fmt.Errorf("get room key: device id mismatch (rotator=%s claimed=%s derived=%s)", rotator, rotatorDevice, derivedDevice)
+			return nil, fmt.Errorf("get room key: device id mismatch (rotator=%s claimed=%s derived=%s)", rotator, rotatorDevice, derivedDevice)
 		}
 		if err := keys.VerifyRoomKeyManifest(&result.VersionManifest, result.VersionManifestSignature, pubPEM); err != nil {
-			return "", 0, "", "", fmt.Errorf("get room key: manifest signature invalid (rotator=%s device=%s): %w", rotator, rotatorDevice, err)
+			return nil, fmt.Errorf("get room key: manifest signature invalid (rotator=%s device=%s): %w", rotator, rotatorDevice, err)
 		}
 		clientlog.Info("manifest signature valid for room %s key version %d (rotated_by=%s device_id=%s)", roomID, result.VersionManifest.CurVersionNum, rotator, rotatorDevice)
 	}
 
-	return result.EncryptedRoomKey, result.KeyVersion, rotator, rotatorDevice, nil
+	return &roomKeyResult{
+		EncryptedKey:     result.EncryptedRoomKey,
+		KeyVersion:       result.KeyVersion,
+		Rotator:          rotator,
+		RotatorDevice:    rotatorDevice,
+		Name:             result.Name,
+		RoomSignature:    result.RoomSignature,
+		SignedByUsername: result.SignedByUsername,
+		SignedByDeviceID: result.SignedByDeviceID,
+	}, nil
 }
 
 // getRoomInfo fetches the caller's room info (e.g. sent message count) for the given room.

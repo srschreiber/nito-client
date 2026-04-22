@@ -160,3 +160,99 @@ func setupTwoPartiesInBroker(t *testing.T, dir string) (alicePub, bobPub string)
 	}
 	return alicePub, bobPub
 }
+
+// TestVerifyRoomAttestationRoundTrip confirms a room-creation signature
+// produced via SignAttestation verifies cleanly through the helper using
+// the same canonical pairs.
+func TestVerifyRoomAttestationRoundTrip(t *testing.T) {
+	alicePub, _ := setupTwoParties(t)
+	aliceDevice, err := keys.DeviceIDFromPublicKeyPEM(alicePub)
+	if err != nil {
+		t.Fatalf("derive: %v", err)
+	}
+	sig, err := keys.SignAttestation(map[string]string{
+		"device_id": aliceDevice,
+		"name":      "general",
+		"owner":     "alice",
+	}, "alice")
+	if err != nil {
+		t.Fatalf("SignAttestation: %v", err)
+	}
+	if err := keys.VerifyRoomAttestation("general", "alice", aliceDevice, sig, alicePub); err != nil {
+		t.Fatalf("honest room attestation failed to verify: %v", err)
+	}
+}
+
+// TestVerifyRoomAttestationRejectsTamperedName confirms swapping the
+// room name after signing invalidates the signature. This is the
+// property that stops a broker relabeling rooms.
+func TestVerifyRoomAttestationRejectsTamperedName(t *testing.T) {
+	alicePub, _ := setupTwoParties(t)
+	aliceDevice, err := keys.DeviceIDFromPublicKeyPEM(alicePub)
+	if err != nil {
+		t.Fatalf("derive: %v", err)
+	}
+	sig, err := keys.SignAttestation(map[string]string{
+		"device_id": aliceDevice,
+		"name":      "general",
+		"owner":     "alice",
+	}, "alice")
+	if err != nil {
+		t.Fatalf("SignAttestation: %v", err)
+	}
+	if err := keys.VerifyRoomAttestation("private-channel", "alice", aliceDevice, sig, alicePub); err == nil {
+		t.Fatal("verifier accepted a room attestation with tampered name")
+	}
+}
+
+// TestVerifyRoomAttestationRejectsWrongSigner confirms that a signature
+// made by alice does not verify under bob's pubkey.
+func TestVerifyRoomAttestationRejectsWrongSigner(t *testing.T) {
+	alicePub, bobPub := setupTwoParties(t)
+	aliceDevice, err := keys.DeviceIDFromPublicKeyPEM(alicePub)
+	if err != nil {
+		t.Fatalf("derive alice: %v", err)
+	}
+	bobDevice, err := keys.DeviceIDFromPublicKeyPEM(bobPub)
+	if err != nil {
+		t.Fatalf("derive bob: %v", err)
+	}
+	sig, err := keys.SignAttestation(map[string]string{
+		"device_id": aliceDevice,
+		"name":      "general",
+		"owner":     "alice",
+	}, "alice")
+	if err != nil {
+		t.Fatalf("SignAttestation: %v", err)
+	}
+	// Verifier is given bob's pubkey but the signer is alice. The
+	// device id mismatch check trips before the RSA verify.
+	if err := keys.VerifyRoomAttestation("general", "alice", bobDevice, sig, bobPub); err == nil {
+		t.Fatal("verifier accepted a room attestation against the wrong signer")
+	}
+}
+
+// TestVerifyRoomAttestationDeviceIDMismatch confirms a broker-supplied
+// device_id that doesn't match the resolved pubkey's derivation is
+// rejected before the signature is checked.
+func TestVerifyRoomAttestationDeviceIDMismatch(t *testing.T) {
+	alicePub, _ := setupTwoParties(t)
+	aliceDevice, err := keys.DeviceIDFromPublicKeyPEM(alicePub)
+	if err != nil {
+		t.Fatalf("derive: %v", err)
+	}
+	sig, err := keys.SignAttestation(map[string]string{
+		"device_id": aliceDevice,
+		"name":      "general",
+		"owner":     "alice",
+	}, "alice")
+	if err != nil {
+		t.Fatalf("SignAttestation: %v", err)
+	}
+	// Claim the wrong device id while passing alice's actual pubkey.
+	bogusDevice := "b" + aliceDevice[1:] // same length, different value
+	err = keys.VerifyRoomAttestation("general", "alice", bogusDevice, sig, alicePub)
+	if err == nil {
+		t.Fatal("verifier accepted a mismatched device_id")
+	}
+}

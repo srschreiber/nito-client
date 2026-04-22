@@ -249,7 +249,7 @@ func setSessionRoomWithTrust(roomID string, allowUnverified bool) error {
 
 	// Fetch room key and room info outside the lock to avoid deadlock
 	// (both call CurrentSession which also locks mu).
-	rk, kv, rotator, rotatorDevice, err := getMyRoomKey(roomID)
+	rk, err := getMyRoomKey(roomID)
 	if err != nil {
 		return fmt.Errorf("room-select: retrieve room key failed: %w", err)
 	}
@@ -269,19 +269,40 @@ func setSessionRoomWithTrust(roomID string, allowUnverified bool) error {
 		clientlog.Info("list introductions for room %s: %v (continuing)", roomID, listErr)
 	}
 
+	// Verify the room's *creation* attestation (rooms.signature). If the
+	// broker claims the room was signed by user X but the signature
+	// doesn't verify against X's resolved pubkey, refuse to join — the
+	// broker is lying about provenance. Self is skipped (we'd be
+	// verifying our own signature against our own key, pointless), and
+	// the no-signature case stays a loud-but-non-fatal warning so
+	// pre-signature rooms don't suddenly become inaccessible.
+	if rk.RoomSignature != "" && rk.SignedByUsername != "" && rk.SignedByUsername != me {
+		resolved := keys.ResolvePeerPublicKey(rk.SignedByUsername)
+		if !resolved.Found ||
+			(resolved.Method != keys.TrustMethodVerified && resolved.Method != keys.TrustMethodIntroduced) {
+			return fmt.Errorf("room-select: creator %q is not verified or introduced — cannot verify room creation signature", rk.SignedByUsername)
+		}
+		if err := keys.VerifyRoomAttestation(rk.Name, rk.SignedByUsername, rk.SignedByDeviceID, rk.RoomSignature, resolved.PublicKey); err != nil {
+			return fmt.Errorf("room-select: room creation signature invalid (claimed signer=%s): %w", rk.SignedByUsername, err)
+		}
+		clientlog.Info("room creation signature valid for %s (signed by %s, method=%s)", roomID, rk.SignedByUsername, resolved.Method)
+	} else if rk.RoomSignature == "" {
+		clientlog.Warn("room %s has no creation signature — provenance unverifiable", roomID)
+	}
+
 	// Trust check: the rotator's manifest signature already verified, but we
 	// want explicit prior trust in the signer before committing to use this
 	// key. Verified (mutual-handshake) and Introduced (vouched for by
 	// someone we verified) both pass; broker-TOFU alone does not and
 	// surfaces UnverifiedRotatorError for the UI to handle.
-	if !allowUnverified && rotator != "" && rotator != me {
-		resolved := keys.ResolvePeerPublicKey(rotator)
+	if !allowUnverified && rk.Rotator != "" && rk.Rotator != me {
+		resolved := keys.ResolvePeerPublicKey(rk.Rotator)
 		trusted := resolved.Found &&
 			(resolved.Method == keys.TrustMethodVerified ||
 				resolved.Method == keys.TrustMethodIntroduced) &&
-			resolved.DeviceID == rotatorDevice
+			resolved.DeviceID == rk.RotatorDevice
 		if !trusted {
-			return &UnverifiedRotatorError{RoomID: roomID, Rotator: rotator, DeviceID: rotatorDevice}
+			return &UnverifiedRotatorError{RoomID: roomID, Rotator: rk.Rotator, DeviceID: rk.RotatorDevice}
 		}
 	}
 
@@ -296,10 +317,10 @@ func setSessionRoomWithTrust(roomID string, allowUnverified bool) error {
 		return fmt.Errorf("not connected")
 	}
 	session.RoomID = &roomID
-	session.EncryptedRoomKey = &rk
-	session.RoomKeyVersion = &kv
-	session.RoomKeyRotator = rotator
-	session.RoomKeyRotatorDev = rotatorDevice
+	session.EncryptedRoomKey = &rk.EncryptedKey
+	session.RoomKeyVersion = &rk.KeyVersion
+	session.RoomKeyRotator = rk.Rotator
+	session.RoomKeyRotatorDev = rk.RotatorDevice
 	session.RoomInfo = info
 	clientlog.Info("joined room %s", roomID)
 	return nil

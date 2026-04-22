@@ -137,6 +137,16 @@ type GetRoomKeyResponse struct {
 	KeyVersion               int             `json:"keyVersion"`
 	VersionManifest          RoomKeyManifest `json:"versionManifest"`
 	VersionManifestSignature string          `json:"versionManifestSignature"`
+
+	// Fields needed to verify the room's creation attestation
+	// (rooms.signature over canonical "device_id;name;owner"). The
+	// broker has these in its rooms row and returns them here so the
+	// client can verify in the same round-trip that fetches the key —
+	// no second call to ListRooms to retrieve the same info.
+	Name             string `json:"name"`
+	RoomSignature    string `json:"roomSignature"`
+	SignedByUsername string `json:"signedByUsername"`
+	SignedByDeviceID string `json:"signedByDeviceId"`
 }
 
 type GetUserPublicKeyResponse struct {
