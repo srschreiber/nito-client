@@ -156,8 +156,13 @@ func splitByEmoji(s string) []emojiRun {
 }
 
 // verifyStatusIcon returns a hover-tooltipped glyph reflecting a peer's trust
-// state. ✓ green = cryptographically verified via the mutual-handshake flow;
-// ⚠ amber = TOFU-pinned or unknown. Used in the member list and DM header.
+// state:
+//
+//	✓ green  — cryptographically verified via mutual handshake
+//	~ cyan   — introduced by one or more verified peers
+//	⚠ amber  — TOFU-pinned or no key on record
+//
+// Used in the member list and DM header.
 func verifyStatusIcon(username string) fyne.CanvasObject {
 	rec, ok := keys.LoadPeerPublicKey(username)
 	var glyph string
@@ -168,14 +173,19 @@ func verifyStatusIcon(username string) fyne.CanvasObject {
 		glyph = "⚠ "
 		col = colAmber
 		tooltip = "No key on record for " + username + " — will TOFU-pin on first use."
-	case rec.Verified:
+	case rec.Method == keys.TrustMethodVerified:
 		glyph = "✓ "
 		col = colGreen
-		tooltip = username + "'s key is cryptographically verified."
+		tooltip = username + "'s key is cryptographically verified via mutual handshake."
+	case rec.Method == keys.TrustMethodIntroduced:
+		glyph = "~ "
+		col = colCyan
+		who := strings.Join(rec.Introducers, ", ")
+		tooltip = username + "'s key was introduced by: " + who + ". Not directly verified — right-click → Verify to confirm."
 	default:
 		glyph = "⚠ "
 		col = colAmber
-		tooltip = username + "'s key is pinned (TOFU) but NOT verified. When they're online, right-click their name → Verify to confirm their identity."
+		tooltip = username + "'s key is TOFU-pinned but NOT verified. When they're online, right-click their name → Verify to confirm their identity."
 	}
 	// Icon bumped to 16pt (~33% bigger than surrounding text) with a subtle
 	// theme-tinted backdrop so the hover zone is visually discoverable.
@@ -188,12 +198,12 @@ func verifyStatusIcon(username string) fyne.CanvasObject {
 	return NewIconWithTooltip(container.NewStack(bg, container.NewCenter(icon)), tooltip)
 }
 
-// peerTrustState returns (verified, known) for a given (user, device) pin.
-// verified=true means the user cryptographically ran the mutual-handshake.
-// known=false means no record on disk (will TOFU on first fetch).
-func peerTrustState(username, deviceID string) (verified, known bool) {
+// peerTrustState returns the effective TrustMethod and whether a record exists
+// for the given (user, device) pin. TrustMethodTOFU is returned when the
+// record exists but is neither verified nor introduced.
+func peerTrustState(username, deviceID string) (method keys.TrustMethod, found bool) {
 	if username == "" {
-		return false, false
+		return "", false
 	}
 	var rec keys.TrustedKey
 	var ok bool
@@ -202,7 +212,22 @@ func peerTrustState(username, deviceID string) (verified, known bool) {
 	} else {
 		rec, ok = keys.LoadPeerPublicKey(username)
 	}
-	return ok && rec.Verified, ok
+	if !ok {
+		return "", false
+	}
+	return rec.Method, true
+}
+
+// methodRank returns a sortable rank for trust comparison (higher = stronger).
+func methodRank(m keys.TrustMethod) int {
+	switch m {
+	case keys.TrustMethodVerified:
+		return 2
+	case keys.TrustMethodIntroduced:
+		return 1
+	default:
+		return 0
+	}
 }
 
 // roomTrustIcon returns the sidebar trust icon for a room. The icon reflects
@@ -211,14 +236,16 @@ func peerTrustState(username, deviceID string) (verified, known bool) {
 //  1. The creator signature on rooms.signature (immutable, set at creation).
 //  2. The current key-rotation manifest (version_manifest_signature).
 //
-// A room is only shown as "fully trusted" (✓ green) when *both* signals are
-// present and signed by users we've cryptographically verified. Missing
-// signals are called out distinctly because silence is a security smell.
+// Icons:
+//
+//	✓ green  — both signals present and both signers verified
+//	~ cyan   — both present, weakest signer is introduced (no TOFU)
+//	⚠ amber  — both present, at least one signer is TOFU-only
+//	! red    — one or both signals missing (legacy room)
 func roomTrustIcon(r apitypes.RoomEntry) fyne.CanvasObject {
 	me := connection.GetSessionUsername()
 
-	// Fully legacy: no creation signature AND no key manifest rotator. We
-	// can't verify anything about this room's provenance. Loud red alert.
+	// Fully legacy: no creation signature AND no key manifest rotator.
 	if r.SignedByUsername == "" && r.RotatorUsername == "" {
 		return NewIconWithTooltip(
 			txt("!", colAlert, 12, true, true),
@@ -226,60 +253,88 @@ func roomTrustIcon(r apitypes.RoomEntry) fyne.CanvasObject {
 		)
 	}
 
-	// Inspect each signal. "self" counts as trusted on that axis.
-	creatorVerified := r.SignedByUsername == me
-	creatorKnown := r.SignedByUsername != ""
-	if !creatorVerified && creatorKnown {
-		creatorVerified, creatorKnown = peerTrustState(r.SignedByUsername, r.SignedByDeviceID)
-	}
-	rotatorVerified := r.RotatorUsername == me
-	rotatorKnown := r.RotatorUsername != ""
-	if !rotatorVerified && rotatorKnown {
-		rotatorVerified, rotatorKnown = peerTrustState(r.RotatorUsername, r.RotatorDeviceID)
-	}
-
-	// Both signals present and both signers fully verified → green check.
-	if r.SignedByUsername != "" && r.RotatorUsername != "" && creatorVerified && rotatorVerified {
-		tip := "Room creation signed by " + r.SignedByUsername + " (verified) and current key rotated by " + r.RotatorUsername + " (verified)."
-		if r.SignedByUsername == me && r.RotatorUsername == me {
-			tip = "Both the room creation and the current key were signed by you."
+	// Missing signals → partial legacy, can't verify provenance.
+	if r.SignedByUsername == "" || r.RotatorUsername == "" {
+		missing := []string{}
+		if r.SignedByUsername == "" {
+			missing = append(missing, "no room creation signature")
 		}
-		return NewIconWithTooltip(txt("✓", colGreen, 12, true, true), tip)
-	}
-
-	// Degraded state — explain why in the tooltip. Red alert for outright
-	// missing signals (legacy column, broker didn't send one); amber for
-	// TOFU-only (signature is there, identity just not verified).
-	missing := []string{}
-	if r.SignedByUsername == "" {
-		missing = append(missing, "no room creation signature")
-	}
-	if r.RotatorUsername == "" {
-		missing = append(missing, "no signed key manifest")
-	}
-	if len(missing) > 0 {
+		if r.RotatorUsername == "" {
+			missing = append(missing, "no signed key manifest")
+		}
 		return NewIconWithTooltip(
 			txt("!", colAlert, 12, true, true),
 			"Partial trust info: "+strings.Join(missing, "; ")+". Cannot verify this room's provenance.",
 		)
 	}
 
-	// Both signals present; at least one signer is TOFU/unknown.
-	parts := []string{}
-	describe := func(role, who string, verified, known bool) {
-		switch {
-		case !known:
-			parts = append(parts, role+" signer "+who+" has no key on record (will TOFU on join)")
-		case !verified:
-			parts = append(parts, role+" signer "+who+" is TOFU-pinned but NOT verified")
-		}
+	// Resolve trust level for each signal. Self always counts as verified.
+	creatorMethod := keys.TrustMethodVerified
+	creatorFound := true
+	if r.SignedByUsername != me {
+		creatorMethod, creatorFound = peerTrustState(r.SignedByUsername, r.SignedByDeviceID)
 	}
-	describe("room creation", r.SignedByUsername, creatorVerified, creatorKnown)
-	describe("key rotation", r.RotatorUsername, rotatorVerified, rotatorKnown)
-	return NewIconWithTooltip(
-		txt("⚠", colAmber, 12, true, true),
-		strings.Join(parts, "; ")+". Right-click their name in members to verify.",
-	)
+	rotatorMethod := keys.TrustMethodVerified
+	rotatorFound := true
+	if r.RotatorUsername != me {
+		rotatorMethod, rotatorFound = peerTrustState(r.RotatorUsername, r.RotatorDeviceID)
+	}
+
+	// Unknown key → can't verify anything.
+	if !creatorFound || !rotatorFound {
+		parts := []string{}
+		if !creatorFound {
+			parts = append(parts, "creator "+r.SignedByUsername+" has no key on record")
+		}
+		if !rotatorFound {
+			parts = append(parts, "rotator "+r.RotatorUsername+" has no key on record")
+		}
+		return NewIconWithTooltip(
+			txt("⚠", colAmber, 12, true, true),
+			strings.Join(parts, "; ")+". Cannot verify this room's provenance.",
+		)
+	}
+
+	// Both found — icon reflects the weakest signal.
+	weakest := creatorMethod
+	if methodRank(rotatorMethod) < methodRank(weakest) {
+		weakest = rotatorMethod
+	}
+
+	switch weakest {
+	case keys.TrustMethodVerified:
+		tip := "Room creation signed by " + r.SignedByUsername + " (verified) and current key rotated by " + r.RotatorUsername + " (verified)."
+		if r.SignedByUsername == me && r.RotatorUsername == me {
+			tip = "Both the room creation and the current key were signed by you."
+		}
+		return NewIconWithTooltip(txt("✓", colGreen, 12, true, true), tip)
+
+	case keys.TrustMethodIntroduced:
+		parts := []string{}
+		describe := func(role, who string, method keys.TrustMethod) {
+			if method == keys.TrustMethodIntroduced {
+				parts = append(parts, role+" signer "+who+" is introduced (not directly verified)")
+			}
+		}
+		describe("room creation", r.SignedByUsername, creatorMethod)
+		describe("key rotation", r.RotatorUsername, rotatorMethod)
+		tip := strings.Join(parts, "; ") + ". Right-click their name → Verify to confirm."
+		return NewIconWithTooltip(txt("~", colCyan, 12, true, true), tip)
+
+	default:
+		parts := []string{}
+		describe := func(role, who string, method keys.TrustMethod) {
+			if method == keys.TrustMethodTOFU {
+				parts = append(parts, role+" signer "+who+" is TOFU-pinned but NOT verified")
+			}
+		}
+		describe("room creation", r.SignedByUsername, creatorMethod)
+		describe("key rotation", r.RotatorUsername, rotatorMethod)
+		return NewIconWithTooltip(
+			txt("⚠", colAmber, 12, true, true),
+			strings.Join(parts, "; ")+". Right-click their name in members to verify.",
+		)
+	}
 }
 
 // refreshRotatorBanner repopulates the banner under the room header with the
@@ -320,13 +375,15 @@ func (cp *ChatPanel) refreshRotatorBanner() {
 		} else {
 			rec, ok = keys.LoadPeerPublicKey(rotator)
 		}
-		verified := ok && rec.Verified
-		if verified {
+		switch {
+		case ok && rec.Method == keys.TrustMethodVerified:
 			label = txt("🔑 Room key signed by verified user "+rotator+".", colGreen, 11, false, true)
-		} else {
-			// Be explicit: traffic IS encrypted, but with a key whose device
-			// identity hasn't been verified out-of-band. colAlert is the
-			// profile-independent warning color.
+		case ok && rec.Method == keys.TrustMethodIntroduced:
+			who := strings.Join(rec.Introducers, ", ")
+			label = txt("~ Room key signed by introduced user "+rotator+" (vouched for by: "+who+").", colCyan, 11, false, true)
+		default:
+			// TOFU-only or no record: be explicit that traffic is encrypted
+			// but key identity hasn't been verified out-of-band.
 			label = txt("⚠ Traffic is encrypted by a key from an UNTRUSTED device of "+rotator+". Right-click "+rotator+" → Verify to confirm their identity.", colAlert, 11, false, true)
 		}
 	}

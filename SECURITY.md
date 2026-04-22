@@ -44,6 +44,19 @@ Further reading: "challenge-response authentication" on Wikipedia;
 [RFC 8017 §8.1](https://datatracker.ietf.org/doc/html/rfc8017#section-8.1) for
 RSA-PSS.
 
+## Login self-check — broker key consistency
+
+Immediately after every login, the client GETs its own public key from
+`/users/public-key?username=<self>` and compares it against the on-disk PEM. If
+the broker is serving a different key for our own username — indicating an
+account-level substitution attack — the session is torn down before any room or
+messaging activity begins.
+
+This check also runs on reconnect. Because device IDs are derived locally as
+`sha256(DER(pub_key))` and never accepted from the broker, a key substitution
+that slipped past this check would still fail the derivation test on every
+manifest and introduction it tried to fabricate.
+
 ## Per-user identity verification — TOFU by default, upgradable to mutual
 
 **Trust-on-first-use (TOFU) is the default.** The very first time you interact
@@ -56,6 +69,18 @@ readable by whoever controls the substituted key.
 This is the fundamental weakness of TOFU, and it's the same trust model as SSH
 host keys. TOFU is convenient but **only as strong as the broker's honesty at
 the moment you first saw the peer**.
+
+Trust has three levels, ordered weakest to strongest:
+
+| Level | How acquired | What it means |
+|---|---|---|
+| `tofu` | First broker fetch | Broker-asserted; no independent corroboration |
+| `introduced` | Majority of your verified peers vouch for the same key | Broker substitution would require corrupting multiple verified relationships |
+| `verified` | You ran the mutual-verify handshake yourself | Cryptographically bound out-of-band; broker cannot forge |
+
+A peer's trust level controls whether their key rotations are automatically
+accepted when joining a room — `tofu` alone causes an `UnverifiedRotatorError`
+popup; `introduced` and `verified` are both sufficient.
 
 To upgrade a TOFU-pinned peer to cryptographically verified, nito supports a
 **3-message mutual verification handshake**:
@@ -88,6 +113,83 @@ Key properties:
 Further reading: [Signal's safety numbers](https://signal.org/blog/safety-number-updates/),
 SAS (Short Authentication String) comparison protocols,
 ["Cryptographic Doom Principle"](https://moxie.org/2011/12/13/the-cryptographic-doom-principle.html).
+
+## Web-of-trust introductions
+
+After both sides complete the mutual-verify handshake, each side publishes a
+**signed introduction** to the broker:
+
+```
+SignedIntroduction {
+  username             // the peer being vouched for
+  publicKey            // their public key PEM
+  verifiedByUsername   // the signer (me)
+  verifiedByDeviceID   // sha256(DER(my pub key)), hex
+  verifiedSignature    // see below
+}
+```
+
+The signed payload uses the same alphabetical key-value attestation format as
+manifests:
+
+```
+signature = RSA-PSS-SHA256(sk_signer,
+  "<targetDeviceID>;<targetUsername>;<signerDeviceID>;<signerUsername>")
+```
+
+where `targetDeviceID` is derived from the target's `publicKey` field
+(`sha256(DER(pub_key))`), so swapping the PEM breaks the signature.
+
+When a client joins a room it fetches introductions from the broker, filtered
+to members of that room. For each introduction:
+
+1. The client checks that the introducer's device id matches the derivation of
+   the introducer's locally-pinned public key — a broker swapping keys would
+   break this binding.
+2. The signature is verified locally against the pinned public key.
+3. If the introduction comes from a peer whose pin is `verified`, it is applied
+   via `AddIntroduction` — upgrading the target from `tofu` to `introduced` if
+   a majority of your verified contacts agree on the same public key.
+
+**Contested introductions.** If two of your verified contacts vouch for
+*different* public keys for the same username, the resolution is `contested` and
+neither key is automatically elevated. The UI surfaces this as an ambiguous
+trust state that the user must resolve manually.
+
+`AddIntroduction` requires that the introducer already has a verified pin
+locally — an unverified introducer has no trust weight and is rejected as a
+precondition before the signature is even checked.
+
+## Room creation attestation
+
+When a room is created, the creator signs:
+
+```
+signature = RSA-PSS-SHA256(sk_creator,
+  "<creatorDeviceID>;<roomName>;<creatorUsername>")
+```
+
+The broker stores this signature immutably in `rooms.signature`. When any
+client joins the room, it:
+
+1. Resolves the creator's public key.
+   - If no key is known: blocks the join — a broker claiming a room was signed by someone we've never even TOFU-seen is suspicious.
+   - If the creator is `tofu`-only: still verifies the signature against the
+     TOFU-pinned key. A failing check means the signature is wrong even on
+     the broker's own terms — join is blocked. A passing check is a weaker
+     signal (the broker supplied the key, so it could be self-consistent),
+     surfaced as a warning rather than full trust.
+   - If the creator is `verified` or `introduced`: verifies the signature
+     against that independently-sourced key. A mismatch aborts the join.
+2. Derives the expected device id from the resolved public key and checks it
+   matches what the broker reported.
+3. If verification passes, logs it. If the creator is unverifiable, the join
+   proceeds with a warning surfaced in the client log.
+
+This closes a broker-level room impersonation vector: a malicious broker
+cannot create a fake room under an existing user's name and have clients
+silently accept it. The creator's signature is set once at creation and
+verified on every subsequent join.
 
 ## Room key distribution — RSA-OAEP envelope
 
@@ -263,7 +365,12 @@ edge.
 ## Testing
 
 Security-sensitive paths have unit tests under
-[`engine/keys/crypto_test.go`](engine/keys/crypto_test.go) and
+[`engine/keys/crypto_test.go`](engine/keys/crypto_test.go),
+[`engine/keys/introduction_test.go`](engine/keys/introduction_test.go),
+[`engine/keys/manifest_test.go`](engine/keys/manifest_test.go),
+[`engine/keys/peer_resolve_test.go`](engine/keys/peer_resolve_test.go),
+[`engine/keys/device_id_test.go`](engine/keys/device_id_test.go),
+[`engine/connection/self_check_test.go`](engine/connection/self_check_test.go), and
 [`engine/sounds/crypto_test.go`](engine/sounds/crypto_test.go). These are
 gated on every release build via the `test` job in
 [`.github/workflows/release.yml`](.github/workflows/release.yml) — a failing
