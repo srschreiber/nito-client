@@ -254,20 +254,33 @@ func setSessionRoomWithTrust(roomID string, allowUnverified bool) error {
 		return fmt.Errorf("room-select: retrieve room key failed: %w", err)
 	}
 
-	// Trust check: the rotator's manifest signature already verified, but we
-	// want an explicit user-approved TOFU-bypass before we commit to using
-	// this key. Skip the check if the rotator is ourselves, or if the caller
-	// opted into the bypass. For non-root devices we check the specific
-	// (user, device) pinned record; for root we use the primary lookup.
-	if !allowUnverified && rotator != "" && rotator != me {
-		var rec keys.TrustedKey
-		var ok bool
-		if rotatorDevice != "" {
-			rec, ok = keys.LoadPeerPublicKeyByDevice(rotator, rotatorDevice)
-		} else {
-			rec, ok = keys.LoadPeerPublicKey(rotator)
+	// Pull introductions for this room's members from users we've
+	// verified, and merge them into local trust state *before* the
+	// rotator trust check below runs. This is what lets a TOFU-only
+	// rotator pass trust when someone we trust has vouched for them.
+	// Best-effort: a broker that doesn't implement the endpoint or
+	// transient failures shouldn't block room joining.
+	if intros, listErr := ListIntroductions(roomID); listErr == nil {
+		applied := applyIntroductions(intros)
+		if applied > 0 {
+			clientlog.Info("applied %d introductions for room %s", applied, roomID)
 		}
-		if !ok || !rec.Verified {
+	} else {
+		clientlog.Info("list introductions for room %s: %v (continuing)", roomID, listErr)
+	}
+
+	// Trust check: the rotator's manifest signature already verified, but we
+	// want explicit prior trust in the signer before committing to use this
+	// key. Verified (mutual-handshake) and Introduced (vouched for by
+	// someone we verified) both pass; broker-TOFU alone does not and
+	// surfaces UnverifiedRotatorError for the UI to handle.
+	if !allowUnverified && rotator != "" && rotator != me {
+		resolved := keys.ResolvePeerPublicKey(rotator)
+		trusted := resolved.Found &&
+			(resolved.Method == keys.TrustMethodVerified ||
+				resolved.Method == keys.TrustMethodIntroduced) &&
+			resolved.DeviceID == rotatorDevice
+		if !trusted {
 			return &UnverifiedRotatorError{RoomID: roomID, Rotator: rotator, DeviceID: rotatorDevice}
 		}
 	}

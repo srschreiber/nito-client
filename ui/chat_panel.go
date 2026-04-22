@@ -1409,6 +1409,11 @@ func showVerifyPopup(username string, w fyne.Window, onSuccess func(keyPEM strin
 			Method:    keys.TrustMethodVerified,
 		})
 		clientlog.Info("verify: successfully verified and pinned key for %s", username)
+		// Publish our introduction so peers who've verified us can
+		// upgrade their trust in this user from TOFU to Introduced.
+		if err := connection.PublishIntroductionFor(username, resp.PublicKeyPEM); err != nil {
+			clientlog.Warn("verify: publish introduction for %s failed: %v", username, err)
+		}
 		fyne.Do(func() {
 			if pop != nil {
 				pop.Hide()

@@ -223,3 +223,28 @@ type GiphyEmojiRequest struct {
 	// Offset default 0.
 	Offset *int `json:"offset" validate:"omitempty,gte=0"`
 }
+
+// SignedIntroductionRequest
+// An introduction vouching for a verified users identity, specifically their public key
+type SignedIntroductionRequest struct {
+	SignedIntroduction
+}
+
+type SignedIntroduction struct {
+	Username           string `json:"username"`
+	PublicKey          string `json:"publicKey"`
+	VerifiedByUsername string `json:"verifiedByUsername"`
+	VerifiedByDeviceID string `json:"verifiedByDeviceID"`
+	VerifiedSignature  string `json:"verifiedSignature"`
+}
+
+// ListSignedIntroductionsFromVerifiedUsersResponse
+// Returns a list of signed introductions from users the currect user has verified.
+// This allows receiving public keys from trusted sources rather than the broker and setting their verified
+// state to introduced rather than unverified, which is a slightly stronger form of trust. Each signature must
+// be verified and all discrepancies must be made known to the user.
+type ListSignedIntroductionsFromVerifiedUsersResponse struct {
+	// RoomIDFilter to just pull in the introductions for a specific room.
+	RoomIDFilter  *string              `json:"roomIDFilter,omitempty"`
+	Introductions []SignedIntroduction `json:"introductions"`
+}

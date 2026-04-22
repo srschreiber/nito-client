@@ -173,6 +173,12 @@ func keyVerifyConfirmLoop(w fyne.Window) {
 				clientlog.Error("verify: save pinned key for %s: %v", fromUsername, err)
 			}
 			clientlog.Info("verify: mutually verified and pinned key for %s", fromUsername)
+			// Publish an introduction so our web-of-trust peers can
+			// upgrade their pin of this user from TOFU to Introduced
+			// without running the handshake themselves.
+			if err := connection.PublishIntroductionFor(fromUsername, initiatorPubPEM); err != nil {
+				clientlog.Warn("verify: publish introduction for %s failed: %v", fromUsername, err)
+			}
 			peer := fromUsername
 			fyne.Do(func() {
 				showToast(w, "✓ mutually verified "+peer, toastSuccess)
