@@ -20,6 +20,24 @@ import (
 	"github.com/srschreiber/nito-client/ui/clientlog"
 )
 
+// RefreshIntroductions pulls introductions for a room and merges any new
+// ones into local trust state. Exposed for callers (like the headless
+// bot) that need to poll for introductions published after they joined
+// the room — desktop clients only need the room-join-time fetch that
+// SetSessionRoom already performs, but a long-running bot misses every
+// introduction its owner signs post-join without a periodic refresh.
+//
+// Returns the number of introductions applied (newly verified +
+// merged). Errors from the broker propagate; apply-level failures are
+// logged and counted out of the result.
+func RefreshIntroductions(roomID string) (int, error) {
+	intros, err := ListIntroductions(roomID)
+	if err != nil {
+		return 0, err
+	}
+	return applyIntroductions(intros), nil
+}
+
 func applyIntroductions(intros []apitypes.SignedIntroduction) int {
 	applied := 0
 	for _, intro := range intros {

@@ -72,6 +72,13 @@ Concretely: a room member that the owner has not verified cannot make the
 bot do anything, even if they're in the same room. This keeps the bot's
 effective attack surface to "people the owner trusts".
 
+**Introduction freshness.** Desktop clients only pull introductions at
+room-join time because they join often. A bot joins its room once and
+stays forever, so it re-pulls the room's introductions every **5 minutes**
+via `connection.RefreshIntroductions`. This lets a peer the owner
+verifies *after* the bot has joined start using `!hello` within a few
+minutes, rather than being silently refused forever.
+
 ## Request protocol
 
 Bot requests ride inside the normal `room_message` WebSocket frame — there

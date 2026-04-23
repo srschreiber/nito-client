@@ -21,6 +21,14 @@ import (
 // limit is one-place-to-change.
 const rateWindow = 5 * time.Second
 
+// introRefreshInterval is how often the bot re-pulls signed introductions
+// from the broker. SetSessionRoom only fetches them at join time, so without
+// this tick a bot in a long-lived room never learns that its owner has
+// verified (and introduced) new members — those members would be silently
+// refused by senderAllowed. 5 minutes is a compromise between freshness
+// and broker load for a single-bot installation.
+const introRefreshInterval = 5 * time.Minute
+
 // runServe is the terminal step: the bot stays in the room forever, watches
 // incoming room messages, and responds to `!`-prefixed commands from
 // owner-introduced senders. Returns only on ctx cancellation.
@@ -32,6 +40,7 @@ func runServe(ctx context.Context, state BotState) error {
 	log.Printf("serve: ready — room=%s owner=%q", state.RoomID, state.OwnerUsername)
 
 	go reconnectLoop(ctx, state)
+	go introRefreshLoop(ctx, state.RoomID)
 
 	limiter := NewLimiter(rateWindow)
 
@@ -138,6 +147,37 @@ func dispatch(text, sender string) string {
 		return fmt.Sprintf("hello, @%s", sender)
 	default:
 		return "" // unknown commands are silently ignored — keeps room chatter clean
+	}
+}
+
+// introRefreshLoop polls signed introductions on introRefreshInterval and
+// merges newly applied ones into the local trust cache. On disconnect
+// the refresh fails transiently and retries on the next tick — reconnect
+// logic lives in reconnectLoop, this loop doesn't need to care.
+//
+// Runs until ctx is cancelled. One tick is skipped at startup because
+// SetSessionRoom inside runInviteWait already pulled introductions once;
+// the first refresh five minutes later is the first genuinely new data.
+func introRefreshLoop(ctx context.Context, roomID string) {
+	tick := time.NewTicker(introRefreshInterval)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+			if !connection.IsConnected() {
+				continue
+			}
+			applied, err := connection.RefreshIntroductions(roomID)
+			if err != nil {
+				log.Printf("introductions: refresh failed (%v); will retry in %s", err, introRefreshInterval)
+				continue
+			}
+			if applied > 0 {
+				log.Printf("introductions: applied %d new", applied)
+			}
+		}
 	}
 }
 
