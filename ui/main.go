@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -131,6 +132,7 @@ func showMainView(a fyne.App, w fyne.Window) {
 
 	// Start background goroutines.
 	go pingLoop(statusPanel)
+	go reconnectLoop(w, statusPanel)
 	go startBackend(chatPanel, statusPanel, w)
 }
 
@@ -152,6 +154,59 @@ func pingLoop(sp *StatusPanel) {
 			userID = s.Username
 		}
 		sp.UpdateStatus(connected, brokerURL, userID, latencyMs)
+	}
+}
+
+// reconnectLoop watches for WebSocket disconnections and re-establishes the
+// session automatically. On first disconnect it tears down any active voice
+// call, then retries Reconnect every 3 seconds until it succeeds. After a
+// successful reconnect it re-joins the last active room so message delivery
+// resumes without the user having to touch anything.
+func reconnectLoop(w fyne.Window, sp *StatusPanel) {
+	var lastRoomID string
+	reconnecting := false
+
+	for {
+		time.Sleep(3 * time.Second)
+
+		if connection.IsConnected() {
+			reconnecting = false
+			if rid := connection.GetSessionRoomID(); rid != nil {
+				lastRoomID = *rid
+			}
+			continue
+		}
+
+		if !reconnecting {
+			reconnecting = true
+			clientlog.Warn("reconnect: connection lost, retrying...")
+			_ = commands.VoiceLeaveDirect()
+			_ = commands.VoiceLeaveTestAudioDirect()
+			fyne.Do(func() { showToast(w, "disconnected — reconnecting...", toastWarn) })
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		err := connection.Reconnect(ctx)
+		cancel()
+
+		if err != nil {
+			clientlog.Warn("reconnect: failed (%v), retrying in 3s", err)
+			continue
+		}
+
+		reconnecting = false
+		clientlog.Info("reconnect: succeeded")
+
+		if lastRoomID != "" {
+			if err := connection.SetSessionRoom(lastRoomID); err != nil {
+				clientlog.Warn("reconnect: re-join room %s: %v", lastRoomID, err)
+			} else {
+				commands.SendRoomEnter(lastRoomID)
+				clientlog.Info("reconnect: re-joined room %s", lastRoomID)
+			}
+		}
+
+		fyne.Do(func() { showToast(w, "reconnected", toastSuccess) })
 	}
 }
 

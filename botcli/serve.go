@@ -137,6 +137,9 @@ func handleOne(data []byte, state BotState, limiter *Limiter) {
 	}
 	if !limiter.Allow(payload.FromUsername) {
 		log.Printf("serve: rate-limited %q from %q", firstToken(text), payload.FromUsername)
+		if err := sendRoomReply("hold your horses", payload.RoomID); err != nil {
+			log.Printf("serve: rate-limit reply failed: %v", err)
+		}
 		return
 	}
 

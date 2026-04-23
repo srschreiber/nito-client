@@ -91,6 +91,13 @@ func (nitoTheme) Color(n fyne.ThemeColorName, v fyne.ThemeVariant) color.Color {
 		return colHover
 	case theme.ColorNameInputBackground:
 		return colInputBg
+	case theme.ColorNameMenuBackground:
+		// Dropdown popup / right-click menu bg. Fyne's default falls back to
+		// the light-variant white on Windows when the OS is in light mode.
+		return colSurface
+	case theme.ColorNameOverlayBackground:
+		// Dialog / modal overlay bg. Same light-variant fallback issue.
+		return colSurface
 	case theme.ColorNameButton:
 		return colSurface2
 	case theme.ColorNameDisabled:

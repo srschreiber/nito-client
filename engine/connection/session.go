@@ -332,21 +332,23 @@ func setSessionRoomWithTrust(roomID string, allowUnverified bool) error {
 	// pre-signature rooms don't suddenly become inaccessible.
 	if rk.RoomSignature != "" && rk.SignedByUsername != "" && rk.SignedByUsername != me {
 		resolved := keys.ResolvePeerPublicKey(rk.SignedByUsername)
-		switch {
-		case !resolved.Found:
+		if !resolved.Found {
 			return fmt.Errorf("room-select: creator %q has no known public key — cannot verify room creation signature", rk.SignedByUsername)
-		case resolved.Method != keys.TrustMethodVerified && resolved.Method != keys.TrustMethodIntroduced:
-			// TOFU-only: key came from the broker, so a passing check doesn't
-			// prove the broker is honest — but a *failing* check means the
-			// signature is outright wrong even on the broker's own terms.
-			if err := keys.VerifyRoomAttestation(rk.Name, rk.SignedByUsername, rk.SignedByDeviceID, rk.RoomSignature, resolved.PublicKey); err != nil {
+		}
+		// TOFU-only: key came from the broker, so a passing check doesn't
+		// prove the broker is honest — but a *failing* check means the
+		// signature is outright wrong even on the broker's own terms. We
+		// still run the same verify; only the log + error wording differs.
+		tofuOnly := resolved.Method != keys.TrustMethodVerified && resolved.Method != keys.TrustMethodIntroduced
+		if err := keys.VerifyRoomAttestation(rk.Name, rk.SignedByUsername, rk.SignedByDeviceID, rk.RoomSignature, resolved.PublicKey); err != nil {
+			if tofuOnly {
 				return fmt.Errorf("room-select: room creation signature invalid against TOFU key (claimed signer=%s): %w", rk.SignedByUsername, err)
 			}
+			return fmt.Errorf("room-select: room creation signature invalid (claimed signer=%s): %w", rk.SignedByUsername, err)
+		}
+		if tofuOnly {
 			clientlog.Warn("room %s: creation signature verified against TOFU key for %q — trust is broker-dependent", roomID, rk.SignedByUsername)
-		default:
-			if err := keys.VerifyRoomAttestation(rk.Name, rk.SignedByUsername, rk.SignedByDeviceID, rk.RoomSignature, resolved.PublicKey); err != nil {
-				return fmt.Errorf("room-select: room creation signature invalid (claimed signer=%s): %w", rk.SignedByUsername, err)
-			}
+		} else {
 			clientlog.Info("room creation signature valid for %s (signed by %s, method=%s)", roomID, rk.SignedByUsername, resolved.Method)
 		}
 	} else if rk.RoomSignature == "" {
