@@ -469,6 +469,38 @@ func (sp *StatusPanel) SetInvites(invites []apitypes.PendingInvite) {
 		acceptBtn.Importance = widget.LowImportance
 		acceptBtn.OnTapped = func() {
 			go func() {
+				// Verify the invite cryptographically before accepting.
+				// connection.VerifyInvite resolves the inviter's pubkey
+				// through the web-of-trust hierarchy (Verified >
+				// Introduced > TOFU), checks the device id binding,
+				// and verifies the membership signature. A TOFU result
+				// is surfaced as a warning — the user may still accept,
+				// but they're told the trust is broker-asserted — while
+				// any outright failure (sig invalid, device mismatch,
+				// broker missing fields) blocks the accept entirely.
+				me := connection.GetSessionUsername()
+				res, verifyErr := connection.VerifyInvite(inv, me)
+				if verifyErr != nil {
+					clientlog.Error("invite verify failed: " + verifyErr.Error())
+					fyne.Do(func() {
+						showToast(sp.w, "invite rejected: "+verifyErr.Error(), toastError)
+					})
+					return
+				}
+				switch {
+				case res.Contested:
+					clientlog.Warn("invite from %s: trust is contested (%s) — accepting anyway", inv.InviterUsername, res.DisagreementDetails)
+					fyne.Do(func() {
+						showToast(sp.w, "⚠ invite from "+inv.InviterUsername+": contested trust — proceed with care", toastWarn)
+					})
+				case res.Method == keys.TrustMethodTOFU:
+					clientlog.Warn("invite from %s: TOFU pin only (broker-asserted trust)", inv.InviterUsername)
+					fyne.Do(func() {
+						showToast(sp.w, "⚠ invite from "+inv.InviterUsername+" (TOFU) — verify out of band for stronger trust", toastWarn)
+					})
+				default:
+					clientlog.Info("invite from %s verified (method=%s)", inv.InviterUsername, res.Method)
+				}
 				err := connection.AcceptInvite(inv.RoomID)
 				fyne.Do(func() {
 					if err != nil {

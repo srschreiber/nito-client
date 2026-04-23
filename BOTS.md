@@ -59,10 +59,18 @@ verify anyone on its own after bootstrap. Instead:
    `Verified` and publishes a signed introduction naming them — so other
    peers who have verified the bot can upgrade their operator pin from
    TOFU to Introduced.
-3. **Invite acceptance** is gated on `inviterUsername == owner`. The
-   broker populates `inviterUsername` on every `PendingInvite` for this
-   reason. If the field is missing (older broker), the bot refuses rather
-   than blindly accept.
+3. **Invite acceptance** is cryptographically verified — the broker's
+   word on `inviterUsername` is not trusted on its own. Every
+   `PendingInvite` must carry `inviterUsername`, `inviterDeviceId`, and
+   `membershipSignature`; the bot resolves the inviter's pubkey via the
+   standard web-of-trust hierarchy (Verified > Introduced > TOFU),
+   checks that the derived device id matches `inviterDeviceId`, and
+   verifies the signature over the canonical membership bytes
+   `device_id;invited_username;room_id`. On top of that the bot requires
+   the inviter to be its pinned owner (Verified method only) — anything
+   else, even a valid signature from an introduced peer, is refused.
+   The same verification code path is shared with the desktop UI (via
+   `connection.VerifyInvite`) — one implementation, two policies.
 4. **Command acceptance** is gated on the sender being either the owner
    or someone the owner has introduced (via a `SignedIntroduction` the
    broker serves at room-join time). TOFU-only peers are refused, as
@@ -151,8 +159,12 @@ checklist. Summary:
    thereafter).
 2. Include `isBot` on `GetUserPublicKeyResponse` and on each
    `ListRoomMembersResponse.Members[]` entry.
-3. Populate `inviterUsername` on `PendingInvite` — required by the bot's
-   invite gate.
+3. On `PendingInvite`, populate **all three**: `inviterUsername`,
+   `inviterDeviceId`, and `membershipSignature`. The broker already
+   receives the signature + canonical bytes on `InviteUserRequest`; it
+   just needs to echo them back, plus the authenticated inviter's
+   username and the sha256 DER of their pubkey. None are optional —
+   both bots and the desktop UI refuse invites that lack any of these.
 4. (Recommended) reject `InviteUser` when the target is a bot and the
    room already contains one. Client-side enforced too, but a
    misbehaving client shouldn't be able to break the one-bot-per-room

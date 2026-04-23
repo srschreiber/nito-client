@@ -112,11 +112,25 @@ type ListRoomMembersResponse struct {
 type PendingInvite struct {
 	RoomID   string `json:"roomId"`
 	RoomName string `json:"roomName"`
-	// InviterUsername is the user who sent the invite. Bots gate
-	// auto-accept on this field matching their verified owner; desktop
-	// clients may surface it as context in the invite UI. Empty on older
-	// broker responses that don't yet populate it.
-	InviterUsername string `json:"inviterUsername,omitempty"`
+	// InviterUsername is the user who sent the invite. Required — without
+	// it, bots cannot enforce owner-only invite acceptance. The broker
+	// takes this from the authenticated session at InviteUser time, so
+	// it is not attacker-controlled on the happy path.
+	InviterUsername string `json:"inviterUsername"`
+	// InviterDeviceID is sha256(DER(inviter public key)), hex. Required —
+	// it both (a) names which device signed MembershipSignature and (b)
+	// binds that signature to a specific pubkey, blocking broker key
+	// substitution in the same way room-key manifests do. The broker
+	// already received this on InviteUserRequest's MembershipSignature
+	// input (canonical form includes device_id); the broker just needs
+	// to echo it back.
+	InviterDeviceID string `json:"inviterDeviceId"`
+	// MembershipSignature is the inviter's RSA-PSS attestation over the
+	// canonical form "device_id;invited_username;room_id" (alphabetical,
+	// `;`-joined) — see engine/commands/room.go and SECURITY.md. Required
+	// so the invitee can verify cryptographically who invited them,
+	// rather than trusting the broker's word on InviterUsername.
+	MembershipSignature string `json:"membershipSignature"`
 }
 
 type ListPendingInvitesResponse struct {

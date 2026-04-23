@@ -6,10 +6,12 @@ package botcli
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/srschreiber/nito-client/engine/connection"
+	"github.com/srschreiber/nito-client/engine/keys"
 	apitypes "github.com/srschreiber/nito-client/shared/api_types"
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
 )
@@ -86,15 +88,8 @@ func tryAcceptInvites(ctx context.Context, state BotState) (BotState, bool) {
 		return state, false
 	}
 	for _, inv := range invites {
-		if inv.InviterUsername == "" {
-			// Older broker doesn't populate the field. We can't enforce
-			// the owner-only rule safely without it — refuse rather
-			// than blindly accept.
-			log.Printf("invite: ignoring invite to %q — broker did not supply inviter", inv.RoomID)
-			continue
-		}
-		if inv.InviterUsername != state.OwnerUsername {
-			log.Printf("invite: ignoring invite to %q from non-owner %q", inv.RoomID, inv.InviterUsername)
+		if err := checkInviteAuth(inv, state); err != nil {
+			log.Printf("invite: refusing %q: %v", inv.RoomID, err)
 			continue
 		}
 		if err := acceptAndJoin(inv, &state); err != nil {
@@ -104,6 +99,44 @@ func tryAcceptInvites(ctx context.Context, state BotState) (BotState, bool) {
 		return state, true
 	}
 	return state, false
+}
+
+// checkInviteAuth layers the bot's owner-only policy on top of the
+// shared signature verification in connection.VerifyInvite. The engine
+// helper handles required-fields / device-id / signature checks; here
+// we add the two bot-specific rules:
+//
+//  1. InviterUsername must equal the bot's pinned owner (the sole user
+//     we mutual-verified at bootstrap). Anyone else's valid invite is
+//     still refused.
+//  2. The resolved trust method must be Verified. Introduced / TOFU
+//     are fine for human users but the bot has no UI to surface an
+//     "accept anyway?" prompt, and accepting on a weaker pin would
+//     undermine the single-owner trust root.
+//
+// Also cross-checks the stored owner_device_id (captured at verify time)
+// against the invite's claimed device id — catches the case where an
+// attacker convinced the owner to run a second verify against a forged
+// key, or where the bot's state file was tampered with.
+func checkInviteAuth(inv apitypes.PendingInvite, state BotState) error {
+	if inv.InviterUsername != state.OwnerUsername {
+		return fmt.Errorf("inviter %q is not owner %q", inv.InviterUsername, state.OwnerUsername)
+	}
+	if state.OwnerDeviceID != "" && inv.InviterDeviceID != "" && state.OwnerDeviceID != inv.InviterDeviceID {
+		return fmt.Errorf("inviter device %s does not match owner device pinned at verify time %s",
+			inv.InviterDeviceID, state.OwnerDeviceID)
+	}
+	res, err := connection.VerifyInvite(inv, state.Username)
+	if err != nil {
+		return err
+	}
+	if res.Method != keys.TrustMethodVerified {
+		return fmt.Errorf("owner pin method=%s; bot requires verified — re-run verify step", res.Method)
+	}
+	if res.Contested {
+		return fmt.Errorf("owner pin is contested (%s); refusing", res.DisagreementDetails)
+	}
+	return nil
 }
 
 // acceptAndJoin accepts the broker-side invite, then joins the room in the
