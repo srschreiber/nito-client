@@ -65,6 +65,11 @@ func runServe(ctx context.Context, state BotState) error {
 				continue
 			}
 		}
+		// Tell the broker we're actively viewing this room so it fans out
+		// room_message frames to us. The broker's isInRoom gate normally
+		// expects a room_enter before delivering messages — bots never
+		// navigate away, so we re-send on every reconnect.
+		sendRoomEnter(state.RoomID)
 		handleMessages(ctx, ch, state, limiter)
 	}
 	return nil
@@ -90,6 +95,11 @@ func handleMessages(ctx context.Context, ch <-chan []byte, state BotState, limit
 func handleOne(data []byte, state BotState, limiter *Limiter) {
 	var payload wstypes.RoomMessagePayload
 	if err := json.Unmarshal(data, &payload); err != nil {
+		log.Printf("serve: unmarshal room message: %v", err)
+		return
+	}
+	// Ignore messages not for the bot's room (e.g. stale frames on reconnect).
+	if payload.RoomID != state.RoomID {
 		return
 	}
 	// Ignore our own echoes — the broker echoes every room_message back
@@ -98,6 +108,7 @@ func handleOne(data []byte, state BotState, limiter *Limiter) {
 	if payload.FromUsername == state.Username {
 		return
 	}
+	log.Printf("serve: message from %q (room=%s count=%d)", payload.FromUsername, payload.RoomID, payload.SenderMessageCount)
 	chain, err := connection.GetOrCreateRoomKeyChain()
 	if err != nil {
 		log.Printf("serve: get key chain: %v", err)
@@ -105,6 +116,7 @@ func handleOne(data []byte, state BotState, limiter *Limiter) {
 	}
 	ct, err := base64.StdEncoding.DecodeString(payload.EncryptedText)
 	if err != nil {
+		log.Printf("serve: base64 decode from %q: %v", payload.FromUsername, err)
 		return
 	}
 	plaintext, err := chain.DecryptMessageWithRoomKey(ct, payload.FromUsername, &payload.SenderMessageCount)
@@ -113,6 +125,7 @@ func handleOne(data []byte, state BotState, limiter *Limiter) {
 		return
 	}
 	text := strings.TrimSpace(string(plaintext))
+	log.Printf("serve: plaintext from %q: %q", payload.FromUsername, text)
 	if !strings.HasPrefix(text, "!") {
 		return // normal chat; not a bot request
 	}
@@ -250,4 +263,38 @@ func sendRoomReply(text string) error {
 	}
 	connection.IncrementSessionSentMessageCount()
 	return nil
+}
+
+// sendRoomEnter tells the broker the bot is actively viewing its room, which
+// opens the broker's fan-out gate for room_message delivery. Inlined here
+// (rather than imported from engine/commands) to keep the bot binary free of
+// the CGo audio stack that engine/commands/voice.go pulls in.
+// Best-effort: a failed send is logged but not fatal — the broker will also
+// accept the bypass path (option 2) once that lands; this is belt-and-suspenders.
+func sendRoomEnter(roomID string) {
+	username := connection.GetSessionUsername()
+	if username == "" {
+		return
+	}
+	payloadBytes, err := json.Marshal(wstypes.RoomEnterPayload{RoomID: roomID})
+	if err != nil {
+		log.Printf("serve: marshal room_enter: %v", err)
+		return
+	}
+	now := time.Now().UnixNano()
+	raw, err := json.Marshal(wstypes.ToBrokerWsMessage{
+		RPCName:   wstypes.RPCRoomEnter,
+		RequestID: fmt.Sprintf("%d", now),
+		UserID:    username,
+		Nonce:     fmt.Sprintf("%d", now),
+		Timestamp: time.Now().Unix(),
+		Payload:   payloadBytes,
+	})
+	if err != nil {
+		log.Printf("serve: marshal room_enter envelope: %v", err)
+		return
+	}
+	if err := connection.Send(raw); err != nil {
+		log.Printf("serve: room_enter send: %v", err)
+	}
 }

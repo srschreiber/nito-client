@@ -21,6 +21,18 @@ else
   chmod -R u+rwX,g+rwX "$DATA_DIR" || true
 fi
 
+# If the container already exists, attach/start it instead of creating a new
+# one. This is the normal case after the first run: the wizard has completed,
+# keys are on disk, and the user just wants to reconnect.
+# Use docker ps rather than docker inspect to avoid spurious stderr on miss.
+if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx "$NAME"; then
+  if [ "${DETACH:-0}" = "1" ]; then
+    exec docker start "$NAME"
+  else
+    exec docker start -ai "$NAME"
+  fi
+fi
+
 # --rm and --restart are mutually exclusive. Interactive runs are one-shot
 # (wizard / verify / debug) so --rm fits; detached runs are the always-on
 # production mode so --restart fits. Never both.
