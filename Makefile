@@ -10,11 +10,11 @@ bot-image:
 	@echo "Building nito-bot container image..."
 	./scripts/generate-bot-image.sh
 
-run-bot:
+run-bot: bot-image
 	@echo "Running nito-bot (interactive)..."
 	./scripts/run-bot.sh
 
-run-bot-daemon:
+run-bot-daemon: bot-image
 	@echo "Running nito-bot (detached)..."
 	DETACH=1 ./scripts/run-bot.sh
 

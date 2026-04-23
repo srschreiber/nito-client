@@ -21,16 +21,11 @@ else
   chmod -R u+rwX,g+rwX "$DATA_DIR" || true
 fi
 
-# If the container already exists, attach/start it instead of creating a new
-# one. This is the normal case after the first run: the wizard has completed,
-# keys are on disk, and the user just wants to reconnect.
-# Use docker ps rather than docker inspect to avoid spurious stderr on miss.
+# Remove any existing container so the freshly built image is always used.
+# State persists across recreates because it lives in $DATA_DIR (host bind
+# mount), not inside the container.
 if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx "$NAME"; then
-  if [ "${DETACH:-0}" = "1" ]; then
-    exec docker start "$NAME"
-  else
-    exec docker start -ai "$NAME"
-  fi
+  docker rm -f "$NAME" >/dev/null
 fi
 
 # --rm and --restart are mutually exclusive. Interactive runs are one-shot
