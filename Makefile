@@ -2,6 +2,22 @@ run-ui:
 	@echo "Building and running nito..."
 	cd ui && go build -o nito . && ./nito
 
+# Bot (headless nito user). See BOTS.md for the full setup story.
+#   make bot-image      — build the distroless container image
+#   make run-bot        — interactive first-run (wizard + verify prompt)
+#   make run-bot-daemon — detached always-on run, after bootstrap
+bot-image:
+	@echo "Building nito-bot container image..."
+	./scripts/generate-bot-image.sh
+
+run-bot:
+	@echo "Running nito-bot (interactive)..."
+	./scripts/run-bot.sh
+
+run-bot-daemon:
+	@echo "Running nito-bot (detached)..."
+	DETACH=1 ./scripts/run-bot.sh
+
 tag-and-push:
 	@current=$$(cat engine/tag.txt | tr -d '\n'); \
 	version=$${current#v}; \
