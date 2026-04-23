@@ -21,13 +21,15 @@ else
   chmod -R u+rwX,g+rwX "$DATA_DIR" || true
 fi
 
-args=(run --rm --name "$NAME" --restart=unless-stopped \
-      -v "$DATA_DIR:/data")
+# --rm and --restart are mutually exclusive. Interactive runs are one-shot
+# (wizard / verify / debug) so --rm fits; detached runs are the always-on
+# production mode so --restart fits. Never both.
+args=(run --name "$NAME" -v "$DATA_DIR:/data")
 
 if [ "${DETACH:-0}" = "1" ]; then
-  args+=(-d)
+  args+=(-d --restart=unless-stopped)
 else
-  args+=(-it)
+  args+=(-it --rm)
 fi
 
 # Pass through NITO_BOT_PASSWORD if the user set it in their shell — skips
