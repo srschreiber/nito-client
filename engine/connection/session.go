@@ -139,26 +139,53 @@ func GetSessionDeviceID() string {
 	return session.DeviceID
 }
 
-// GetOrCreateRoomKeyChain returns the ratcheting AES-key chain for the active
-// room, decrypting the stored room key on first use.
-func GetOrCreateRoomKeyChain() (*keys.RoomKeyChain, error) {
+// GetOrCreateRoomKeyChain returns the ratcheting AES-key chain for roomID,
+// decrypting the stored room key on first use. It accepts an explicit room ID
+// so callers that process messages from multiple rooms (e.g. the bot serve
+// loop) can pass payload.RoomID directly instead of relying on the session's
+// single active-room pointer.
+//
+// Fast path: if the chain for roomID is already in session.KeyManager, return
+// it immediately under the lock. Cache miss: if roomID matches the active
+// session room, use the already-fetched EncryptedRoomKey; otherwise fetch
+// the encrypted key from the broker (HTTP, outside the lock).
+func GetOrCreateRoomKeyChain(roomID string) (*keys.RoomKeyChain, error) {
 	mu.Lock()
-	defer mu.Unlock()
 	if session == nil {
+		mu.Unlock()
 		return nil, fmt.Errorf("not connected")
 	}
-	roomID := utils.DerefOrZero(session.RoomID)
-	chain, ok := session.KeyManager[roomID]
-	if !ok {
-		baseKey := session.EncryptedRoomKey
-		keyDecrypted, err := keys.DecryptRoomKey(utils.DerefOrZero(baseKey), session.Username)
+	if chain, ok := session.KeyManager[roomID]; ok {
+		mu.Unlock()
+		return chain, nil
+	}
+	// Cache miss — determine the encrypted room key.
+	username := session.Username
+	var encryptedKey string
+	if utils.DerefOrZero(session.RoomID) == roomID && session.EncryptedRoomKey != nil {
+		encryptedKey = *session.EncryptedRoomKey
+		mu.Unlock()
+	} else {
+		mu.Unlock()
+		// Fetch outside the lock (HTTP round-trip). Supports rooms the caller
+		// knows about but that were never passed through SetSessionRoom.
+		rk, err := getMyRoomKey(roomID)
 		if err != nil {
-			log.Printf("decrypt room key for room %s: %v", roomID, err)
-			return nil, err
+			return nil, fmt.Errorf("fetch room key for %s: %w", roomID, err)
 		}
-		chain = keys.NewRoomKeyChain(keyDecrypted)
+		encryptedKey = rk.EncryptedKey
+	}
+	keyDecrypted, err := keys.DecryptRoomKey(encryptedKey, username)
+	if err != nil {
+		log.Printf("decrypt room key for room %s: %v", roomID, err)
+		return nil, err
+	}
+	chain := keys.NewRoomKeyChain(keyDecrypted)
+	mu.Lock()
+	if session != nil {
 		session.KeyManager[roomID] = chain
 	}
+	mu.Unlock()
 	return chain, nil
 }
 

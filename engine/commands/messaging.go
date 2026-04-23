@@ -76,7 +76,7 @@ func sendRoomMessageWithType(text, msgType string) error {
 		return errors.New("say: message text is required")
 	}
 
-	ukc, err := connection.GetOrCreateRoomKeyChain()
+	ukc, err := connection.GetOrCreateRoomKeyChain(utils.DerefOrZero(connection.GetSessionRoomID()))
 	if err != nil {
 		return fmt.Errorf("say: get room key chain: %w", err)
 	}

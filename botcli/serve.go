@@ -109,7 +109,7 @@ func handleOne(data []byte, state BotState, limiter *Limiter) {
 		return
 	}
 	log.Printf("serve: message from %q (room=%s count=%d)", payload.FromUsername, payload.RoomID, payload.SenderMessageCount)
-	chain, err := connection.GetOrCreateRoomKeyChain()
+	chain, err := connection.GetOrCreateRoomKeyChain(payload.RoomID)
 	if err != nil {
 		log.Printf("serve: get key chain: %v", err)
 		return
@@ -144,7 +144,7 @@ func handleOne(data []byte, state BotState, limiter *Limiter) {
 	if reply == "" {
 		return
 	}
-	if err := sendRoomReply(reply); err != nil {
+	if err := sendRoomReply(reply, payload.RoomID); err != nil {
 		log.Printf("serve: reply send failed: %v", err)
 	}
 }
@@ -212,14 +212,13 @@ func firstToken(s string) string {
 // choice of `%d-nanoseconds` — same monotonicity guarantee as the desktop
 // client, so the broker's replay-detection logic treats bot and human
 // traffic identically.
-func sendRoomReply(text string) error {
-	chain, err := connection.GetOrCreateRoomKeyChain()
+func sendRoomReply(text, roomID string) error {
+	chain, err := connection.GetOrCreateRoomKeyChain(roomID)
 	if err != nil {
 		return fmt.Errorf("get key chain: %w", err)
 	}
 	username := connection.GetSessionUsername()
-	roomID := connection.GetSessionRoomID()
-	if username == "" || roomID == nil {
+	if username == "" || roomID == "" {
 		return fmt.Errorf("no active session/room")
 	}
 	info := connection.GetSessionRoomInfo()
@@ -236,7 +235,7 @@ func sendRoomReply(text string) error {
 		version = *v
 	}
 	payloadBytes, err := json.Marshal(wstypes.RoomMessagePayload{
-		RoomID:             *roomID,
+		RoomID:             roomID,
 		RoomKeyVersion:     version,
 		SenderMessageCount: count,
 		FromUsername:       username,

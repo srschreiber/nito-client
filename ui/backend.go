@@ -225,7 +225,7 @@ func messageReceiveLoop(cp *ChatPanel, w fyne.Window) {
 				continue
 			}
 
-			chain, err := connection.GetOrCreateRoomKeyChain()
+			chain, err := connection.GetOrCreateRoomKeyChain(payload.RoomID)
 			if err != nil {
 				clientlog.Error("messageReceiveLoop: get key chain: %v", err)
 				continue
