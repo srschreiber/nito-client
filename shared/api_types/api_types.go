@@ -10,6 +10,10 @@ type RegisterRequest struct {
 	PublicKey  string `json:"publicKey" validate:"required"`
 	Password   string `json:"password" validate:"required"`
 	DeviceName string `json:"deviceName" validate:"required"`
+	// IsBot marks the account as a bot. The broker persists this on the
+	// users row; it cannot be changed after registration (see BOTS.md).
+	// Default false — omitted by the standard desktop client.
+	IsBot bool `json:"isBot,omitempty"`
 }
 
 type RegisterResponse struct {
@@ -98,6 +102,7 @@ type RoomMemberEntry struct {
 	UserID   string `json:"userId"`
 	Username string `json:"username"`
 	Online   bool   `json:"online"`
+	IsBot    bool   `json:"isBot,omitempty"`
 }
 
 type ListRoomMembersResponse struct {
@@ -107,6 +112,11 @@ type ListRoomMembersResponse struct {
 type PendingInvite struct {
 	RoomID   string `json:"roomId"`
 	RoomName string `json:"roomName"`
+	// InviterUsername is the user who sent the invite. Bots gate
+	// auto-accept on this field matching their verified owner; desktop
+	// clients may surface it as context in the invite UI. Empty on older
+	// broker responses that don't yet populate it.
+	InviterUsername string `json:"inviterUsername,omitempty"`
 }
 
 type ListPendingInvitesResponse struct {
@@ -151,6 +161,7 @@ type GetRoomKeyResponse struct {
 
 type GetUserPublicKeyResponse struct {
 	PublicKey string `json:"publicKey"`
+	IsBot     bool   `json:"isBot,omitempty"`
 }
 
 type GetRoomInfoResponse struct {

@@ -362,6 +362,15 @@ edge.
 - Private keys.
 - The 6-digit verification code exchanged out-of-band.
 
+## Bot accounts
+
+Bots are regular nito users registered with an `is_bot=true` flag —
+same identity keys, same E2EE, same trust model, just headless. The
+one-owner-one-room policy, per-sender rate limit, and
+`!`-prefixed command protocol are documented in [BOTS.md](BOTS.md).
+Nothing about bots weakens the properties above; they ride on the
+existing `room_message` RPC and inherit every guarantee it provides.
+
 ## Testing
 
 Security-sensitive paths have unit tests under

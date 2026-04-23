@@ -17,13 +17,21 @@ import (
 
 // Register sends username and public key to the broker, creating a DB entry if the user
 // doesn't exist yet. Returns the user's ID and whether they were already registered.
-func Register(ctx context.Context, brokerURL, username, password, publicKey string) (*apitypes.RegisterResponse, error) {
+// isBot marks the account as a bot on the broker; once set, the broker refuses
+// to change it, so a user registration accidentally submitted with IsBot=true
+// cannot be "un-botted" without re-registering a new name.
+func Register(ctx context.Context, brokerURL, username, password, publicKey string, isBot bool) (*apitypes.RegisterResponse, error) {
 	brokerURL = normalizeURL(brokerURL)
+	deviceName := "primary"
+	if isBot {
+		deviceName = "bot"
+	}
 	body, _ := json.Marshal(apitypes.RegisterRequest{
 		Username:   username,
 		Password:   password,
 		PublicKey:  publicKey,
-		DeviceName: "primary",
+		DeviceName: deviceName,
+		IsBot:      isBot,
 	})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+brokerURL+"/api/v0/register", bytes.NewReader(body))
 	if err != nil {
@@ -205,9 +213,7 @@ func GetOrStoreUserPublicKey(username string) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("get public key: broker returned %s", resp.Status)
 	}
-	var result struct {
-		PublicKey string `json:"publicKey"`
-	}
+	var result apitypes.GetUserPublicKeyResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", fmt.Errorf("get public key: decode: %w", err)
 	}
@@ -215,10 +221,13 @@ func GetOrStoreUserPublicKey(username string) (string, error) {
 	// manifest verifier — gets the same bytes without re-contacting the
 	// broker. Verified pins (set via the mutual-handshake flow) are never
 	// overwritten here because LoadPeerPublicKey short-circuited above.
+	// IsBot is copied from the broker response; it's advisory (see the
+	// TrustedKey.IsBot comment) — a UI label, not an authorisation bit.
 	_ = keys.SavePeerPublicKey(username, keys.TrustedKey{
 		PublicKey: result.PublicKey,
 		Verified:  false,
 		Method:    keys.TrustMethodTOFU,
+		IsBot:     result.IsBot,
 	})
 	return result.PublicKey, nil
 }

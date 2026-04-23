@@ -56,6 +56,12 @@ type TrustedKey struct {
 	// against their verified-pinned key). Empty for broker-TOFU and
 	// mutual-verify records that haven't been corroborated by anyone else.
 	Introducers []string `json:"introducers,omitempty"`
+
+	// IsBot mirrors the broker's claim at pin-creation time. Advisory —
+	// the UI uses it to surface a badge; trust decisions still flow
+	// through Method. A compromised broker lying about IsBot does not
+	// grant any capability; it only affects how we *label* the peer.
+	IsBot bool `json:"is_bot,omitempty"`
 }
 
 func peerKeyPath(username string) (string, error) {
@@ -158,6 +164,9 @@ func SavePeerPublicKey(username string, rec TrustedKey) error {
 			// demote.
 			if existing[i].Verified {
 				rec.Verified = true
+			}
+			if existing[i].IsBot {
+				rec.IsBot = true
 			}
 			rec.Introducers = mergeUsernames(existing[i].Introducers, rec.Introducers)
 			rec.Method = effectiveMethod(rec)

@@ -14,6 +14,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,13 +42,12 @@ func SetActiveBroker(brokerURL string) {
 	activeBroker = sanitizeBroker(brokerURL)
 }
 
-// sanitizeBroker strips the scheme and replaces characters that are not safe
-// in directory names (colons from port numbers, slashes, etc.) with underscores.
+// sanitizeBroker extracts the host (and port if present) from a broker URL and
+// replaces characters that are not safe in directory names with underscores.
 func sanitizeBroker(brokerURL string) string {
-	for _, prefix := range []string{"https://", "http://", "wss://", "ws://"} {
-		brokerURL = strings.TrimPrefix(brokerURL, prefix)
+	if u, err := url.Parse(brokerURL); err == nil && u.Host != "" {
+		brokerURL = u.Host
 	}
-	brokerURL = strings.TrimRight(brokerURL, "/")
 	var b strings.Builder
 	for _, r := range brokerURL {
 		if r == ':' || r == '/' || r == '\\' {

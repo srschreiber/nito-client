@@ -45,7 +45,7 @@ func CompleteRegister(ctx context.Context, password string) (string, Signal, err
 	if err != nil {
 		return "", SignalNone, fmt.Errorf("register: key setup failed: %w", err)
 	}
-	resp, err := connection.Register(ctx, broker, username, password, publicKey)
+	resp, err := connection.Register(ctx, broker, username, password, publicKey, false)
 	if err != nil {
 		return "", SignalNone, err
 	}
