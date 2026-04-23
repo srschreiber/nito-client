@@ -136,7 +136,7 @@ func TestAddIntroductionRefusesUnverifiedIntroducer(t *testing.T) {
 
 	_, bobPub := setupTwoPartiesInBroker(t, dir)
 	// "alice" (the introducer) has never been verified locally.
-	err := keys.AddIntroduction("bob", bobPub, "alice")
+	_, err := keys.AddIntroduction("bob", bobPub, "alice")
 	if err == nil {
 		t.Fatal("AddIntroduction accepted a vouch from a non-verified introducer")
 	}

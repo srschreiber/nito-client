@@ -37,14 +37,17 @@ func drainLoop(ctx context.Context, accessor func() <-chan []byte, name string) 
 					// Channel closed on disconnect; outer loop re-fetches.
 					break
 				}
-				// Silently drop — these payloads would only matter to a
-				// richer client. Logging at info level once per reconnect
-				// is enough to spot stuck flows.
 				continue
 			}
 			break
 		}
+		// Sleep before re-fetching; without this the loop spins at full
+		// speed returning the same closed channel until reconnect creates
+		// a new one (up to 10 s), producing hundreds of log lines.
 		log.Printf("drain %s: channel closed; awaiting reconnect", name)
+		if err := sleepCtx(ctx, 500*time.Millisecond); err != nil {
+			return
+		}
 	}
 }
 
@@ -65,14 +68,13 @@ func drainStringLoop(ctx context.Context, accessor func() <-chan string, name st
 				if !ok {
 					break
 				}
-				// Late verify-response is load-bearing to log: it means
-				// someone answered a challenge the bot's session thought
-				// expired. Surfacing it makes misconfigured clocks /
-				// laggy peers diagnosable after the fact.
 				log.Printf("drain %s: late verify response from %q (ignored)", name, v)
 				continue
 			}
 			break
+		}
+		if err := sleepCtx(ctx, 500*time.Millisecond); err != nil {
+			return
 		}
 	}
 }

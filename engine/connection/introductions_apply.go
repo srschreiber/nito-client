@@ -56,11 +56,14 @@ func applyIntroductions(intros []apitypes.SignedIntroduction) int {
 			clientlog.Warn("introduction signature invalid (target=%s, signer=%s): %v", intro.Username, intro.VerifiedByUsername, err)
 			continue
 		}
-		if err := keys.AddIntroduction(intro.Username, intro.PublicKey, intro.VerifiedByUsername); err != nil {
+		changed, err := keys.AddIntroduction(intro.Username, intro.PublicKey, intro.VerifiedByUsername)
+		if err != nil {
 			clientlog.Warn("add introduction for %s: %v", intro.Username, err)
 			continue
 		}
-		applied++
+		if changed {
+			applied++
+		}
 	}
 	return applied
 }

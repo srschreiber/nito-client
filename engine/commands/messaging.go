@@ -118,7 +118,7 @@ func sendRoomMessageWithType(text, msgType string) error {
 	if err := connection.Send(data); err != nil {
 		return fmt.Errorf("say: send: %w", err)
 	}
-	connection.IncrementSessionSentMessageCount()
+	connection.IncrementSentMessageCount(utils.DerefOrZero(connection.GetSessionRoomID()))
 	return nil
 }
 

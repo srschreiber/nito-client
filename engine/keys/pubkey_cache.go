@@ -196,16 +196,22 @@ func SavePeerPublicKey(username string, rec TrustedKey) error {
 // Creates a TrustedKey row if no prior record exists for this
 // (username, device_id) pair; otherwise appends to the Introducers list
 // (deduplicated).
-func AddIntroduction(username, publicKeyPEM, introducer string) error {
+// AddIntroduction records that introducer has vouched for (username, publicKeyPEM).
+// Returns (true, nil) when the trust state actually changed (new pin or new
+// introducer appended), (false, nil) when the record was already present, and
+// (false, err) on any error. Callers that only care about errors may discard
+// the bool; callers that want to count genuinely new introductions (e.g.
+// applyIntroductions) use it to avoid false positives on repeat polls.
+func AddIntroduction(username, publicKeyPEM, introducer string) (bool, error) {
 	if introducer == "" {
-		return fmt.Errorf("add introduction: introducer required")
+		return false, fmt.Errorf("add introduction: introducer required")
 	}
 	if !hasVerifiedPin(introducer) {
-		return fmt.Errorf("add introduction: introducer %q is not verified locally — refusing to record their vouch", introducer)
+		return false, fmt.Errorf("add introduction: introducer %q is not verified locally — refusing to record their vouch", introducer)
 	}
 	derivedID, err := DeviceIDFromPublicKeyPEM(publicKeyPEM)
 	if err != nil {
-		return fmt.Errorf("add introduction: derive device id: %w", err)
+		return false, fmt.Errorf("add introduction: derive device id: %w", err)
 	}
 	existing, err := loadPeerPublicKeys(username)
 	if err != nil {
@@ -213,9 +219,13 @@ func AddIntroduction(username, publicKeyPEM, introducer string) error {
 	}
 	for i := range existing {
 		if existing[i].DeviceID == derivedID {
-			existing[i].Introducers = mergeUsernames(existing[i].Introducers, []string{introducer})
+			merged := mergeUsernames(existing[i].Introducers, []string{introducer})
+			if len(merged) == len(existing[i].Introducers) {
+				return false, nil // introducer already recorded — no disk write needed
+			}
+			existing[i].Introducers = merged
 			existing[i].Method = effectiveMethod(existing[i])
-			return savePeerPublicKeysList(username, existing)
+			return true, savePeerPublicKeysList(username, existing)
 		}
 	}
 	rec := TrustedKey{
@@ -226,7 +236,7 @@ func AddIntroduction(username, publicKeyPEM, introducer string) error {
 	}
 	rec.Method = effectiveMethod(rec)
 	existing = append(existing, rec)
-	return savePeerPublicKeysList(username, existing)
+	return true, savePeerPublicKeysList(username, existing)
 }
 
 // mergeUsernames returns a sorted de-duplicated union of a and b.

@@ -78,10 +78,10 @@ func TestResolveVerifiedWinsOverIntroductions(t *testing.T) {
 	// Bob is mutual-verified as bobPub.
 	pinVerified(t, "bob", bobPub)
 	// Alice and Carol both introduce bob... as the fake key.
-	if err := keys.AddIntroduction("bob", fakeBobPub, "alice"); err != nil {
+	if _, err := keys.AddIntroduction("bob", fakeBobPub, "alice"); err != nil {
 		t.Fatalf("add intro alice: %v", err)
 	}
-	if err := keys.AddIntroduction("bob", fakeBobPub, "carol"); err != nil {
+	if _, err := keys.AddIntroduction("bob", fakeBobPub, "carol"); err != nil {
 		t.Fatalf("add intro carol: %v", err)
 	}
 
@@ -117,7 +117,7 @@ func TestResolveIntroducedUpgradesTOFU(t *testing.T) {
 		t.Fatalf("save: %v", err)
 	}
 	// Alice introduces bob with the same pubkey.
-	if err := keys.AddIntroduction("bob", bobPub, "alice"); err != nil {
+	if _, err := keys.AddIntroduction("bob", bobPub, "alice"); err != nil {
 		t.Fatalf("add intro: %v", err)
 	}
 
@@ -154,16 +154,16 @@ func TestResolvePluralityPicksMajority(t *testing.T) {
 	}
 
 	// 3 verifiers for the real key, 1 for the fake.
-	if err := keys.AddIntroduction("bob", realBobPub, "alice"); err != nil {
+	if _, err := keys.AddIntroduction("bob", realBobPub, "alice"); err != nil {
 		t.Fatal(err)
 	}
-	if err := keys.AddIntroduction("bob", realBobPub, "carol"); err != nil {
+	if _, err := keys.AddIntroduction("bob", realBobPub, "carol"); err != nil {
 		t.Fatal(err)
 	}
-	if err := keys.AddIntroduction("bob", realBobPub, "dave"); err != nil {
+	if _, err := keys.AddIntroduction("bob", realBobPub, "dave"); err != nil {
 		t.Fatal(err)
 	}
-	if err := keys.AddIntroduction("bob", fakeBobPub, "eve"); err != nil {
+	if _, err := keys.AddIntroduction("bob", fakeBobPub, "eve"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -194,10 +194,10 @@ func TestResolveTieIsContested(t *testing.T) {
 	pinVerified(t, "alice", alicePub)
 	pinVerified(t, "carol", carolPub)
 
-	if err := keys.AddIntroduction("bob", key1, "alice"); err != nil {
+	if _, err := keys.AddIntroduction("bob", key1, "alice"); err != nil {
 		t.Fatal(err)
 	}
-	if err := keys.AddIntroduction("bob", key2, "carol"); err != nil {
+	if _, err := keys.AddIntroduction("bob", key2, "carol"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -224,10 +224,10 @@ func TestResolveMultipleIntroductionsSamePubkey(t *testing.T) {
 	pinVerified(t, "alice", alicePub)
 	pinVerified(t, "carol", carolPub)
 
-	if err := keys.AddIntroduction("bob", bobPub, "alice"); err != nil {
+	if _, err := keys.AddIntroduction("bob", bobPub, "alice"); err != nil {
 		t.Fatal(err)
 	}
-	if err := keys.AddIntroduction("bob", bobPub, "carol"); err != nil {
+	if _, err := keys.AddIntroduction("bob", bobPub, "carol"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -252,10 +252,10 @@ func TestResolveDuplicateIntroducerDeduped(t *testing.T) {
 	_, alicePub := genKeyPair(t)
 	pinVerified(t, "alice", alicePub)
 
-	if err := keys.AddIntroduction("bob", bobPub, "alice"); err != nil {
+	if _, err := keys.AddIntroduction("bob", bobPub, "alice"); err != nil {
 		t.Fatal(err)
 	}
-	if err := keys.AddIntroduction("bob", bobPub, "alice"); err != nil {
+	if _, err := keys.AddIntroduction("bob", bobPub, "alice"); err != nil {
 		t.Fatal(err)
 	}
 

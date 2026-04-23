@@ -106,7 +106,7 @@ func TestAllowedSenderTrustGate(t *testing.T) {
 	// Alice introduces Bob → Bob's pin upgrades to Introduced and is
 	// allowed. AddIntroduction requires alice to already have a verified
 	// pin locally, which pinVerified provided above.
-	if err := keys.AddIntroduction("bob", bobP, "alice"); err != nil {
+	if _, err := keys.AddIntroduction("bob", bobP, "alice"); err != nil {
 		t.Fatalf("add intro: %v", err)
 	}
 	if ok, why := senderAllowed("bob", "alice"); !ok {
@@ -119,10 +119,10 @@ func TestAllowedSenderTrustGate(t *testing.T) {
 	pinVerified(t, "dave", daveP)
 	carolKey1 := genPubPEM(t)
 	carolKey2 := genPubPEM(t)
-	if err := keys.AddIntroduction("carol", carolKey1, "alice"); err != nil {
+	if _, err := keys.AddIntroduction("carol", carolKey1, "alice"); err != nil {
 		t.Fatalf("add intro carol/alice: %v", err)
 	}
-	if err := keys.AddIntroduction("carol", carolKey2, "dave"); err != nil {
+	if _, err := keys.AddIntroduction("carol", carolKey2, "dave"); err != nil {
 		t.Fatalf("add intro carol/dave: %v", err)
 	}
 	if ok, why := senderAllowed("carol", "alice"); ok {

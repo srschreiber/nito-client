@@ -113,7 +113,7 @@ func Connect(ctx context.Context, brokerURL, userID, jwtToken string) error {
 	keyVerifyConfirmChan = make(chan []byte, 8)
 	lateVerifyRespChan = make(chan string, 8)
 	conn = c
-	session = &Session{Username: userID, DeviceID: deviceID, BrokerURL: brokerURL, JWTToken: jwtToken, KeyManager: map[string]*keys.RoomKeyChain{}}
+	session = &Session{Username: userID, DeviceID: deviceID, BrokerURL: brokerURL, JWTToken: jwtToken, KeyManager: map[string]*keys.RoomKeyChain{}, RoomInfos: map[string]*RoomInfo{}}
 	notifChan = nc
 
 	go readLoop(c, echoChan, roomMessageChan, dmChan, nc, keyVerifyChallChan, keyVerifyConfirmChan)

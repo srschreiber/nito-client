@@ -221,9 +221,9 @@ func sendRoomReply(text, roomID string) error {
 	if username == "" || roomID == "" {
 		return fmt.Errorf("no active session/room")
 	}
-	info := connection.GetSessionRoomInfo()
+	info := connection.GetRoomInfo(roomID)
 	if info == nil {
-		return fmt.Errorf("no room info")
+		return fmt.Errorf("no room info for %s", roomID)
 	}
 	count := info.SentMessageCount
 	ct, err := chain.EncryptMessageWithRoomKey([]byte(text), username, &count)
@@ -260,7 +260,7 @@ func sendRoomReply(text, roomID string) error {
 	if err := connection.Send(raw); err != nil {
 		return fmt.Errorf("ws send: %w", err)
 	}
-	connection.IncrementSessionSentMessageCount()
+	connection.IncrementSentMessageCount(roomID)
 	return nil
 }
 

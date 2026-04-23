@@ -39,13 +39,13 @@ type Session struct {
 	DeviceID          string // sha256(DER(local public key)), hex — derived at Connect, never trusted from the broker
 	BrokerURL         string
 	JWTToken          string                        // JWT token for API authentication
-	RoomID            *string                       // currently selected room
-	EncryptedRoomKey  *string                       // encrypted with pub key
-	KeyManager        map[string]*keys.RoomKeyChain // in-memory cache of room key chains for each room, indexed by room ID
+	RoomID            *string                       // currently selected room (desktop UI active room; nil for multi-room bots)
+	EncryptedRoomKey  *string                       // encrypted with pub key for the selected room
+	KeyManager        map[string]*keys.RoomKeyChain // in-memory cache of room key chains, indexed by room ID
 	RoomKeyVersion    *int                          // key version for the current room's key
 	RoomKeyRotator    string                        // username who signed the current room key's manifest (empty if no manifest)
 	RoomKeyRotatorDev string                        // device id of the rotator (empty = root device)
-	RoomInfo          *RoomInfo                     // info about this user's activity in the selected room
+	RoomInfos         map[string]*RoomInfo          // per-room info (sent message counts etc.), indexed by room ID
 }
 
 // v0 returns the full HTTP URL for the given /api/v0 path (e.g. "/rooms").
@@ -198,23 +198,50 @@ func GetSessionRoomKeyVersion() *int {
 	return session.RoomKeyVersion
 }
 
-// GetSessionRoomInfo returns a copy of the current room info, or nil if no room is selected.
+// GetSessionRoomInfo returns a copy of the room info for the currently selected
+// room (session.RoomID), or nil if no room is selected or no info is cached.
+// Desktop callers use this; multi-room callers should use GetRoomInfo(roomID).
 func GetSessionRoomInfo() *RoomInfo {
 	mu.Lock()
 	defer mu.Unlock()
-	if session == nil || session.RoomInfo == nil {
+	if session == nil {
 		return nil
 	}
-	copy := *session.RoomInfo
+	info := session.RoomInfos[utils.DerefOrZero(session.RoomID)]
+	if info == nil {
+		return nil
+	}
+	copy := *info
 	return &copy
 }
 
-// IncrementSessionSentMessageCount atomically increments the sent message counter for the selected room.
-func IncrementSessionSentMessageCount() {
+// GetRoomInfo returns a copy of the cached room info for roomID, or nil if
+// not yet fetched. Use this in preference to GetSessionRoomInfo when the
+// caller knows the room ID explicitly (e.g. the bot serve loop).
+func GetRoomInfo(roomID string) *RoomInfo {
 	mu.Lock()
 	defer mu.Unlock()
-	if session != nil && session.RoomInfo != nil {
-		session.RoomInfo.SentMessageCount++
+	if session == nil {
+		return nil
+	}
+	info := session.RoomInfos[roomID]
+	if info == nil {
+		return nil
+	}
+	copy := *info
+	return &copy
+}
+
+// IncrementSentMessageCount atomically increments the sent message counter for
+// the given room. Callers pass the explicit room ID so multi-room bots can
+// track counts per room independently.
+func IncrementSentMessageCount(roomID string) {
+	mu.Lock()
+	defer mu.Unlock()
+	if session != nil {
+		if info, ok := session.RoomInfos[roomID]; ok {
+			info.SentMessageCount++
+		}
 	}
 }
 
@@ -357,7 +384,7 @@ func setSessionRoomWithTrust(roomID string, allowUnverified bool) error {
 	session.RoomKeyVersion = &rk.KeyVersion
 	session.RoomKeyRotator = rk.Rotator
 	session.RoomKeyRotatorDev = rk.RotatorDevice
-	session.RoomInfo = info
+	session.RoomInfos[roomID] = info
 	clientlog.Info("joined room %s", roomID)
 	return nil
 }
