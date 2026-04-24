@@ -16,33 +16,27 @@ import (
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
 )
 
-// rateWindow is how long a sender must wait between bot requests. 5s is the
-// user-chosen setting in the plan; exposed here rather than inline so the
-// limit is one-place-to-change.
-const rateWindow = 5 * time.Second
-
 // introRefreshInterval is how often the bot re-pulls signed introductions
 // from the broker. SetSessionRoom only fetches them at join time, so without
 // this tick a bot in a long-lived room never learns that its owner has
 // verified (and introduced) new members — those members would be silently
 // refused by senderAllowed. 5 minutes is a compromise between freshness
-// and broker load for a single-bot installation.
+// and broker load.
 const introRefreshInterval = 5 * time.Minute
 
-// runServe is the terminal step: the bot stays in the room forever, watches
-// incoming room messages, and responds to `!`-prefixed commands from
-// owner-introduced senders. Returns only on ctx cancellation.
+// runServe is the terminal step: the bot stays online forever, watches
+// inbound room messages across every joined room, and routes !-prefixed
+// commands through the YAML-defined dispatcher. Returns only on ctx cancel.
 //
-// Reconnect is handled in parallel (reconnectLoop); this loop just follows
-// the RoomMessageChan — on WS close the channel close cascades and we
-// re-fetch after the reconnect completes.
-func runServe(ctx context.Context, state BotState) error {
-	log.Printf("serve: ready — room=%s owner=%q", state.RoomID, state.OwnerUsername)
+// Reconnect, intro refresh, and background invite acceptance run in
+// parallel goroutines; this loop just follows RoomMessageChan.
+func runServe(ctx context.Context, rt *BotRuntime, dispatcher *Dispatcher) error {
+	state := rt.Snapshot()
+	log.Printf("serve: ready — rooms=%v owner=%q commands=%d", state.RoomIDs, state.OwnerUsername, len(dispatcher.cfg.Commands))
 
 	go reconnectLoop(ctx, state)
-	go introRefreshLoop(ctx, state.RoomID)
-
-	limiter := NewLimiter(rateWindow)
+	go inviteAcceptLoop(ctx, rt)
+	go introRefreshLoop(ctx, rt)
 
 	for ctx.Err() == nil {
 		ch := connection.RoomMessageChan()
@@ -52,66 +46,57 @@ func runServe(ctx context.Context, state BotState) error {
 			}
 			continue
 		}
-		// After a reconnect we may need to re-join the room. Do it lazily
-		// on every outer iteration — SetSessionRoom is cheap if the key
-		// is already cached, and it's the single source of truth for
-		// "we're ready to receive".
-		if connection.GetSessionRoomID() == nil {
-			if err := connection.SetSessionRoom(state.RoomID); err != nil {
-				log.Printf("serve: re-join room %s failed: %v", state.RoomID, err)
-				if err := sleepCtx(ctx, 2*time.Second); err != nil {
-					return nil
-				}
+		// After a (re)connect, re-join every room so the broker hands
+		// us its room key and we land on the fan-out gate. Cheap if
+		// the keys are still cached; idempotent on repeat.
+		for _, rid := range rt.Snapshot().RoomIDs {
+			if err := connection.SetSessionRoom(rid); err != nil {
+				log.Printf("serve: re-join room %s failed: %v", rid, err)
 				continue
 			}
+			sendRoomEnter(rid)
 		}
-		// Tell the broker we're actively viewing this room so it fans out
-		// room_message frames to us. The broker's isInRoom gate normally
-		// expects a room_enter before delivering messages — bots never
-		// navigate away, so we re-send on every reconnect.
-		sendRoomEnter(state.RoomID)
-		handleMessages(ctx, ch, state, limiter)
+		handleMessages(ctx, ch, rt, dispatcher)
 	}
 	return nil
 }
 
-// handleMessages decrypts and dispatches until the channel closes
-// (disconnect) or ctx is done.
-func handleMessages(ctx context.Context, ch <-chan []byte, state BotState, limiter *Limiter) {
+// handleMessages decrypts and dispatches until the channel closes (WS
+// disconnect) or ctx is done. Caller re-enters runServe's outer loop on
+// channel close to pick up the new channel after reconnect.
+func handleMessages(ctx context.Context, ch <-chan []byte, rt *BotRuntime, dispatcher *Dispatcher) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case data, ok := <-ch:
 			if !ok {
-				// WS disconnected. Outer loop reopens after reconnect.
 				return
 			}
-			handleOne(data, state, limiter)
+			handleOne(ctx, data, rt, dispatcher)
 		}
 	}
 }
 
-func handleOne(data []byte, state BotState, limiter *Limiter) {
+func handleOne(ctx context.Context, data []byte, rt *BotRuntime, dispatcher *Dispatcher) {
 	var payload wstypes.RoomMessagePayload
 	if err := json.Unmarshal(data, &payload); err != nil {
 		log.Printf("serve: unmarshal room message: %v", err)
 		return
 	}
-	// Ignore messages not for the bot's room (e.g. stale frames on reconnect).
-	if payload.RoomID != state.RoomID {
+	state := rt.Snapshot()
+	if !roomKnown(state.RoomIDs, payload.RoomID) {
+		// Stale frame for a room we've left, or one we haven't joined yet.
 		return
 	}
-	// Ignore our own echoes — the broker echoes every room_message back
-	// to the sender, and the bot's hello reply would otherwise re-enter
-	// the dispatcher as if someone said `!hello`.
+	// Drop our own echoes — the broker echoes every room_message back
+	// to the sender.
 	if payload.FromUsername == state.Username {
 		return
 	}
-	log.Printf("serve: message from %q (room=%s count=%d)", payload.FromUsername, payload.RoomID, payload.SenderMessageCount)
 	chain, err := connection.GetOrCreateRoomKeyChain(payload.RoomID)
 	if err != nil {
-		log.Printf("serve: get key chain: %v", err)
+		log.Printf("serve: get key chain for %s: %v", payload.RoomID, err)
 		return
 	}
 	ct, err := base64.StdEncoding.DecodeString(payload.EncryptedText)
@@ -125,9 +110,8 @@ func handleOne(data []byte, state BotState, limiter *Limiter) {
 		return
 	}
 	text := strings.TrimSpace(string(plaintext))
-	log.Printf("serve: plaintext from %q: %q", payload.FromUsername, text)
 	if !strings.HasPrefix(text, "!") {
-		return // normal chat; not a bot request
+		return
 	}
 
 	allowed, why := senderAllowed(payload.FromUsername, state.OwnerUsername)
@@ -135,15 +119,15 @@ func handleOne(data []byte, state BotState, limiter *Limiter) {
 		log.Printf("serve: refused %q from %q (%s)", firstToken(text), payload.FromUsername, why)
 		return
 	}
-	if !limiter.Allow(payload.FromUsername) {
+
+	reply, rateLimited := dispatcher.Dispatch(ctx, text, payload.FromUsername)
+	if rateLimited {
 		log.Printf("serve: rate-limited %q from %q", firstToken(text), payload.FromUsername)
 		if err := sendRoomReply("hold your horses", payload.RoomID); err != nil {
 			log.Printf("serve: rate-limit reply failed: %v", err)
 		}
 		return
 	}
-
-	reply := dispatch(text, payload.FromUsername)
 	if reply == "" {
 		return
 	}
@@ -152,29 +136,21 @@ func handleOne(data []byte, state BotState, limiter *Limiter) {
 	}
 }
 
-// dispatch is the whole command table. Everything takes the raw text and
-// returns the reply text (or empty to send nothing). Kept inline: one
-// handler today, and the call-site indirection would outweigh any
-// abstraction gain.
-func dispatch(text, sender string) string {
-	cmd := firstToken(text)
-	switch cmd {
-	case "!hello":
-		return fmt.Sprintf("hello, @%s", sender)
-	default:
-		return "" // unknown commands are silently ignored — keeps room chatter clean
+func roomKnown(rooms []string, rid string) bool {
+	for _, r := range rooms {
+		if r == rid {
+			return true
+		}
 	}
+	return false
 }
 
-// introRefreshLoop polls signed introductions on introRefreshInterval and
-// merges newly applied ones into the local trust cache. On disconnect
-// the refresh fails transiently and retries on the next tick — reconnect
-// logic lives in reconnectLoop, this loop doesn't need to care.
-//
-// Runs until ctx is cancelled. One tick is skipped at startup because
-// SetSessionRoom inside runInviteWait already pulled introductions once;
-// the first refresh five minutes later is the first genuinely new data.
-func introRefreshLoop(ctx context.Context, roomID string) {
+// introRefreshLoop polls signed introductions across every joined room
+// on introRefreshInterval and merges newly-applied ones into the local
+// trust cache. On disconnect the refresh fails transiently and retries
+// on the next tick — reconnect logic lives in reconnectLoop, this loop
+// doesn't need to care.
+func introRefreshLoop(ctx context.Context, rt *BotRuntime) {
 	tick := time.NewTicker(introRefreshInterval)
 	defer tick.Stop()
 	for {
@@ -185,13 +161,15 @@ func introRefreshLoop(ctx context.Context, roomID string) {
 			if !connection.IsConnected() {
 				continue
 			}
-			applied, err := connection.RefreshIntroductions(roomID)
-			if err != nil {
-				log.Printf("introductions: refresh failed (%v); will retry in %s", err, introRefreshInterval)
-				continue
-			}
-			if applied > 0 {
-				log.Printf("introductions: applied %d new", applied)
+			for _, rid := range rt.Snapshot().RoomIDs {
+				applied, err := connection.RefreshIntroductions(rid)
+				if err != nil {
+					log.Printf("introductions: refresh %s failed (%v); will retry in %s", rid, err, introRefreshInterval)
+					continue
+				}
+				if applied > 0 {
+					log.Printf("introductions: room %s applied %d new", rid, applied)
+				}
 			}
 		}
 	}
@@ -267,12 +245,10 @@ func sendRoomReply(text, roomID string) error {
 	return nil
 }
 
-// sendRoomEnter tells the broker the bot is actively viewing its room, which
-// opens the broker's fan-out gate for room_message delivery. Inlined here
-// (rather than imported from engine/commands) to keep the bot binary free of
-// the CGo audio stack that engine/commands/voice.go pulls in.
-// Best-effort: a failed send is logged but not fatal — the broker will also
-// accept the bypass path (option 2) once that lands; this is belt-and-suspenders.
+// sendRoomEnter tells the broker the bot is actively viewing the given room,
+// which opens the broker's fan-out gate for room_message delivery. Called
+// after each (re)connect for every joined room. Best-effort: a failed send
+// is logged but not fatal.
 func sendRoomEnter(roomID string) {
 	username := connection.GetSessionUsername()
 	if username == "" {

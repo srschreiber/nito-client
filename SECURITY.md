@@ -366,10 +366,31 @@ edge.
 
 Bots are regular nito users registered with an `is_bot=true` flag —
 same identity keys, same E2EE, same trust model, just headless. The
-one-owner-one-room policy, per-sender rate limit, and
-`!`-prefixed command protocol are documented in [BOTS.md](BOTS.md).
+single-owner trust root, per-command rate limit, multi-room behaviour,
+and `!`-prefixed command protocol are documented in [BOTS.md](BOTS.md).
 Nothing about bots weakens the properties above; they ride on the
 existing `room_message` RPC and inherit every guarantee it provides.
+
+**Script isolation.** A bot's commands are user-defined shell scripts
+named in `bot.yml`. To prevent a malicious or buggy script from reading
+the bot's RSA private key (or its password `.env`), every script runs
+inside a Docker worker container started from an operator-supplied image
+(`worker.image`). The worker has:
+
+- A read-only root filesystem (`--read-only`).
+- A 64 MB tmpfs at `/tmp` for scratch space (`nosuid`, `nodev`).
+- The script source dir bind-mounted at `/scripts` **read-only**.
+- **No** mount of the bot's data dir — the RSA private key,
+  `bot-state.yml`, and `.env` are invisible to the container.
+- All Linux capabilities dropped (`--cap-drop ALL`).
+- `no-new-privileges` set so setuid binaries cannot escalate.
+- A 256-process pid cap.
+- Optional network isolation (`worker.network: false` → `--network none`).
+
+A compromised script can hijack its own command's reply or burn its rate
+limit, but cannot impersonate the bot to the broker or rotate room keys.
+See [BOTS.md §Sandbox model](BOTS.md#sandbox-model) for the full
+breakdown.
 
 ## Testing
 

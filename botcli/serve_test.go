@@ -145,21 +145,6 @@ func TestAllowedSenderTrustGate(t *testing.T) {
 	}
 }
 
-// TestHelloRoundTrip pins dispatch behaviour: `!hello` returns the
-// @-addressed greeting, unknown commands are dropped, and non-`!` chat is
-// ignored entirely by the serve path (handleOne skips the dispatch).
-func TestHelloRoundTrip(t *testing.T) {
-	if got := dispatch("!hello", "alice"); got != "hello, @alice" {
-		t.Fatalf("!hello dispatch: got %q", got)
-	}
-	if got := dispatch("!hello extra args ignored", "bob"); got != "hello, @bob" {
-		t.Fatalf("extra args should not break dispatch: %q", got)
-	}
-	if got := dispatch("!unknown", "alice"); got != "" {
-		t.Fatalf("unknown commands must yield no reply; got %q", got)
-	}
-}
-
 // TestFirstToken checks the minimal parser: whitespace trim, first token,
 // handles the no-space + single-word cases.
 func TestFirstToken(t *testing.T) {

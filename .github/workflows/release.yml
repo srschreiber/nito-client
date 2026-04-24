@@ -152,8 +152,37 @@ jobs:
           name: nito-windows-amd64
           path: ui/nito-windows-amd64.exe
 
+  # nito-bot is pure Go (CGO_ENABLED=0), so a single ubuntu runner cross-
+  # compiles every target. Kept separate from the desktop build matrix above
+  # so a CGo failure on one OS doesn't block the bot from shipping.
+  build-bot:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - name: Cross-compile nito-bot
+        run: |
+          mkdir -p dist
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
+            os="${target%/*}"
+            arch="${target#*/}"
+            ext=""
+            if [ "$os" = "windows" ]; then ext=".exe"; fi
+            out="dist/nito-bot-${os}-${arch}${ext}"
+            echo "Building $out"
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch \
+              go build -trimpath -ldflags="-s -w" -o "$out" ./cmd/nito-bot
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nito-bot-binaries
+          path: dist/nito-bot-*
+
   release:
-    needs: [build-darwin-arm64, build-linux-amd64, build-windows-amd64]
+    needs: [build-darwin-arm64, build-linux-amd64, build-windows-amd64, build-bot]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -163,9 +192,13 @@ jobs:
       - name: Generate checksums
         run: |
           cd dist
-          sha256sum nito-darwin-arm64        > nito-darwin-arm64.sha256
-          sha256sum nito-linux-amd64         > nito-linux-amd64.sha256
-          sha256sum nito-windows-amd64.exe   > nito-windows-amd64.exe.sha256
+          sha256sum nito-darwin-arm64          > nito-darwin-arm64.sha256
+          sha256sum nito-linux-amd64           > nito-linux-amd64.sha256
+          sha256sum nito-windows-amd64.exe     > nito-windows-amd64.exe.sha256
+          for f in nito-bot-*; do
+            case "$f" in *.sha256) continue ;; esac
+            sha256sum "$f" > "${f}.sha256"
+          done
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -176,3 +209,13 @@ jobs:
             dist/nito-linux-amd64.sha256
             dist/nito-windows-amd64.exe
             dist/nito-windows-amd64.exe.sha256
+            dist/nito-bot-linux-amd64
+            dist/nito-bot-linux-amd64.sha256
+            dist/nito-bot-linux-arm64
+            dist/nito-bot-linux-arm64.sha256
+            dist/nito-bot-darwin-amd64
+            dist/nito-bot-darwin-amd64.sha256
+            dist/nito-bot-darwin-arm64
+            dist/nito-bot-darwin-arm64.sha256
+            dist/nito-bot-windows-amd64.exe
+            dist/nito-bot-windows-amd64.exe.sha256

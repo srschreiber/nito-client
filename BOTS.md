@@ -4,10 +4,10 @@ This document is for anyone running (or thinking about running) a nito bot.
 The security model, trust boundaries, and wire protocol are all the same as
 the desktop client — a bot is just a nito user without a GUI. What's
 specific to bots is how they bootstrap, who they accept commands from, and
-how they're deployed.
+how their commands are defined.
 
 For the broader E2EE architecture see [SECURITY.md](SECURITY.md). The bot
-source lives under [`botcli/`](botcli/); the binary is
+source lives under [`botcli/`](botcli/); the binary entry point is
 [`cmd/nito-bot/`](cmd/nito-bot/).
 
 ## What a bot is
@@ -22,13 +22,261 @@ indistinguishable from a human's on the wire.
 
 What's different:
 
-- **Headless.** No voice, no DMs, no image ops, no room creation. The bot
-  joins exactly one room.
+- **Headless.** No voice, no DMs, no image ops, no room creation.
 - **Single owner.** The first user a bot mutual-verifies with becomes its
   operator and is pinned as `Verified`. Only that user can invite the bot
-  to a room.
+  to rooms.
+- **Multi-room.** A single bot serves any number of rooms. The owner just
+  invites it; the bot accepts every owner-issued invite and joins the room.
 - **Narrow request surface.** Room messages whose plaintext starts with
-  `!` are treated as commands. Everything else is ignored.
+  `!` are matched against the configured command table. Everything else
+  is ignored.
+
+## Running
+
+The bot is a single Go binary, distributed for Linux / macOS / Windows.
+
+**Prerequisite: Docker.** The bot shells out to the `docker` CLI to run
+your scripts inside an isolated worker container. Install Docker Desktop
+(macOS/Windows) or your distro's docker package before first launch; the
+bot verifies the daemon is reachable and aborts with a helpful error if
+not. Docker is *not* bundled into the nito-bot binary — standard operator
+setup, keeps the binary small.
+
+Install with the helper script (mirrors the desktop installer):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/srschreiber/nito-client/main/scripts/install-bot.sh | sh
+```
+
+Then run with a config file and a script source directory:
+
+```bash
+nito-bot -f bot.yml -s ./scripts
+```
+
+The first launch walks through registration (broker URL, username,
+password) and a verify handshake against your operator account. Subsequent
+launches resume from the persisted state at `~/.nito-bot/bot-state.yml`
+and skip straight to the serve loop. A Docker image is also available for
+deployment-flavored installs (see [Deployment](#deployment) below).
+
+### From a local checkout
+
+If you've cloned the repo and want to iterate on the bot itself (or just
+kick the tyres before installing), the Makefile has a source-run target
+that builds the example worker image and compiles nito-bot on the fly:
+
+```bash
+make run-bot-local
+```
+
+This launches [`examples/bot/`](examples/bot/) — a minimal alpine worker
+image plus a `hello.sh` command. State lands in `./nito-bot-data/` so the
+example doesn't touch `~/.nito-bot`. Use it as the starting point for
+your own bot.
+
+## Command config — `bot.yml`
+
+Every command the bot serves is a shell script declared in `bot.yml`.
+Defaults apply unless a command overrides them. The `worker:` block names
+the Docker image scripts run inside (see [Sandbox model](#sandbox-model)
+below for the security rationale).
+
+```yaml
+worker:
+  image: my-nito-worker:latest   # built separately via `docker build`
+  network: true                  # allow scripts to reach the internet (default)
+
+defaults:
+  rate_limit_rps: 1       # 1 request per second per sender per command
+  timeout_ms: 1000        # script killed after 1s
+
+commands:
+  hello:
+    script: hello.sh
+    usage: "!hello"
+
+  ask:
+    script: ask.sh
+    usage: "!ask <message>"
+    args_regex: "^(.+)$"
+    arg_names: [message]
+    rate_limit_rps: 0.1   # 1 request per 10 s
+    timeout_ms: 30000     # AI calls can be slow
+```
+
+### Worker block
+
+| Field             | Default | Description                                                                                                                |
+|-------------------|---------|----------------------------------------------------------------------------------------------------------------------------|
+| `worker.image`    | (none)  | Docker image to launch as the script-execution sandbox. If omitted, scripts run unsandboxed (loud warning at startup).     |
+| `worker.network`  | `true`  | Whether the worker container has internet access. Set `false` for offline-only scripts (smaller attack surface).           |
+
+The image is **not** built by nito-bot — you build it once with
+`docker build -t <tag> .`, install whatever runtimes your scripts need
+(curl, jq, python, node, ...), and reference the tag here. nito-bot only
+launches a container from the existing image.
+
+Field reference (per command):
+
+| Field            | Required | Description                                                                                  |
+|------------------|----------|----------------------------------------------------------------------------------------------|
+| `script`         | yes      | Relative path under `-s` source dir; must end in `.sh`; no `..`; no absolute paths.          |
+| `usage`          | no       | Human-readable syntax. Posted in-room when args don't match `args_regex`.                    |
+| `args_regex`     | no       | Go (RE2) pattern matched against everything after the command token. Capture groups are required if `arg_names` is set. |
+| `arg_names`      | no       | Per-capture-group names; zips with regex captures into `NITO_ARG_<UPPERCASE_NAME>` env vars. |
+| `rate_limit_rps` | no       | Requests/second per sender for this command. Inherits `defaults.rate_limit_rps` if absent.   |
+| `timeout_ms`     | no       | Hard kill after this many ms. Inherits `defaults.timeout_ms` if absent. Capped at 60 000.    |
+
+### Sandbox model
+
+When `worker.image` is set, the bot starts **one** long-lived container
+from that image at launch and exec's every command into it. Lifecycle:
+
+1. `nito-bot` boots, validates the image exists locally
+   (`docker image inspect <image>`), and starts the worker with a
+   locked-down profile:
+   ```
+   docker run -d --rm --name nito-worker-<rand> \
+     -v <abs-source-dir>:/scripts:ro \
+     -w /scripts \
+     --read-only \                                  # root fs RO; only /tmp writable
+     --tmpfs /tmp:rw,nosuid,nodev,size=64m,mode=1777 \
+     --cap-drop ALL \                               # no Linux capabilities
+     --security-opt no-new-privileges \             # setuid binaries can't escalate
+     --pids-limit 256 \                             # forkbomb cap
+     [--network none] \                             # if worker.network: false
+     --entrypoint tail \
+     <image> -f /dev/null
+   ```
+2. Each command exec's into the running worker:
+   ```
+   docker exec -i -e NITO_COMMAND=... -e NITO_ARGS=... ... \
+     <worker> sh /scripts/<command-script>
+   ```
+3. On `nito-bot` shutdown (SIGINT / SIGTERM), the worker container is
+   removed (`docker rm -f`).
+
+What the worker can see:
+
+- **/scripts** — the `-s` source dir, **read-only**. Scripts cannot write
+  to the host source.
+- **/tmp** — a 64 MB tmpfs (`nosuid`, `nodev`). Scratch space for scripts
+  that need to drop a temp file; wiped on container removal.
+- The container's own filesystem (whatever you packaged in the image),
+  but root is mounted read-only — scripts can read `/usr/bin/python3`
+  but cannot rewrite it.
+- Network — outbound only, gated by `worker.network`.
+
+What the worker **cannot** see:
+
+- The bot's data dir (`~/.nito-bot/` or `/data`). The RSA private key,
+  the password `.env`, and the bot-state file are not bind-mounted.
+- The bot process's environment. Only the `NITO_*` and `REQUESTER` vars
+  plus a baseline `PATH` are passed through `docker exec -e`.
+- Other containers, the docker socket, host devices.
+
+What the worker **cannot do**:
+
+- Write to its root filesystem (image is read-only; only `/tmp` is
+  writable, capped at 64 MB).
+- Hold any Linux capability (`--cap-drop ALL`) — no raw sockets, no
+  ptrace, nothing privileged.
+- Escalate via setuid binaries (`--security-opt no-new-privileges`).
+- Fork past 256 processes (forkbomb cap).
+
+That's the isolation guarantee: a malicious or buggy script can do
+anything inside its container, but it cannot extract the bot's identity
+keys or impersonate the bot to the broker.
+
+If a script times out, the worker is force-recycled before the next
+command — a runaway script can't hold the worker hostage.
+
+### When `worker.image` is omitted
+
+`nito-bot` prints a loud security warning and prompts the operator for an
+explicit `y/N` confirmation before starting. A non-`y` answer — or any
+detached run without a TTY (e.g. `docker run -d`, CI) — aborts:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECURITY WARNING: no worker.image configured
+
+  Scripts will run in the bot's own process namespace. They
+  CAN read the bot's RSA private key, .env password, and
+  bot-state.yml. ...
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+continue without sandbox? [y/N]:
+```
+
+This hard-fails any accidental detached deployment that forgot to set
+`worker.image`, while still letting a developer opt in from an attached
+terminal for quick local iteration.
+
+### Path safety
+
+Two rules, enforced at config load (so a bad config fails loud at startup,
+not on first message):
+
+1. Script paths must be relative under `-s`. `..` segments and absolute
+   paths are refused. The source directory is the bot's sandbox.
+2. Only `.sh` entry points are allowed. The script is free to call
+   python, node, cargo, whatever — that's a script-level decision the
+   bot doesn't audit.
+
+### Args parser
+
+Go's `regexp` package (RE2 syntax) is what's used. Use plain `(...)`
+captures, not Python-style `(?P<name>...)` — the binding from capture to
+env var name comes from `arg_names`, not the regex itself.
+
+`args_regex` runs against everything after the command token (whitespace
+trimmed). On mismatch the bot replies with `usage` (or a generic
+`usage: !cmd` if no `usage` was set) and does not run the script.
+
+If `args_regex` is omitted, every message that begins with the command
+token is accepted; the script just receives `NITO_ARGS` and decides
+what to do with it.
+
+### Script protocol
+
+The bot exec's `sh <script>` (inside the worker container, if configured)
+with **a sandboxed env** — the host's environment is *not* inherited, so
+scripts cannot read `NITO_BOT_PASSWORD` or any other host secret. Only
+these variables are passed:
+
+| Variable             | Value                                                              |
+|----------------------|--------------------------------------------------------------------|
+| `PATH`               | Standard system path so shebangs and `command -v` work.            |
+| `NITO_COMMAND`       | The matched command name (e.g. `ask`).                             |
+| `NITO_ARGS`          | Raw text after the command token, whitespace-trimmed.              |
+| `NITO_ARG_<NAME>`    | One per `arg_names` entry, populated from the regex capture group. |
+| `REQUESTER`          | The username of the in-room sender.                                |
+
+The script must print exactly one JSON object on stdout:
+
+```json
+{"reply": "anything you want said in the room"}
+```
+
+An empty `reply` (or empty stdout) means "no reply" — useful for fire-
+and-forget side effects. Non-JSON output is logged as an error and
+produces no reply. Stderr is captured into the bot's log on script
+failure for debugging; it never reaches the room.
+
+#### Example: `!ask why is the sky blue` with the config above
+
+```
+NITO_COMMAND=ask
+NITO_ARGS=why is the sky blue
+NITO_ARG_MESSAGE=why is the sky blue
+REQUESTER=alice
+```
+
+`ask.sh` might shell out to `curl ... | jq` to call OpenAI and emit
+`{"reply": "<answer>"}` on stdout.
 
 ## Bootstrap flow — resumable
 
@@ -39,8 +287,8 @@ launch. Killing the process at any step is safe.
 ```
 fresh        →  registration wizard (broker URL, username, password)
 registered   →  prompt for "verify with" username; run A-side handshake
-verified     →  poll + listen for invite; accept first from owner
-ready        →  serve !-prefixed commands forever
+verified     →  wait for first invite; on accept transition to ready
+ready        →  serve forever; accept further invites in the background
 ```
 
 On reconnect the bot loops every **10 seconds** until the broker is back.
@@ -74,17 +322,18 @@ verify anyone on its own after bootstrap. Instead:
 4. **Command acceptance** is gated on the sender being either the owner
    or someone the owner has introduced (via a `SignedIntroduction` the
    broker serves at room-join time). TOFU-only peers are refused, as
-   are peers the resolver flags as `Contested`.
+   are peers the resolver flags as `Contested`. An introduction whose
+   introducer is anyone other than the owner does not count — the bot's
+   trust root is its single owner, not the wider web-of-trust.
 
 Concretely: a room member that the owner has not verified cannot make the
-bot do anything, even if they're in the same room. This keeps the bot's
-effective attack surface to "people the owner trusts".
+bot do anything, even if they're in the same room.
 
 **Introduction freshness.** Desktop clients only pull introductions at
-room-join time because they join often. A bot joins its room once and
-stays forever, so it re-pulls the room's introductions every **5 minutes**
+room-join time because they join often. A bot stays in its rooms
+indefinitely, so it re-pulls each room's introductions every **5 minutes**
 via `connection.RefreshIntroductions`. This lets a peer the owner
-verifies *after* the bot has joined start using `!hello` within a few
+verifies *after* the bot has joined start using bot commands within a few
 minutes, rather than being silently refused forever.
 
 ## Request protocol
@@ -93,20 +342,19 @@ Bot requests ride inside the normal `room_message` WebSocket frame — there
 is no dedicated RPC type, and the broker cannot distinguish bot traffic
 from chat traffic because the `!` prefix lives inside the ciphertext.
 
-**v1 commands**
+**Dispatch rules**
 
-| Command  | Who can send | Reply |
-|----------|--------------|-------|
-| `!hello` | owner or owner-introduced peers | `hello, @<sender>` in the room |
+- A message that doesn't start with `!` is ignored.
+- The first whitespace-delimited token (minus the `!`) is matched against
+  the `commands:` table. Unknown commands are silently dropped.
+- If `args_regex` is configured, the rest of the message must match — on
+  mismatch the bot replies with `usage`.
+- Otherwise the script is exec'd with the env vars listed above; its
+  `{"reply": "..."}` is posted in-room.
 
-Unknown `!`-prefixed commands are silently dropped. Non-`!` messages are
-ignored by the bot entirely.
-
-**Rate limit.** Bots are effectively servers, so we rate-limit per sender:
-**1 request per 5 seconds**. Excess requests are dropped silently (no
-reply, to avoid amplifying an abuse attempt). The limit is a sliding
-window, not a token bucket — flooding the gate does not extend a sender's
-cooldown past the next legitimate window.
+**Rate limit.** Per command, per sender, configurable via `rate_limit_rps`.
+Default 1 rps. When a sender hits the limit the bot replies "hold your
+horses" once per denied request and skips the script.
 
 **Reply surface.** Replies are posted in-room using the standard room
 ratchet — every member decrypts them. We don't DM replies because DMs
@@ -115,12 +363,12 @@ interaction from other room members, which is rarely what you want for a
 bot.
 
 **Self-echo.** The broker echoes every `room_message` back to the sender
-so mobile clients stay in sync; the bot drops its own echoes at the
+so other clients stay in sync; the bot drops its own echoes at the
 dispatch layer to avoid replying to itself.
 
 ## Deployment
 
-The bot ships as a distroless Docker image built from source:
+The bot also ships as a distroless Docker image:
 
 ```bash
 # From the repo root:
@@ -131,13 +379,10 @@ The bot ships as a distroless Docker image built from source:
 DETACH=1 ./scripts/run-bot.sh
 ```
 
-All state lives under `./nito-bot-data` (mounted at `/data` inside the
-container):
-
-- `bot-state.yml` — current step, broker URL, owner username, room id
-- `.env` — `NITO_BOT_PASSWORD=...` captured during first-run registration
-- `.nito/<broker>/users/<bot>/keys/` — RSA keypair (mode 0600)
-- `.nito/<broker>/publickeys/` — pinned peer pubkeys (owner + room members)
+When running in Docker, mount your scripts into the container and pass
+the same `-f`/`-s` flags via a wrapper or by overriding `CMD`. All bot
+state (keys, .env, bot-state.yml) lives under `./nito-bot-data` (mounted
+at `/data`).
 
 To deploy to a cloud runner, `docker save nito-bot:latest | gzip` and
 transfer. The image is architecture-matched to the host that built it —
@@ -165,10 +410,6 @@ checklist. Summary:
    just needs to echo them back, plus the authenticated inviter's
    username and the sha256 DER of their pubkey. None are optional —
    both bots and the desktop UI refuse invites that lack any of these.
-4. (Recommended) reject `InviteUser` when the target is a bot and the
-   room already contains one. Client-side enforced too, but a
-   misbehaving client shouldn't be able to break the one-bot-per-room
-   rule.
 
 No new WebSocket message types are needed. Bot requests are plain
 `room_message` frames — the broker sees `RoomKeyVersion`, timestamps,
@@ -182,18 +423,28 @@ ciphertext, and nothing else, exactly as it does for human chat.
 - **Compromising a bot compromises one room member, not the broker.** A
   bot's private key lives on the host; treat it like any other server
   secret. A bot machine compromise gives the attacker room-level read +
-  write and nothing more.
-- One owner per bot, one bot per room, in v1. These are policy choices —
-  relaxing them later is a follow-up, not a v1 correctness concern.
+  write across every joined room and nothing more.
+- **Scripts are sandboxed in a worker container** (when `worker.image` is
+  set). The worker has no view of the bot's keys, .env, or state file —
+  only the read-only source dir and whatever the operator baked into the
+  image. A malicious script can hijack its own command's reply, but
+  cannot impersonate the bot or steal the bot's identity.
+- **Env is sandboxed too.** Host vars (including `NITO_BOT_PASSWORD`) are
+  never inherited; only the `NITO_*` and `REQUESTER` vars plus `PATH` are
+  passed. Script authors who shell out to other tools should still treat
+  `NITO_ARGS` as untrusted user input and quote/escape accordingly.
+- One owner per bot, in v1. Multi-owner support would require maintaining
+  the owner set by vouching, similar to room-member inclusion.
 - Rate limiting and the trust gate are defense-in-depth, not a primary
   control. The primary control is that only room members can send
   encrypted messages to the room at all.
 
 ## Out of scope (for now)
 
-- Multi-owner bots (would require the owner set to be maintained by
-  vouching, similar to room-member inclusion).
-- Additional `!` commands. The dispatch table in `botcli/serve.go` is
-  deliberately a switch statement — add a case and a test, no framework.
+- Multi-owner bots.
 - DM-based request protocol. DMs are drained and dropped.
 - Voice / image / audio playback. Never, by design.
+- Native Windows script execution. The bot runs on Windows but the
+  command-script protocol assumes POSIX `sh`; on Windows the binary
+  can be used for register/verify, but expect to deploy on Linux/macOS
+  for the serve loop.

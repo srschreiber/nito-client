@@ -1,0 +1,21 @@
+# Example bot.yml — pairs with examples/bot/Dockerfile and
+# examples/bot/scripts/hello.sh. Build + run with:
+#
+#   make run-bot-local
+#
+# which builds the worker image, compiles nito-bot from source, and runs
+# the bootstrap flow (register → verify → invite → serve) against this
+# config. See BOTS.md for the full field reference.
+
+worker:
+  image: nito-example-worker:latest
+  network: false  # hello doesn't need outbound internet
+
+defaults:
+  rate_limit_rps: 1
+  timeout_ms: 1000
+
+commands:
+  hello:
+    script: hello.sh
+    usage: "!hello"

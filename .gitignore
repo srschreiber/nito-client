@@ -1,6 +1,8 @@
 shellapp/.nito/
 shellapp/shellap
 *.pem
+nito-bot-data/
+nito-bot
 webrtc-audio-processing/build/
 webrtc-audio-processing/subprojects/abseil-cpp-20240722.0/
 webrtc-audio-processing/subprojects/packagecache/

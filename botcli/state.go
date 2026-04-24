@@ -45,8 +45,14 @@ type BotState struct {
 	// time. Cross-checked on every start so a compromised-broker identity swap
 	// at the owner level forces a hard stop instead of silently re-trusting.
 	OwnerDeviceID string `yaml:"owner_device_id,omitempty"`
-	RoomID        string `yaml:"room_id,omitempty"`
-	Step          Step   `yaml:"step"`
+	// RoomIDs is the set of rooms the bot has been invited into and joined.
+	// Multi-room since v0.3: the bot accepts every owner-issued invite, so a
+	// single bot can serve multiple rooms simultaneously.
+	RoomIDs []string `yaml:"room_ids,omitempty"`
+	// LegacyRoomID is the v0.2 single-room field, kept for one-shot migration
+	// on load. Never written back: SaveState clears it.
+	LegacyRoomID string `yaml:"room_id,omitempty"`
+	Step         Step   `yaml:"step"`
 }
 
 // DataDir resolves the bot's per-install data directory. NITO_BOT_DATA wins
@@ -96,6 +102,11 @@ func LoadState() (BotState, error) {
 	if err := yaml.Unmarshal(data, &s); err != nil {
 		return BotState{}, fmt.Errorf("parse state: %w", err)
 	}
+	// One-shot migration from the v0.2 single-room layout.
+	if s.LegacyRoomID != "" && len(s.RoomIDs) == 0 {
+		s.RoomIDs = []string{s.LegacyRoomID}
+	}
+	s.LegacyRoomID = ""
 	return s, nil
 }
 

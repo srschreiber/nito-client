@@ -16,49 +16,39 @@ import (
 	wstypes "github.com/srschreiber/nito-client/shared/websocket_types"
 )
 
-// runInviteWait blocks until the bot accepts its first invite from the
-// verified owner. It:
+// runFirstInviteWait blocks until the bot accepts its first invite from the
+// verified owner, then transitions to StepReady. Subsequent invites are
+// accepted by inviteAcceptLoop running alongside the serve loop.
 //
-//  1. Polls ListPendingInvites once on entry (cold start may have missed
-//     the original user_added_to_room notification).
-//  2. Listens on NotifChan() for subsequent UserAddedToRoom events and
-//     re-polls on each.
-//
-// For each pending invite it checks InviterUsername == owner; anything else
-// is logged and ignored. The first match is accepted + persisted.
-//
-// The reconnect loop runs alongside this; if the WS drops, our NotifChan
-// returns a new channel after login re-establishes. The caller's ctx tying
-// us to SIGTERM means a stop-the-bot during this phase exits promptly.
-func runInviteWait(ctx context.Context, state BotState) (BotState, error) {
-	log.Printf("invite: waiting for invite from owner %q", state.OwnerUsername)
+// Cold-start sweep first (the owner may have invited us while offline), then
+// listen on NotifChan for further UserAddedToRoom events and re-poll on each.
+func runFirstInviteWait(ctx context.Context, rt *BotRuntime) error {
+	owner := rt.Snapshot().OwnerUsername
+	log.Printf("invite: waiting for first invite from owner %q", owner)
 
-	// Start reconnect watcher in background so WS drops during the wait
-	// don't leave us dangling with a closed NotifChan forever.
-	go reconnectLoop(ctx, state)
+	// Reconnect watcher: WS drops during the wait shouldn't leave us
+	// dangling on a closed NotifChan forever.
+	go reconnectLoop(ctx, rt.Snapshot())
 
-	// Initial sweep: handles the case where the owner invited us while the
-	// bot was offline, so the push notification was never delivered.
-	if st, ok := tryAcceptInvites(ctx, state); ok {
-		return st, nil
+	if accepted := tryAcceptInvites(ctx, rt); accepted > 0 {
+		return rt.SetStep(StepReady)
 	}
 
 	for ctx.Err() == nil {
 		ch := connection.NotifChan()
 		if ch == nil {
 			if err := sleepCtx(ctx, 500*time.Millisecond); err != nil {
-				return state, err
+				return err
 			}
 			continue
 		}
 		select {
 		case <-ctx.Done():
-			return state, ctx.Err()
+			return ctx.Err()
 		case data, ok := <-ch:
 			if !ok {
-				// Reconnecting — wait briefly and re-fetch channel.
 				if err := sleepCtx(ctx, 500*time.Millisecond); err != nil {
-					return state, err
+					return err
 				}
 				continue
 			}
@@ -69,36 +59,76 @@ func runInviteWait(ctx context.Context, state BotState) (BotState, error) {
 			if notif.Type != wstypes.NotificationTypeUserAddedToRoom {
 				continue
 			}
-			if st, ok := tryAcceptInvites(ctx, state); ok {
-				return st, nil
+			if accepted := tryAcceptInvites(ctx, rt); accepted > 0 {
+				return rt.SetStep(StepReady)
 			}
 		}
 	}
-	return state, ctx.Err()
+	return ctx.Err()
 }
 
-// tryAcceptInvites pulls pending invites and accepts the first one from the
-// verified owner. Returns (newState, true) on a successful accept, or
-// (state, false) otherwise. Errors are logged and do not propagate — a
-// transient broker issue shouldn't kill the bot.
-func tryAcceptInvites(ctx context.Context, state BotState) (BotState, bool) {
+// inviteAcceptLoop runs in the background once the bot is in StepReady. It
+// polls + listens for new owner invites and joins each accepted room into
+// the runtime's RoomIDs. The serve loop discovers the new room on its next
+// re-join sweep (after the next reconnect, or via the explicit join we do
+// here).
+func inviteAcceptLoop(ctx context.Context, rt *BotRuntime) {
+	// Pull anything that landed while we were offline before listening for
+	// pushes — otherwise a notification we missed would never get a retry.
+	tryAcceptInvites(ctx, rt)
+
+	for ctx.Err() == nil {
+		ch := connection.NotifChan()
+		if ch == nil {
+			if err := sleepCtx(ctx, 500*time.Millisecond); err != nil {
+				return
+			}
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case data, ok := <-ch:
+			if !ok {
+				if err := sleepCtx(ctx, 500*time.Millisecond); err != nil {
+					return
+				}
+				continue
+			}
+			var notif wstypes.NotificationPayload
+			if err := json.Unmarshal(data, &notif); err != nil {
+				continue
+			}
+			if notif.Type != wstypes.NotificationTypeUserAddedToRoom {
+				continue
+			}
+			tryAcceptInvites(ctx, rt)
+		}
+	}
+}
+
+// tryAcceptInvites pulls pending invites and accepts every one that passes
+// the owner-only policy. Returns the count of newly-joined rooms.
+func tryAcceptInvites(ctx context.Context, rt *BotRuntime) int {
+	state := rt.Snapshot()
 	invites, err := connection.ListPendingInvites()
 	if err != nil {
 		log.Printf("invite: list failed (will retry on next notification): %v", err)
-		return state, false
+		return 0
 	}
+	accepted := 0
 	for _, inv := range invites {
 		if err := checkInviteAuth(inv, state); err != nil {
 			log.Printf("invite: refusing %q: %v", inv.RoomID, err)
 			continue
 		}
-		if err := acceptAndJoin(inv, &state); err != nil {
+		if err := acceptAndJoin(inv, rt); err != nil {
 			log.Printf("invite: accept %q failed: %v", inv.RoomID, err)
 			continue
 		}
-		return state, true
+		accepted++
 	}
-	return state, false
+	return accepted
 }
 
 // checkInviteAuth layers the bot's owner-only policy on top of the
@@ -139,30 +169,26 @@ func checkInviteAuth(inv apitypes.PendingInvite, state BotState) error {
 	return nil
 }
 
-// acceptAndJoin accepts the broker-side invite, then joins the room in the
-// local session so the room key is decrypted and cached. Joining early lets
-// the ready loop start receiving messages without a separate "select room"
-// step.
-//
-// Owner's public key was pinned as Verified during the verify step, so the
-// engine's SetSessionRoom can resolve the room creator's attestation without
-// any extra work here — the standard trust path applies.
-func acceptAndJoin(inv apitypes.PendingInvite, state *BotState) error {
+// acceptAndJoin accepts the broker-side invite, joins the room locally so
+// the room key is decrypted and cached, sends room_enter so the broker
+// fans out subsequent messages, and persists the new RoomID to disk.
+func acceptAndJoin(inv apitypes.PendingInvite, rt *BotRuntime) error {
 	if err := connection.AcceptInvite(inv.RoomID); err != nil {
 		return err
 	}
 	if err := connection.SetSessionRoom(inv.RoomID); err != nil {
-		// If the room's rotator isn't verified/introduced, the bot
-		// refuses to join — same policy as the desktop client. This is
-		// the correct behaviour: a bot that trusts broker-asserted
-		// identities bypasses the whole web-of-trust story. Log + bail.
+		// If the rotator isn't verified/introduced, the bot refuses the
+		// join — same policy as the desktop client. Bail rather than
+		// trust a broker-asserted identity for messaging.
 		return err
 	}
-	state.RoomID = inv.RoomID
-	state.Step = StepReady
-	if err := SaveState(*state); err != nil {
-		return err
+	added, err := rt.AddRoom(inv.RoomID)
+	if err != nil {
+		return fmt.Errorf("persist room id: %w", err)
 	}
-	log.Printf("invite: joined room %q (%s) — bootstrap complete", inv.RoomName, inv.RoomID)
+	if added {
+		sendRoomEnter(inv.RoomID)
+		log.Printf("invite: joined room %q (%s)", inv.RoomName, inv.RoomID)
+	}
 	return nil
 }

@@ -4,12 +4,14 @@
 package botcli
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,16 +19,37 @@ import (
 	"github.com/srschreiber/nito-client/engine/keys"
 )
 
-// Main is the bot's process entry point. It selects the next action from the
-// persisted state, drives interactive prompts through bubbletea when needed,
-// and enters the headless serve loop once bootstrap is complete.
+// Main is the bot's process entry point. configPath is the YAML command
+// table (-f); sourceDir is the directory those scripts live under (-s).
+// The state file is still authoritative for "what step are we in"; the
+// config controls "what commands do we serve once we're ready."
 //
-// The same binary handles every phase: the caller doesn't pass flags
-// describing "what to do" — the state file is authoritative. Users who want
-// to start over delete ~/.nito-bot (or the mounted /data volume) and re-run.
-func Main() int {
+// We load and validate the config eagerly — a malformed config or a
+// missing script aborts before we touch the broker, which keeps the
+// failure message visible at the terminal instead of buried in serve-loop
+// logs.
+func Main(configPath, sourceDir string) int {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	log.SetPrefix("[nito-bot] ")
+
+	cfg, err := LoadConfig(configPath, sourceDir)
+	if err != nil {
+		log.Printf("config load failed: %v", err)
+		return 1
+	}
+	defer func() {
+		if err := cfg.Close(); err != nil {
+			log.Printf("worker shutdown: %v", err)
+		}
+	}()
+	if cfg.HasSandbox() {
+		log.Printf("loaded %d commands from %s (source=%s, sandbox=%s)", len(cfg.Commands), configPath, sourceDir, cfg.Worker.Image)
+	} else {
+		log.Printf("loaded %d commands from %s (source=%s)", len(cfg.Commands), configPath, sourceDir)
+		if !confirmUnsandboxed() {
+			return 1
+		}
+	}
 
 	// Pull values persisted by the wizard (NITO_BOT_PASSWORD) into the
 	// process env before any step that needs them. Process env always
@@ -101,19 +124,22 @@ func Main() int {
 		state = newState
 	}
 
+	rt := NewRuntime(state)
+
 	// Invite step: headless loop that accepts the first invite from the
-	// verified owner and persists the room ID.
+	// verified owner and transitions to StepReady. Subsequent invites are
+	// accepted in the background by inviteAcceptLoop inside runServe.
 	if state.Step == StepVerified {
-		newState, err := runInviteWait(ctx, state)
-		if err != nil {
+		if err := runFirstInviteWait(ctx, rt); err != nil {
 			log.Printf("invite wait ended: %v", err)
 			return 1
 		}
-		state = newState
 	}
 
+	dispatcher := NewDispatcher(cfg)
+
 	// Ready: serve forever. Only returns on ctx cancel.
-	if err := runServe(ctx, state); err != nil {
+	if err := runServe(ctx, rt, dispatcher); err != nil {
 		log.Printf("serve ended: %v", err)
 		return 1
 	}
@@ -181,4 +207,44 @@ func sleepCtx(ctx context.Context, d time.Duration) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+// confirmUnsandboxed prints a loud warning + a y/N prompt when bot.yml
+// has no worker.image. Returns true if the operator explicitly typed y
+// (or yes). No TTY means no human to ACK, so we refuse to start — this
+// is what blocks someone from silently shipping an unsandboxed bot to
+// prod under `docker run -d`.
+func confirmUnsandboxed() bool {
+	bar := strings.Repeat("━", 70)
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, bar)
+	fmt.Fprintln(os.Stderr, "  SECURITY WARNING: no worker.image configured")
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "  Scripts will run in the bot's own process namespace. They")
+	fmt.Fprintln(os.Stderr, "  CAN read the bot's RSA private key, .env password, and")
+	fmt.Fprintln(os.Stderr, "  bot-state.yml. A malicious or buggy script can impersonate")
+	fmt.Fprintln(os.Stderr, "  the bot to the broker.")
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "  Set worker.image in bot.yml to run every script inside a")
+	fmt.Fprintln(os.Stderr, "  locked-down worker container. See BOTS.md §Sandbox model.")
+	fmt.Fprintln(os.Stderr, bar)
+	fmt.Fprintln(os.Stderr)
+
+	if !stdinIsTTY() {
+		log.Printf("aborting: no TTY to confirm unsandboxed mode. Set worker.image (or re-run with a TTY attached).")
+		return false
+	}
+	fmt.Fprint(os.Stderr, "continue without sandbox? [y/N]: ")
+	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil {
+		log.Printf("aborting: could not read confirmation (%v)", err)
+		return false
+	}
+	ans := strings.ToLower(strings.TrimSpace(line))
+	if ans != "y" && ans != "yes" {
+		log.Printf("aborted by operator (answered %q)", ans)
+		return false
+	}
+	log.Printf("proceeding without sandbox (operator confirmed)")
+	return true
 }

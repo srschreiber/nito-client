@@ -1,0 +1,1273 @@
+09:35:10 [INFO] nito started
+09:35:10 [INFO] nito starting up...
+09:35:13 [INFO] connected to broker oregon.nito-broker.com as sammac
+09:35:13 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+09:35:19 [INFO] nito started
+09:35:19 [INFO] nito starting up...
+09:42:11 [INFO] nito started
+09:42:11 [INFO] nito starting up...
+09:42:14 [INFO] connected to broker oregon.nito-broker.com as sammac
+09:42:14 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+09:42:16 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+09:42:16 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+10:27:19 [ERROR] send message failed: say: not connected (use connect first)
+10:27:50 [INFO] nito started
+10:27:50 [INFO] nito starting up...
+10:27:53 [INFO] connected to broker oregon.nito-broker.com as sammac
+10:27:53 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+10:27:55 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:27:55 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+10:32:35 [INFO] nito started
+10:32:35 [INFO] nito starting up...
+10:32:39 [INFO] connected to broker oregon.nito-broker.com as sammac
+10:32:39 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+10:32:42 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:32:42 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+10:36:08 [INFO] nito started
+10:36:08 [INFO] nito starting up...
+10:36:11 [INFO] connected to broker oregon.nito-broker.com as sammac
+10:36:11 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+10:36:12 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:36:12 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+10:42:20 [INFO] nito started
+10:42:20 [INFO] nito starting up...
+10:42:23 [INFO] connected to broker oregon.nito-broker.com as sammac
+10:42:23 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+10:42:24 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:42:24 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+10:42:40 [INFO] joined room 385fcf4d-dc8c-422a-ba61-e53cf0a6c28e
+10:42:40 [INFO] joined room: test
+10:42:41 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:42:41 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+10:46:32 [INFO] nito started
+10:46:32 [INFO] nito starting up...
+10:46:35 [INFO] connected to broker oregon.nito-broker.com as sammac
+10:46:35 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+10:46:36 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:46:36 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+10:51:37 [INFO] nito started
+10:51:37 [INFO] nito starting up...
+10:51:39 [INFO] connected to broker oregon.nito-broker.com as sammac
+10:51:39 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+10:51:41 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:51:41 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+10:54:34 [INFO] nito started
+10:54:34 [INFO] nito starting up...
+10:54:36 [INFO] connected to broker oregon.nito-broker.com as sammac
+10:54:36 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+10:54:38 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:54:38 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+10:57:19 [INFO] joined room 385fcf4d-dc8c-422a-ba61-e53cf0a6c28e
+10:57:19 [INFO] joined room: test
+10:59:31 [INFO] nito started
+10:59:31 [INFO] nito starting up...
+10:59:35 [INFO] connected to broker oregon.nito-broker.com as sammac
+10:59:35 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+10:59:36 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+10:59:36 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+10:59:36 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+10:59:36 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+10:59:36 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+10:59:36 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+10:59:37 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+10:59:37 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+10:59:37 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+10:59:37 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+10:59:37 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+10:59:37 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+10:59:37 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+10:59:37 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:00:03 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:00:03 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+11:00:03 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:00:03 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:00:03 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:00:03 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:00:03 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:00:03 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:00:03 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:00:03 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:00:03 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:00:03 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:00:03 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:00:03 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:00:03 [INFO] joined room 385fcf4d-dc8c-422a-ba61-e53cf0a6c28e
+11:00:03 [INFO] joined room: test
+11:00:06 [INFO] joined room 15af7fab-7499-4ba6-8cc2-099d4178dfc0
+11:00:06 [INFO] joined room: sammac
+11:00:16 [INFO] joined room 15af7fab-7499-4ba6-8cc2-099d4178dfc0
+11:00:16 [INFO] joined room: sammac
+11:00:21 [INFO] joined room 72812278-d32e-4839-93ae-f79bd42f0521
+11:00:21 [INFO] joined room: f
+11:01:03 [INFO] nito started
+11:01:03 [INFO] nito starting up...
+11:01:50 [INFO] nito started
+11:01:50 [INFO] nito starting up...
+11:01:53 [INFO] connected to broker oregon.nito-broker.com as sammac
+11:01:53 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+11:01:56 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:01:56 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+11:01:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:01:56 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:01:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:01:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:01:57 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:01:57 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:01:57 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:01:57 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:01:57 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:01:57 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:01:57 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:01:57 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:02:31 [INFO] nito started
+11:02:31 [INFO] nito starting up...
+11:02:34 [INFO] connected to broker oregon.nito-broker.com as sammac
+11:02:34 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+11:02:36 [INFO] joined room 72812278-d32e-4839-93ae-f79bd42f0521
+11:02:36 [INFO] joined room: f
+11:03:38 [INFO] created room: test2
+11:03:40 [INFO] joined room 4938cd5a-8342-4ef2-b72a-b07d5998b7b0
+11:03:40 [INFO] joined room: test2
+11:04:17 [INFO] nito started
+11:04:17 [INFO] nito starting up...
+11:04:20 [INFO] connected to broker oregon.nito-broker.com as sammac
+11:04:20 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+11:04:24 [INFO] joined room 4938cd5a-8342-4ef2-b72a-b07d5998b7b0
+11:04:24 [INFO] joined room: test2
+11:04:31 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:04:31 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+11:04:31 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:04:31 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:04:31 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:04:31 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:04:32 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:04:32 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:04:32 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:04:32 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:04:32 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:04:32 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:04:32 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:04:32 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:04:36 [INFO] joined room 385fcf4d-dc8c-422a-ba61-e53cf0a6c28e
+11:04:36 [INFO] joined room: test
+11:05:31 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:05:31 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+11:05:31 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:05:31 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:05:31 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:05:31 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:05:31 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:05:31 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:05:31 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:05:31 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:05:31 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:05:31 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:05:31 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:05:31 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:05:33 [INFO] joined room 15af7fab-7499-4ba6-8cc2-099d4178dfc0
+11:05:33 [INFO] joined room: sammac
+11:05:44 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:05:44 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+11:05:44 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:05:44 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:05:44 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:05:44 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:05:44 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:05:44 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:05:44 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:05:44 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:05:44 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:05:44 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:05:45 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:05:45 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:06:06 [INFO] joined room 4938cd5a-8342-4ef2-b72a-b07d5998b7b0
+11:06:06 [INFO] joined room: test2
+11:06:26 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMjFpOW0ybmhld3hiaXU4bzZlOXBudmhrM2d4dmZlOHRrMzg3NjVyMyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gw3IWyGkC0rsazTi/giphy.gif
+11:06:26 [INFO] gif: downloaded 123817 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMjFpOW0ybmhld3hiaXU4bzZlOXBudmhrM2d4dmZlOHRrMzg3NjVyMyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gw3IWyGkC0rsazTi/giphy.gif
+11:06:26 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMjFpOW0ybmhld3hiaXU4bzZlOXBudmhrM2d4dmZlOHRrMzg3NjVyMyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gw3IWyGkC0rsazTi/giphy.gif
+11:06:39 [INFO] nito started
+11:06:39 [INFO] nito starting up...
+11:06:41 [INFO] connected to broker oregon.nito-broker.com as sammac
+11:06:41 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+11:06:42 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:06:42 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+11:06:43 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:06:43 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:06:43 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:06:43 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:06:43 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:06:43 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:06:43 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:06:43 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:06:43 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:06:43 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:06:43 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:06:43 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:06:54 [INFO] joined room 4938cd5a-8342-4ef2-b72a-b07d5998b7b0
+11:06:54 [INFO] joined room: test2
+11:06:54 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMjFpOW0ybmhld3hiaXU4bzZlOXBudmhrM2d4dmZlOHRrMzg3NjVyMyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gw3IWyGkC0rsazTi/giphy.gif
+11:06:54 [INFO] gif: downloaded 123817 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMjFpOW0ybmhld3hiaXU4bzZlOXBudmhrM2d4dmZlOHRrMzg3NjVyMyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gw3IWyGkC0rsazTi/giphy.gif
+11:06:54 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMjFpOW0ybmhld3hiaXU4bzZlOXBudmhrM2d4dmZlOHRrMzg3NjVyMyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gw3IWyGkC0rsazTi/giphy.gif
+11:07:06 [INFO] joined room 4938cd5a-8342-4ef2-b72a-b07d5998b7b0
+11:07:06 [INFO] joined room: test2
+11:07:06 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMjFpOW0ybmhld3hiaXU4bzZlOXBudmhrM2d4dmZlOHRrMzg3NjVyMyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gw3IWyGkC0rsazTi/giphy.gif
+11:07:06 [INFO] gif: downloaded 123817 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMjFpOW0ybmhld3hiaXU4bzZlOXBudmhrM2d4dmZlOHRrMzg3NjVyMyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gw3IWyGkC0rsazTi/giphy.gif
+11:07:06 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMjFpOW0ybmhld3hiaXU4bzZlOXBudmhrM2d4dmZlOHRrMzg3NjVyMyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gw3IWyGkC0rsazTi/giphy.gif
+11:07:09 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:07:09 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+11:07:10 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:07:10 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:07:10 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:07:10 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:07:10 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:07:10 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:07:10 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:07:10 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:07:10 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:07:10 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:07:10 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:07:10 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:08:41 [INFO] nito started
+11:08:41 [INFO] nito starting up...
+11:08:48 [INFO] connected to broker oregon.nito-broker.com as sammac
+11:08:48 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+11:08:53 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:08:53 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+11:08:53 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:08:53 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:08:53 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:08:53 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:08:54 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:08:54 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:08:54 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:08:54 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:08:54 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:08:54 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:08:54 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:08:54 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:16:34 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:16:34 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:16:34 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:16:47 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:16:48 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:16:48 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:56 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:56 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:56 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:56 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:56 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:56 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:56 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:56 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:56 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:56 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:56 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:56 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:56 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:56 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:57 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:57 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:21:58 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:21:58 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:21:58 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:21:58 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:21:58 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:20 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:20 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:20 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:20 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:20 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:20 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:20 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:20 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:20 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:20 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:20 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:20 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:20 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:20 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:20 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:21 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:21 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:21 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:21 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:21 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:21 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:21 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:21 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:21 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:21 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:21 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:21 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:21 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:21 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:21 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:21 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:21 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:21 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:21 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:21 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:21 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:21 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:21 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:22 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:22 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:22 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:22 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:22 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:22 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:22 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:22 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:22 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:22 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:22 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:22 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:22 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:22 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:22 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:22 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:22 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:22 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:22:22 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:22 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:22 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:22 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:22 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:22 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:22 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:22 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:22 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:23 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:23 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:23 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:22:23 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:22:23 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:23 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:22:24 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:24 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:22:50 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3llM3BuZzhlcWRlZzNoaHFkM3pwcW0xcW4wbWc0bXQyaTk4ejZxdCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/QPxogTR4WmjhA51vYy/giphy.gif
+11:22:51 [INFO] gif: downloaded 331250 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3llM3BuZzhlcWRlZzNoaHFkM3pwcW0xcW4wbWc0bXQyaTk4ejZxdCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/QPxogTR4WmjhA51vYy/giphy.gif
+11:22:51 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3llM3BuZzhlcWRlZzNoaHFkM3pwcW0xcW4wbWc0bXQyaTk4ejZxdCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/QPxogTR4WmjhA51vYy/giphy.gif
+11:26:56 [INFO] nito started
+11:26:56 [INFO] nito starting up...
+11:27:00 [INFO] connected to broker oregon.nito-broker.com as sammac
+11:27:00 [INFO] logged in as sammac @ https://oregon.nito-broker.com
+11:27:03 [INFO] joined room 2a4a3021-4d64-4d3f-88b8-d37a4924e22b
+11:27:03 [INFO] joined room: asl;dfks;dlfasldfkas;dljka;sdlfa;sldfa;sld;lsdf;aldsjf;asldfk;asl
+11:27:03 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:27:03 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:27:03 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:27:03 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:27:03 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:27:03 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:27:03 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3llM3BuZzhlcWRlZzNoaHFkM3pwcW0xcW4wbWc0bXQyaTk4ejZxdCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/QPxogTR4WmjhA51vYy/giphy.gif
+11:27:04 [INFO] gif: downloaded 215174 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:27:04 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRmb3p0eDgxOTgxeTgyMW93NGVpZmR4Mmk2aHY3NTZieXBncDZuZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/9TPzouR8PzJF6/giphy.gif
+11:27:04 [INFO] gif: downloaded 1167009 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:27:04 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3g2OXpiMWY1eTllcHExdjdkemxmbWFhcHNqYXhzc3FuY3IzenB1NCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/1D5BjC143PPA3eBMHj/giphy.gif
+11:27:04 [INFO] gif: downloaded 1270908 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:27:04 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlka2c0a2Joc2E1czlydmVoZXdyamJkNmpwMzh6MDgydzg1cWtubTE4cCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ZPUAfDlofmVxu/giphy.gif
+11:27:04 [INFO] gif: downloaded 331250 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3llM3BuZzhlcWRlZzNoaHFkM3pwcW0xcW4wbWc0bXQyaTk4ejZxdCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/QPxogTR4WmjhA51vYy/giphy.gif
+11:27:04 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlka3llM3BuZzhlcWRlZzNoaHFkM3pwcW0xcW4wbWc0bXQyaTk4ejZxdCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/QPxogTR4WmjhA51vYy/giphy.gif
+11:27:04 [INFO] gif: downloaded 855575 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:27:04 [INFO] gif: downloaded 1885386 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:27:04 [INFO] gif: downloaded 879486 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:27:04 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMDA5MGxqOG4yY2t2dzZwMzd3dG52YmRoNHRwNDhuYmF1OGduMDNkcyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/ieBWQkIVEELhbizGAp/giphy.gif
+11:27:04 [INFO] gif: rendering https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZ2p1bXY1YTNlOXl3NWt6cDBkamQ0cnlkeXNqeTlvbGl0Z2loYThsZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xT9DPpf0zTqRASyzTi/giphy.gif
+11:27:04 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbXN5NDMxaWdvb200a3E5ZW51YWU1Y2RwenZoempqaHQzY3owOHJkZCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/gVoBC0SuaHStq/giphy.gif
+11:27:27 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZG5tcHRmdW03MWt3YWQybXgxNzJ6M3owbjd5bG9haHoxOTV6Mjl6cyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/u5SGjKcsopzeNGbSVP/giphy.gif
+11:27:28 [INFO] gif: downloaded 2716739 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZG5tcHRmdW03MWt3YWQybXgxNzJ6M3owbjd5bG9haHoxOTV6Mjl6cyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/u5SGjKcsopzeNGbSVP/giphy.gif
+11:27:28 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkZG5tcHRmdW03MWt3YWQybXgxNzJ6M3owbjd5bG9haHoxOTV6Mjl6cyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/u5SGjKcsopzeNGbSVP/giphy.gif
+07:29:20 [INFO] nito started
+07:29:20 [INFO] nito starting up...
+07:29:33 [ERROR] login failed for sam: login challenge: Post "http://localhost:7000/api/v0/login/challenge": dial tcp [::1]:7000: connect: connection refused
+07:29:42 [ERROR] login failed for sam: login challenge: Post "http://localhost:7070/api/v0/login/challenge": dial tcp [::1]:7070: connect: connection refused
+07:31:02 [ERROR] login failed for sam: login sign: read private Key: open /Users/sam.schreiber/.nito/localhost_7070/users/sam/keys/private_key.pem: no such file or directory
+07:31:03 [ERROR] login failed for sam: login sign: read private Key: open /Users/sam.schreiber/.nito/localhost_7070/users/sam/keys/private_key.pem: no such file or directory
+07:31:16 [INFO] connected to broker localhost:7070 as sammac
+07:31:16 [INFO] registered as sammac @ http://localhost:7070
+07:31:23 [INFO] created room: test
+07:31:59 [INFO] nito started
+07:31:59 [INFO] nito starting up...
+07:32:13 [ERROR] register failed for test: login: broker returned 401 Unauthorized
+07:32:22 [INFO] connected to broker localhost:7070 as test2
+07:32:22 [INFO] registered as test2 @ http://localhost:7070
+07:32:28 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:32:28 [INFO] joined room: test
+07:32:36 [INFO] verify: starting flow for test2 (session a15ABSxFAZqWZPtArzm1ug, expires in 5m0s)
+07:32:36 [INFO] verify: received challenge from sammac (session a15ABSxFAZqWZPtArzm1ug)
+07:32:50 [INFO] verify: sent response to sammac (session a15ABSxFAZqWZPtArzm1ug), waiting for confirm
+07:32:50 [INFO] verify: successfully verified and pinned key for test2
+07:32:50 [INFO] verify: mutually verified and pinned key for sammac
+07:32:50 [INFO] received room invite
+07:32:56 [INFO] accepted invite to room 48945070-ba5a-4979-97d4-978980a4354b
+07:32:56 [INFO] received room invite
+07:32:56 [INFO]  joined the room
+07:32:56 [INFO] accepted invite, joined test
+07:33:06 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:33:06 [INFO] joined room: test
+07:33:06 [INFO]  joined the room
+07:33:12 [INFO]  left the room
+07:33:16 [INFO] nito started
+07:33:16 [INFO] nito starting up...
+07:33:39 [INFO] connected to broker localhost:7070 as test3
+07:33:39 [INFO] registered as test3 @ http://localhost:7070
+07:35:21 [INFO] nito started
+07:35:21 [INFO] nito starting up...
+07:35:25 [INFO] connected to broker localhost:7070 as test3
+07:35:25 [INFO] logged in as test3 @ http://localhost:7070
+07:35:39 [INFO] received room invite
+07:35:43 [INFO] accepted invite to room 48945070-ba5a-4979-97d4-978980a4354b
+07:35:43 [INFO] received room invite
+07:35:43 [INFO]  joined the room
+07:35:43 [INFO] accepted invite, joined test
+07:36:00 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:36:00 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:36:00 [INFO] joined room: test
+07:36:00 [INFO]  joined the room
+07:37:39 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:37:39 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:37:39 [INFO] joined room: test
+07:37:39 [INFO]  joined the room
+07:37:39 [INFO]  left the room
+07:39:50 [INFO] verify: starting flow for test3 (session 42BnOR9gm2iSQ2A7ajC4mA, expires in 5m0s)
+07:39:50 [INFO] verify: received challenge from sammac (session 42BnOR9gm2iSQ2A7ajC4mA)
+07:40:04 [INFO] verify: sent response to sammac (session 42BnOR9gm2iSQ2A7ajC4mA), waiting for confirm
+07:40:04 [INFO] verify: successfully verified and pinned key for test3
+07:40:04 [INFO] verify: mutually verified and pinned key for sammac
+07:43:32 [INFO]  left the room
+07:43:43 [INFO] nito started
+07:43:43 [INFO] nito starting up...
+07:43:47 [INFO] connected to broker localhost:7070 as test3
+07:43:47 [INFO] logged in as test3 @ http://localhost:7070
+07:43:50 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:43:50 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:43:50 [INFO] joined room: test
+07:43:50 [INFO]  joined the room
+07:45:54 [INFO]  left the room
+07:46:00 [INFO] nito started
+07:46:00 [INFO] nito starting up...
+07:46:05 [INFO] connected to broker localhost:7070 as test3
+07:46:05 [INFO] logged in as test3 @ http://localhost:7070
+07:46:10 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:46:10 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:46:10 [INFO] joined room: test
+07:46:10 [INFO]  joined the room
+07:47:10 [INFO]  left the room
+07:47:16 [INFO] nito started
+07:47:16 [INFO] nito starting up...
+07:47:20 [INFO] connected to broker localhost:7070 as test3
+07:47:20 [INFO] logged in as test3 @ http://localhost:7070
+07:47:25 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:47:25 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:47:25 [INFO] joined room: test
+07:47:25 [INFO]  joined the room
+07:48:21 [INFO]  left the room
+07:48:28 [INFO] nito started
+07:48:28 [INFO] nito starting up...
+07:48:32 [INFO] connected to broker localhost:7070 as test3
+07:48:32 [INFO] logged in as test3 @ http://localhost:7070
+07:48:34 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:48:34 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:48:34 [INFO] joined room: test
+07:48:34 [INFO]  joined the room
+07:51:53 [INFO]  left the room
+07:52:00 [INFO] nito started
+07:52:00 [INFO] nito starting up...
+07:52:04 [INFO] connected to broker localhost:7070 as test3
+07:52:04 [INFO] logged in as test3 @ http://localhost:7070
+07:52:05 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:52:05 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:52:05 [INFO] joined room: test
+07:52:05 [INFO]  joined the room
+07:53:01 [INFO] verify: starting flow for sammac (session i4jCWxGYly3CUpPfJ3TN2A, expires in 5m0s)
+07:53:01 [INFO] verify: received challenge from test3 (session i4jCWxGYly3CUpPfJ3TN2A)
+07:56:19 [INFO]  left the room
+07:56:25 [INFO] nito started
+07:56:25 [INFO] nito starting up...
+07:56:29 [INFO] connected to broker localhost:7070 as test3
+07:56:29 [INFO] logged in as test3 @ http://localhost:7070
+07:56:30 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:56:30 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:56:30 [INFO] joined room: test
+07:56:30 [INFO]  joined the room
+08:29:02 [INFO]  left the room
+08:29:08 [INFO] nito started
+08:29:08 [INFO] nito starting up...
+08:29:13 [INFO] connected to broker localhost:7070 as test3
+08:29:13 [INFO] logged in as test3 @ http://localhost:7070
+08:29:57 [INFO] nito started
+08:29:57 [INFO] nito starting up...
+08:30:01 [INFO] connected to broker localhost:7070 as test3
+08:30:01 [INFO] logged in as test3 @ http://localhost:7070
+08:30:10 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+08:30:10 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+08:30:10 [INFO] joined room: test
+08:32:41 [INFO] nito started
+08:32:41 [INFO] nito starting up...
+08:32:46 [INFO] connected to broker localhost:7070 as test3
+08:32:46 [INFO] logged in as test3 @ http://localhost:7070
+08:33:40 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+08:33:40 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+08:33:40 [INFO] joined room: test
+08:45:12 [INFO] nito started
+08:45:12 [INFO] nito starting up...
+08:45:15 [INFO] connected to broker localhost:7070 as test3
+08:45:15 [INFO] logged in as test3 @ http://localhost:7070
+08:45:17 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+08:45:17 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+08:45:17 [INFO] joined room: test
+08:48:23 [INFO] nito started
+08:48:23 [INFO] nito starting up...
+08:48:28 [INFO] connected to broker localhost:7070 as test3
+08:48:28 [INFO] logged in as test3 @ http://localhost:7070
+08:48:31 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+08:48:31 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+08:48:31 [INFO] joined room: test
+08:55:13 [INFO] nito started
+08:55:13 [INFO] nito starting up...
+08:55:20 [INFO] connected to broker localhost:7070 as test3
+08:55:20 [INFO] logged in as test3 @ http://localhost:7070
+08:55:47 [INFO] nito started
+08:55:47 [INFO] nito starting up...
+08:55:51 [INFO] connected to broker localhost:7070 as test3
+08:55:51 [INFO] logged in as test3 @ http://localhost:7070
+08:55:53 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+08:55:53 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+08:55:53 [INFO] joined room: test
+08:56:51 [INFO] nito started
+08:56:51 [INFO] nito starting up...
+08:56:54 [INFO] connected to broker localhost:7070 as test3
+08:56:54 [INFO] logged in as test3 @ http://localhost:7070
+08:57:11 [INFO] nito started
+08:57:11 [INFO] nito starting up...
+08:57:15 [INFO] connected to broker localhost:7070 as test3
+08:57:15 [INFO] logged in as test3 @ http://localhost:7070
+09:04:23 [INFO] nito started
+09:04:23 [INFO] nito starting up...
+09:04:46 [INFO] nito started
+09:04:46 [INFO] nito starting up...
+09:04:50 [INFO] connected to broker localhost:7070 as test3
+09:04:50 [INFO] logged in as test3 @ http://localhost:7070
+09:04:55 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+09:04:55 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+09:04:55 [INFO] joined room: test
+09:08:29 [INFO] nito started
+09:08:29 [INFO] nito starting up...
+09:08:31 [INFO] connected to broker localhost:7070 as test3
+09:08:31 [INFO] logged in as test3 @ http://localhost:7070
+09:08:33 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+09:08:33 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+09:08:33 [INFO] joined room: test
+09:08:35 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+09:08:35 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+09:08:35 [INFO] joined room: test
+07:32:01 [INFO] nito started
+07:32:01 [INFO] nito starting up...
+07:32:06 [INFO] connected to broker localhost:7070 as test3
+07:32:06 [INFO] logged in as test3 @ http://localhost:7070
+07:32:24 [INFO] nito started
+07:32:24 [INFO] nito starting up...
+07:32:32 [ERROR] login failed for sam4: login sign: read private Key: open /Users/sam.schreiber/.nito/localhost_7070/users/sam4/keys/private_key.pem: no such file or directory
+07:32:45 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:32:45 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:32:45 [INFO] joined room: test
+07:32:54 [INFO] connected to broker localhost:7070 as sammac
+07:32:54 [INFO] logged in as sammac @ http://localhost:7070
+07:33:04 [INFO] created room: testverif
+07:33:07 [ERROR] join room failed: room-select: retrieve room key failed: get room key: no pinned key for sammac/device 29e1eb84-473f-4945-8942-63e3ceb21a29
+07:33:10 [ERROR] join room failed: room-select: retrieve room key failed: get room key: no pinned key for sammac/device 29e1eb84-473f-4945-8942-63e3ceb21a29
+07:33:11 [ERROR] join room failed: room-select: retrieve room key failed: get room key: no pinned key for sammac/device 29e1eb84-473f-4945-8942-63e3ceb21a29
+07:33:15 [ERROR] join room failed: room-select: retrieve room key failed: get room key: no pinned key for sammac/device 29e1eb84-473f-4945-8942-63e3ceb21a29
+07:34:03 [INFO] nito started
+07:34:03 [INFO] nito starting up...
+07:34:07 [INFO] connected to broker localhost:7070 as sammac
+07:34:07 [INFO] logged in as sammac @ http://localhost:7070
+07:34:11 [INFO] nito started
+07:34:11 [INFO] nito starting up...
+07:34:25 [INFO] connected to broker localhost:7070 as sammac2
+07:34:25 [INFO] registered as sammac2 @ http://localhost:7070
+07:34:29 [INFO] created room: sammac2
+07:34:31 [ERROR] join room failed: room-select: retrieve room key failed: get room key: no pinned key for sammac2/device 5081e9c2-2acb-4fc3-a8a9-891cb8d32662
+07:34:38 [ERROR] join room failed: room-select: retrieve room key failed: get room key: no pinned key for sammac2/device 5081e9c2-2acb-4fc3-a8a9-891cb8d32662
+07:37:54 [ERROR] join room failed: room-select: retrieve room key failed: get room key: no pinned key for sammac2/device 5081e9c2-2acb-4fc3-a8a9-891cb8d32662
+07:38:27 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:38:27 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:38:27 [INFO] joined room: test
+07:38:27 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:38:27 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:38:27 [INFO] joined room: test
+07:38:32 [INFO] manifest signature valid for room 48945070-ba5a-4979-97d4-978980a4354b key version 1 (rotated_by=sammac device_id="")
+07:38:32 [INFO] joined room 48945070-ba5a-4979-97d4-978980a4354b
+07:38:32 [INFO] joined room: test
+08:37:22 [INFO] nito started
+08:37:22 [INFO] nito starting up...
+08:38:32 [INFO] nito started
+08:38:32 [INFO] nito starting up...
+08:38:50 [INFO] connected to broker localhost:7070 as sam
+08:38:50 [INFO] registered as sam @ http://localhost:7070
+08:38:55 [ERROR] create room failed: create room: broker returned 400 Bad Request
+08:39:33 [ERROR] create room failed: create room: broker returned 400 Bad Request
+08:40:01 [ERROR] create room failed: create room: broker returned 400 Bad Request
+08:41:08 [INFO] nito started
+08:41:08 [INFO] nito starting up...
+08:41:11 [INFO] connected to broker localhost:7070 as sam
+08:41:11 [INFO] logged in as sam @ http://localhost:7070
+08:41:45 [ERROR] create room failed: create room: Post "http://localhost:7070/api/v0/rooms": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+08:57:15 [INFO] nito started
+08:57:15 [INFO] nito starting up...
+08:57:22 [ERROR] login failed for sam: login challenge: Post "http://localhost:7070/api/v0/login/challenge": read tcp [::1]:58105->[::1]:7070: read: connection reset by peer
+08:57:29 [ERROR] login failed for sam: login challenge: Post "http://localhost:7070/api/v0/login/challenge": dial tcp [::1]:7070: connect: connection refused
+08:57:30 [ERROR] login failed for sam: login challenge: Post "http://localhost:7070/api/v0/login/challenge": dial tcp [::1]:7070: connect: connection refused
+08:57:30 [ERROR] login failed for sam: login challenge: Post "http://localhost:7070/api/v0/login/challenge": dial tcp [::1]:7070: connect: connection refused
+08:57:30 [ERROR] login failed for sam: login challenge: Post "http://localhost:7070/api/v0/login/challenge": dial tcp [::1]:7070: connect: connection refused
+08:57:31 [ERROR] login failed for sam: login challenge: Post "http://localhost:7070/api/v0/login/challenge": dial tcp [::1]:7070: connect: connection refused
+08:57:31 [ERROR] login failed for sam: login challenge: Post "http://localhost:7070/api/v0/login/challenge": dial tcp [::1]:7070: connect: connection refused
+08:57:31 [ERROR] login failed for sam: login challenge: Post "http://localhost:7070/api/v0/login/challenge": dial tcp [::1]:7070: connect: connection refused
+09:01:14 [ERROR] login failed for sam: login: broker returned 401 Unauthorized
+09:01:17 [ERROR] login failed for sam: login: broker returned 401 Unauthorized
+09:01:26 [INFO] connected to broker localhost:7070 as sam
+09:01:26 [INFO] registered as sam @ http://localhost:7070
+09:01:44 [INFO] created room: sam
+09:02:19 [INFO] manifest signature valid for room ec528868-b6e1-48f6-8eaf-651e456efa0c key version 1 (rotated_by=sam device_id=231ebe94048bf88a4ddf2890f0ec75c8e96b6eb385fb87aad9dfc6f16125d347)
+09:02:19 [INFO] joined room ec528868-b6e1-48f6-8eaf-651e456efa0c
+09:02:19 [INFO] joined room: sam
+09:02:41 [INFO] nito started
+09:02:41 [INFO] nito starting up...
+09:02:54 [INFO] connected to broker localhost:7070 as test
+09:02:54 [INFO] registered as test @ http://localhost:7070
+09:03:07 [INFO] verify: starting flow for test (session QNpYQIsq6cvBTeIkGL7oUA, expires in 5m0s)
+09:03:07 [INFO] verify: received challenge from sam (session QNpYQIsq6cvBTeIkGL7oUA)
+09:03:17 [INFO] verify: sent response to sam (session QNpYQIsq6cvBTeIkGL7oUA), waiting for confirm
+09:03:17 [INFO] verify: successfully verified and pinned key for test
+09:03:17 [INFO] verify: mutually verified and pinned key for sam
+09:03:17 [INFO] received room invite
+09:03:22 [INFO] received room invite
+09:03:22 [INFO]  joined the room
+09:03:22 [INFO] accepted invite to room ec528868-b6e1-48f6-8eaf-651e456efa0c
+09:03:22 [INFO] accepted invite, joined sam
+09:04:20 [ERROR] send message failed: say: no room selected (use room-select first)
+09:04:23 [INFO] manifest signature valid for room ec528868-b6e1-48f6-8eaf-651e456efa0c key version 1 (rotated_by=sam device_id=231ebe94048bf88a4ddf2890f0ec75c8e96b6eb385fb87aad9dfc6f16125d347)
+09:04:23 [INFO] joined room ec528868-b6e1-48f6-8eaf-651e456efa0c
+09:04:23 [INFO] joined room: sam
+09:04:23 [INFO]  joined the room
+09:13:29 [INFO] nito started
+09:13:29 [INFO] nito starting up...
+09:13:35 [INFO] nito started
+09:13:35 [INFO] nito starting up...
+09:13:48 [INFO] connected to broker localhost:7070 as test
+09:13:48 [INFO] registered as test @ http://localhost:7070
+09:13:54 [INFO] connected to broker localhost:7070 as sam
+09:13:54 [INFO] registered as sam @ http://localhost:7070
+09:14:13 [INFO] nito started
+09:14:13 [INFO] nito starting up...
+09:14:15 [INFO] connected to broker localhost:7070 as sam
+09:14:15 [INFO] logged in as sam @ http://localhost:7070
+09:14:21 [INFO] nito started
+09:14:21 [INFO] nito starting up...
+09:14:31 [INFO] connected to broker localhost:7070 as test
+09:14:31 [INFO] logged in as test @ http://localhost:7070
+09:14:35 [INFO] created room: test
+09:14:38 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+09:14:38 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+09:14:38 [INFO] joined room: test
+09:14:46 [INFO] invited (verified) sam
+09:14:46 [INFO] received room invite
+09:14:54 [INFO] accepted invite to room 688f2ddd-b2bc-4022-9077-7fe555307e58
+09:14:54 [INFO] received room invite
+09:14:54 [INFO]  joined the room
+09:14:54 [INFO] accepted invite, joined test
+09:15:09 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+09:15:09 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+09:15:09 [INFO] joined room: test
+09:15:09 [INFO]  joined the room
+09:15:24 [INFO]  left the room
+09:15:27 [INFO] nito started
+09:15:27 [INFO] nito starting up...
+09:15:45 [INFO] connected to broker localhost:7070 as test2
+09:15:45 [INFO] registered as test2 @ http://localhost:7070
+09:15:59 [INFO] created room: test2
+09:16:05 [INFO] manifest signature valid for room 42772776-587a-44b2-a310-cc04c8f62029 key version 1 (rotated_by=test2 device_id=27ffbea33cd80415b2d259f9be0364686e3b79dc96fb3c68fa16bfb6aa1afa4d)
+09:16:05 [INFO] joined room 42772776-587a-44b2-a310-cc04c8f62029
+09:16:05 [INFO] joined room: test2
+09:16:08 [INFO] invited (verified) test
+09:16:16 [INFO] invited (verified) sam
+09:16:16 [INFO] received room invite
+09:16:27 [INFO] accepted invite to room 42772776-587a-44b2-a310-cc04c8f62029
+09:16:27 [INFO] received room invite
+09:16:27 [INFO]  joined the room
+09:16:27 [INFO] accepted invite, joined test2
+09:17:30 [INFO] manifest signature valid for room 42772776-587a-44b2-a310-cc04c8f62029 key version 1 (rotated_by=test2 device_id=27ffbea33cd80415b2d259f9be0364686e3b79dc96fb3c68fa16bfb6aa1afa4d)
+09:18:07 [INFO] manifest signature valid for room 42772776-587a-44b2-a310-cc04c8f62029 key version 1 (rotated_by=test2 device_id=27ffbea33cd80415b2d259f9be0364686e3b79dc96fb3c68fa16bfb6aa1afa4d)
+09:18:29 [INFO] manifest signature valid for room 42772776-587a-44b2-a310-cc04c8f62029 key version 1 (rotated_by=test2 device_id=27ffbea33cd80415b2d259f9be0364686e3b79dc96fb3c68fa16bfb6aa1afa4d)
+09:18:29 [INFO] joined room 42772776-587a-44b2-a310-cc04c8f62029
+09:18:29 [INFO] joined room 42772776-587a-44b2-a310-cc04c8f62029 (rotator test2 unverified — user consented)
+09:18:29 [INFO]  joined the room
+09:18:37 [INFO] verify: starting flow for test2 (session Du83AiqmSSMkdDTF-Mzsiw, expires in 5m0s)
+09:18:37 [INFO] verify: received challenge from sam (session Du83AiqmSSMkdDTF-Mzsiw)
+09:18:59 [INFO] verify: sent response to sam (session Du83AiqmSSMkdDTF-Mzsiw), waiting for confirm
+09:18:59 [ERROR] verify: response signature check failed for test2: signature verification failed: crypto/rsa: verification error
+09:19:06 [INFO] verify: starting flow for test2 (session KHgbqBqnrLvZoUYV6fv7gw, expires in 5m0s)
+09:19:06 [INFO] verify: received challenge from sam (session KHgbqBqnrLvZoUYV6fv7gw)
+09:19:15 [INFO] verify: sent response to sam (session KHgbqBqnrLvZoUYV6fv7gw), waiting for confirm
+09:19:15 [INFO] verify: successfully verified and pinned key for test2
+09:19:15 [INFO] verify: mutually verified and pinned key for sam
+09:19:22 [INFO]  left the room
+08:34:53 [INFO] nito started
+08:34:53 [INFO] nito starting up...
+08:35:00 [INFO] connected to broker localhost:7070 as test2
+08:35:00 [INFO] logged in as test2 @ http://localhost:7070
+08:35:08 [INFO] nito started
+08:35:08 [INFO] nito starting up...
+08:35:09 [INFO] manifest signature valid for room 42772776-587a-44b2-a310-cc04c8f62029 key version 1 (rotated_by=test2 device_id=27ffbea33cd80415b2d259f9be0364686e3b79dc96fb3c68fa16bfb6aa1afa4d)
+08:35:09 [INFO] joined room 42772776-587a-44b2-a310-cc04c8f62029
+08:35:09 [INFO] joined room: test2
+08:35:12 [INFO] manifest signature valid for room 42772776-587a-44b2-a310-cc04c8f62029 key version 1 (rotated_by=test2 device_id=27ffbea33cd80415b2d259f9be0364686e3b79dc96fb3c68fa16bfb6aa1afa4d)
+08:35:12 [INFO] joined room 42772776-587a-44b2-a310-cc04c8f62029
+08:35:12 [INFO] joined room: test2
+08:35:22 [INFO] connected to broker localhost:7070 as sam
+08:35:22 [INFO] logged in as sam @ http://localhost:7070
+08:35:24 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:35:24 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:35:24 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:35:24 [INFO] joined room: test
+08:35:26 [INFO] manifest signature valid for room 42772776-587a-44b2-a310-cc04c8f62029 key version 1 (rotated_by=test2 device_id=27ffbea33cd80415b2d259f9be0364686e3b79dc96fb3c68fa16bfb6aa1afa4d)
+08:35:26 [INFO] room creation signature valid for 42772776-587a-44b2-a310-cc04c8f62029 (signed by test2, method=verified)
+08:35:26 [INFO] joined room 42772776-587a-44b2-a310-cc04c8f62029
+08:35:26 [INFO] joined room: test2
+08:35:26 [INFO]  joined the room
+08:35:28 [INFO]  left the room
+08:35:28 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:35:28 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:35:28 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:35:28 [INFO] joined room: test
+08:35:29 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:35:29 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:35:29 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:35:29 [INFO] joined room: test
+08:35:32 [INFO]  left the room
+08:35:40 [INFO] nito started
+08:35:40 [INFO] nito starting up...
+08:35:53 [INFO] connected to broker localhost:7070 as sam1
+08:35:53 [INFO] registered as sam1 @ http://localhost:7070
+08:35:58 [INFO] verify: starting flow for sam1 (session a9yF-9n1I_l9F33ZzL3yKw, expires in 5m0s)
+08:35:58 [INFO] verify: received challenge from sam (session a9yF-9n1I_l9F33ZzL3yKw)
+08:36:07 [INFO] verify: sent response to sam (session a9yF-9n1I_l9F33ZzL3yKw), waiting for confirm
+08:36:07 [INFO] verify: successfully verified and pinned key for sam1
+08:36:07 [INFO] verify: mutually verified and pinned key for sam
+08:36:07 [WARN] verify: publish introduction for sam1 failed: publish introduction: broker returned 401 Unauthorized
+08:36:07 [WARN] verify: publish introduction for sam failed: publish introduction: broker returned 401 Unauthorized
+08:36:07 [INFO] received room invite
+08:36:11 [INFO] accepted invite to room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:36:11 [INFO] received room invite
+08:36:11 [INFO]  joined the room
+08:36:11 [INFO] accepted invite, joined test
+08:36:18 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:36:18 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:36:18 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:36:18 [INFO] joined room: test
+08:36:18 [INFO]  joined the room
+08:36:29 [INFO] nito started
+08:36:29 [INFO] nito starting up...
+08:36:42 [INFO] connected to broker localhost:7070 as sam2
+08:36:42 [INFO] registered as sam2 @ http://localhost:7070
+08:36:50 [INFO] verify: starting flow for sam2 (session M9Cd3Vhw0oPH57cYobtiMg, expires in 5m0s)
+08:36:50 [INFO] verify: received challenge from sam (session M9Cd3Vhw0oPH57cYobtiMg)
+08:37:00 [INFO] verify: sent response to sam (session M9Cd3Vhw0oPH57cYobtiMg), waiting for confirm
+08:37:00 [INFO] verify: successfully verified and pinned key for sam2
+08:37:00 [INFO] verify: mutually verified and pinned key for sam
+08:37:00 [WARN] verify: publish introduction for sam2 failed: publish introduction: broker returned 401 Unauthorized
+08:37:00 [WARN] verify: publish introduction for sam failed: publish introduction: broker returned 401 Unauthorized
+08:37:00 [INFO] received room invite
+08:37:04 [INFO] accepted invite to room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:37:04 [INFO]  joined the room
+08:37:04 [INFO] received room invite
+08:37:04 [INFO]  joined the room
+08:37:04 [INFO] accepted invite, joined test
+08:37:10 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:37:10 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:37:10 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:37:10 [INFO] joined room: test
+08:37:10 [INFO]  joined the room
+08:37:10 [INFO]  joined the room
+08:37:51 [INFO] nito started
+08:37:51 [INFO] nito starting up...
+08:38:05 [INFO] connected to broker localhost:7070 as sam3
+08:38:05 [INFO] registered as sam3 @ http://localhost:7070
+08:38:14 [INFO] received room invite
+08:38:17 [INFO] accepted invite to room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:38:17 [INFO] received room invite
+08:38:17 [INFO]  joined the room
+08:38:17 [INFO]  joined the room
+08:38:17 [INFO] accepted invite, joined test
+08:38:17 [INFO]  joined the room
+08:38:19 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:38:19 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:38:19 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:38:19 [INFO] joined room: test
+08:38:19 [INFO]  joined the room
+08:38:19 [INFO]  joined the room
+08:38:19 [INFO]  joined the room
+08:38:37 [INFO]  left the room
+08:38:37 [INFO]  left the room
+08:38:37 [INFO]  left the room
+08:38:38 [INFO]  left the room
+08:38:38 [INFO]  left the room
+08:38:39 [INFO]  left the room
+08:41:37 [INFO] nito started
+08:41:37 [INFO] nito starting up...
+08:41:43 [INFO] connected to broker localhost:7070 as sam
+08:41:43 [INFO] logged in as sam @ http://localhost:7070
+08:41:46 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:41:46 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:41:46 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:41:46 [INFO] joined room: test
+08:46:08 [INFO] nito started
+08:46:08 [INFO] nito starting up...
+08:46:14 [INFO] connected to broker localhost:7070 as sam
+08:46:14 [INFO] logged in as sam @ http://localhost:7070
+08:46:24 [INFO] nito started
+08:46:24 [INFO] nito starting up...
+08:46:33 [INFO] connected to broker localhost:7070 as sam3
+08:46:33 [INFO] logged in as sam3 @ http://localhost:7070
+08:46:56 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:46:56 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:46:56 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:46:56 [INFO] joined room: test
+08:46:56 [INFO]  joined the room
+08:47:01 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:47:01 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:47:01 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:47:01 [INFO] joined room: test
+08:47:01 [INFO]  joined the room
+08:47:06 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:47:06 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:47:06 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:47:06 [INFO] joined room: test
+08:47:06 [INFO]  joined the room
+08:47:06 [INFO]  left the room
+08:47:20 [INFO] verify: starting flow for sam3 (session LafNnpAkUxx7B-WJLNfz7Q, expires in 5m0s)
+08:47:20 [INFO] verify: received challenge from sam (session LafNnpAkUxx7B-WJLNfz7Q)
+08:47:29 [INFO] verify: sent response to sam (session LafNnpAkUxx7B-WJLNfz7Q), waiting for confirm
+08:47:29 [INFO] verify: successfully verified and pinned key for sam3
+08:47:29 [INFO] verify: mutually verified and pinned key for sam
+08:47:43 [INFO]  left the room
+08:47:59 [WARN] verify: publish introduction for sam3 failed: publish introduction: Post "http://localhost:7070/api/v0/introductions": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+08:47:59 [WARN] verify: publish introduction for sam failed: publish introduction: Post "http://localhost:7070/api/v0/introductions": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+08:50:03 [INFO] nito started
+08:50:03 [INFO] nito starting up...
+08:50:08 [INFO] connected to broker localhost:7070 as sam3
+08:50:08 [INFO] logged in as sam3 @ http://localhost:7070
+08:50:12 [INFO] nito started
+08:50:12 [INFO] nito starting up...
+08:50:24 [INFO] connected to broker localhost:7070 as sam4
+08:50:24 [INFO] registered as sam4 @ http://localhost:7070
+08:50:25 [INFO] manifest signature valid for room 688f2ddd-b2bc-4022-9077-7fe555307e58 key version 1 (rotated_by=test device_id=a204f4aaaf13dacfd483f7a7ef8197f8346c7eb65cde0177c6fcf3e854382745)
+08:50:25 [INFO] room creation signature valid for 688f2ddd-b2bc-4022-9077-7fe555307e58 (signed by test, method=verified)
+08:50:25 [INFO] joined room 688f2ddd-b2bc-4022-9077-7fe555307e58
+08:50:25 [INFO] joined room: test
+08:50:31 [INFO] verify: starting flow for sam4 (session P1P4C4g9VruxPT29HAKY0g, expires in 5m0s)
+08:50:31 [INFO] verify: received challenge from sam3 (session P1P4C4g9VruxPT29HAKY0g)
+08:50:41 [INFO] verify: sent response to sam3 (session P1P4C4g9VruxPT29HAKY0g), waiting for confirm
+08:50:41 [INFO] verify: successfully verified and pinned key for sam4
+08:50:41 [INFO] verify: mutually verified and pinned key for sam3
+08:50:41 [WARN] verify: publish introduction for sam4 failed: publish introduction: broker returned 204 No Content
+08:50:41 [WARN] verify: publish introduction for sam3 failed: publish introduction: broker returned 204 No Content
+08:50:41 [INFO] received room invite
+12:14:55 [INFO] nito started
+12:14:55 [INFO] nito starting up...
+12:15:13 [INFO] connected to broker oregon.nito-broker.com as sam
+12:15:13 [INFO] logged in as sam @ https://oregon.nito-broker.com
+12:15:18 [INFO] manifest signature valid for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+12:15:18 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:15:18 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:15:18 [INFO] applied 3 introductions for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:15:18 [INFO] joined room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:15:18 [INFO] joined room: sam's room
+12:15:18 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:15:19 [INFO] gif: downloaded 949927 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:15:19 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:15:23 [ERROR] invite failed: invite user: broker returned 500 Internal Server Error
+12:15:53 [ERROR] invite failed: invite user: broker returned 500 Internal Server Error
+12:16:34 [INFO] nito started
+12:16:34 [INFO] nito starting up...
+12:16:37 [INFO] connected to broker oregon.nito-broker.com as sam
+12:16:37 [INFO] logged in as sam @ https://oregon.nito-broker.com
+12:16:40 [INFO] manifest signature valid for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+12:16:41 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:16:41 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:16:41 [INFO] applied 3 introductions for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:16:41 [INFO] joined room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:16:41 [INFO] joined room: sam's room
+12:16:41 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:16:41 [INFO] gif: downloaded 949927 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:16:41 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:16:47 [ERROR] invite failed: invite user: broker returned 500 Internal Server Error
+12:20:16 [INFO] nito started
+12:20:16 [INFO] nito starting up...
+12:20:38 [INFO] connected to broker oregon.nito-broker.com as sam
+12:20:38 [INFO] logged in as sam @ https://oregon.nito-broker.com
+12:20:42 [INFO] manifest signature valid for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+12:20:42 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:20:42 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:20:42 [INFO] applied 3 introductions for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:20:42 [INFO] joined room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:20:42 [INFO] joined room: sam's room
+12:20:42 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:20:43 [INFO] gif: downloaded 949927 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:20:43 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:20:47 [ERROR] invite failed: invite user: broker returned 500 Internal Server Error
+12:21:39 [INFO] nito started
+12:21:39 [INFO] nito starting up...
+12:21:44 [INFO] connected to broker oregon.nito-broker.com as sam
+12:21:44 [INFO] logged in as sam @ https://oregon.nito-broker.com
+12:52:26 [INFO] nito started
+12:52:26 [INFO] nito starting up...
+12:52:31 [INFO] connected to broker oregon.nito-broker.com as sam
+12:52:31 [INFO] logged in as sam @ https://oregon.nito-broker.com
+12:52:33 [INFO] manifest signature valid for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+12:52:33 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:52:33 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:52:33 [INFO] applied 3 introductions for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:52:33 [INFO] joined room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:52:33 [INFO] joined room: sam's room
+12:52:33 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:52:34 [INFO] gif: downloaded 949927 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:52:34 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:52:37 [ERROR] invite failed: invite user: broker returned 500 Internal Server Error
+12:55:47 [INFO]  joined the room
+12:56:27 [ERROR] invite failed: invite user: broker returned 500 Internal Server Error
+12:56:37 [ERROR] invite failed: invite user: broker returned 500 Internal Server Error
+12:56:45 [INFO] created room: test
+12:56:48 [INFO] manifest signature valid for room 85459036-2702-4e4c-9883-79d9295808e5 key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+12:56:48 [INFO] applied 3 introductions for room 85459036-2702-4e4c-9883-79d9295808e5
+12:56:48 [INFO] joined room 85459036-2702-4e4c-9883-79d9295808e5
+12:56:48 [INFO] joined room: test
+12:56:52 [INFO] invited (verified) sam-bot
+12:56:54 [INFO] manifest signature valid for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+12:56:54 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:56:54 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:56:54 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:56:54 [INFO] applied 3 introductions for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:56:54 [INFO] joined room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:56:54 [INFO] joined room: sam's room
+12:56:54 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+12:56:55 [INFO] manifest signature valid for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+12:56:55 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:56:55 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:56:55 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+12:56:55 [INFO] applied 3 introductions for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:56:55 [INFO] joined room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+12:56:55 [INFO] joined room: sam's room
+12:56:55 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+13:05:01 [INFO] manifest signature valid for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+13:05:01 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+13:05:01 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+13:05:01 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+13:05:01 [INFO] applied 3 introductions for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+13:05:01 [INFO] joined room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+13:05:01 [INFO] joined room: sam's room
+13:05:02 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+13:05:02 [INFO] manifest signature valid for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+13:05:02 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+13:05:02 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+13:05:02 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+13:05:02 [INFO] applied 3 introductions for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+13:05:03 [INFO] joined room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+13:05:03 [INFO] joined room: sam's room
+13:05:03 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+13:12:26 [INFO]  joined the room
+13:38:42 [ERROR] send message failed: say: not connected (use connect first)
+13:39:33 [INFO] nito started
+13:39:33 [INFO] nito starting up...
+13:39:38 [INFO] connected to broker oregon.nito-broker.com as sam
+13:39:38 [INFO] logged in as sam @ https://oregon.nito-broker.com
+13:39:42 [INFO] manifest signature valid for room 85459036-2702-4e4c-9883-79d9295808e5 key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+13:39:42 [INFO] joined room 85459036-2702-4e4c-9883-79d9295808e5
+13:39:42 [INFO] joined room: test
+13:39:45 [INFO] manifest signature valid for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+13:39:45 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+13:39:45 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+13:39:45 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+13:39:45 [INFO] joined room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+13:39:45 [INFO] joined room: sam's room
+13:39:45 [INFO] gif: fetching https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+13:39:46 [INFO] gif: downloaded 949927 bytes from https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+13:39:46 [INFO] gif: rendering https://media0.giphy.com/media/v1.Y2lkPWZkYWU3MDlkMHZzcG5nNDJxOGtyZTR3dW02Y3B0aTdqdzN1MXViYndzZnp1dXduYSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/3o7abrMJlo5kBkbnk4/giphy.gif
+14:00:50 [INFO]  left the room
+14:01:18 [INFO]  joined the room
+14:02:08 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRicGNjbnBhbzdxbzY5NGV0dTEycDJja3FscTJ0Z2s4NWU5aGdyZiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/0VdPbe5bX3L4JUISEn/giphy.gif
+14:02:08 [INFO] gif: downloaded 1615359 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRicGNjbnBhbzdxbzY5NGV0dTEycDJja3FscTJ0Z2s4NWU5aGdyZiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/0VdPbe5bX3L4JUISEn/giphy.gif
+14:02:09 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRicGNjbnBhbzdxbzY5NGV0dTEycDJja3FscTJ0Z2s4NWU5aGdyZiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/0VdPbe5bX3L4JUISEn/giphy.gif
+14:02:14 [INFO] gif: fetching https://media1.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdzJ1aDA2dzZqMGNrMzJ4enp3ZDRmc2pzOW94ajI5bm1idXVqaW55OSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xezTtnbZIcv7GJrRhg/giphy.gif
+14:02:15 [INFO] gif: downloaded 3352302 bytes from https://media1.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdzJ1aDA2dzZqMGNrMzJ4enp3ZDRmc2pzOW94ajI5bm1idXVqaW55OSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xezTtnbZIcv7GJrRhg/giphy.gif
+14:02:15 [INFO] gif: rendering https://media1.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdzJ1aDA2dzZqMGNrMzJ4enp3ZDRmc2pzOW94ajI5bm1idXVqaW55OSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xezTtnbZIcv7GJrRhg/giphy.gif
+14:02:23 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbjZmdjE5bzAwendtdzB3OXZpbnhsZzZmMDMxbDdtY3RrcGgxMnJzNiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/m9mgo4J95j7hL98DBU/giphy.gif
+14:02:23 [INFO] gif: downloaded 31326 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbjZmdjE5bzAwendtdzB3OXZpbnhsZzZmMDMxbDdtY3RrcGgxMnJzNiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/m9mgo4J95j7hL98DBU/giphy.gif
+14:02:23 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbjZmdjE5bzAwendtdzB3OXZpbnhsZzZmMDMxbDdtY3RrcGgxMnJzNiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/m9mgo4J95j7hL98DBU/giphy.gif
+14:02:27 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdTVjY244YmZmMDB4c3RrcW52YXBtMnY0c3Rjbm9iYng2M3A0cDJwZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/VJySfk6435MWI/giphy.gif
+14:02:27 [INFO] gif: downloaded 4194304 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdTVjY244YmZmMDB4c3RrcW52YXBtMnY0c3Rjbm9iYng2M3A0cDJwZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/VJySfk6435MWI/giphy.gif
+14:02:27 [ERROR] gif: parse https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdTVjY244YmZmMDB4c3RrcW52YXBtMnY0c3Rjbm9iYng2M3A0cDJwZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/VJySfk6435MWI/giphy.gif failed (4194304 bytes): gif: not enough image data
+14:02:45 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlkcDA1b3BhdzlhYWNqbHN2MW1oeGRnNWo0bGRkbnV1NmpkcHNzdWNtcCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/Ph1q2UUVyZYcg/giphy.gif
+14:02:46 [INFO] gif: downloaded 899372 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlkcDA1b3BhdzlhYWNqbHN2MW1oeGRnNWo0bGRkbnV1NmpkcHNzdWNtcCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/Ph1q2UUVyZYcg/giphy.gif
+14:02:46 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlkcDA1b3BhdzlhYWNqbHN2MW1oeGRnNWo0bGRkbnV1NmpkcHNzdWNtcCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/Ph1q2UUVyZYcg/giphy.gif
+14:52:31 [INFO]  left the room
+08:55:11 [INFO] nito started
+08:55:11 [INFO] nito starting up...
+08:55:14 [INFO] connected to broker oregon.nito-broker.com as sam
+08:55:14 [INFO] logged in as sam @ https://oregon.nito-broker.com
+08:55:17 [INFO] manifest signature valid for room 9f22ec33-563d-45f1-8a02-5cb5f27187ce key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+08:55:17 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+08:55:17 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+08:55:17 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+08:55:17 [INFO] joined room 9f22ec33-563d-45f1-8a02-5cb5f27187ce
+08:55:17 [INFO] joined room: sam's room
+08:55:17 [INFO] gif: fetching https://media1.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdzJ1aDA2dzZqMGNrMzJ4enp3ZDRmc2pzOW94ajI5bm1idXVqaW55OSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xezTtnbZIcv7GJrRhg/giphy.gif
+08:55:17 [INFO] gif: fetching https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlkcDA1b3BhdzlhYWNqbHN2MW1oeGRnNWo0bGRkbnV1NmpkcHNzdWNtcCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/Ph1q2UUVyZYcg/giphy.gif
+08:55:17 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRicGNjbnBhbzdxbzY5NGV0dTEycDJja3FscTJ0Z2s4NWU5aGdyZiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/0VdPbe5bX3L4JUISEn/giphy.gif
+08:55:17 [INFO] gif: fetching https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbjZmdjE5bzAwendtdzB3OXZpbnhsZzZmMDMxbDdtY3RrcGgxMnJzNiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/m9mgo4J95j7hL98DBU/giphy.gif
+08:55:17 [INFO] gif: fetching https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdTVjY244YmZmMDB4c3RrcW52YXBtMnY0c3Rjbm9iYng2M3A0cDJwZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/VJySfk6435MWI/giphy.gif
+08:55:17 [INFO] gif: downloaded 31326 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbjZmdjE5bzAwendtdzB3OXZpbnhsZzZmMDMxbDdtY3RrcGgxMnJzNiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/m9mgo4J95j7hL98DBU/giphy.gif
+08:55:17 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkbjZmdjE5bzAwendtdzB3OXZpbnhsZzZmMDMxbDdtY3RrcGgxMnJzNiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/m9mgo4J95j7hL98DBU/giphy.gif
+08:55:18 [INFO] gif: downloaded 899372 bytes from https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlkcDA1b3BhdzlhYWNqbHN2MW1oeGRnNWo0bGRkbnV1NmpkcHNzdWNtcCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/Ph1q2UUVyZYcg/giphy.gif
+08:55:18 [INFO] gif: rendering https://media4.giphy.com/media/v1.Y2lkPWZkYWU3MDlkcDA1b3BhdzlhYWNqbHN2MW1oeGRnNWo0bGRkbnV1NmpkcHNzdWNtcCZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/Ph1q2UUVyZYcg/giphy.gif
+08:55:18 [INFO] gif: downloaded 1615359 bytes from https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRicGNjbnBhbzdxbzY5NGV0dTEycDJja3FscTJ0Z2s4NWU5aGdyZiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/0VdPbe5bX3L4JUISEn/giphy.gif
+08:55:18 [INFO] gif: rendering https://media2.giphy.com/media/v1.Y2lkPWZkYWU3MDlkYzRicGNjbnBhbzdxbzY5NGV0dTEycDJja3FscTJ0Z2s4NWU5aGdyZiZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/0VdPbe5bX3L4JUISEn/giphy.gif
+08:55:18 [INFO] gif: downloaded 3352302 bytes from https://media1.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdzJ1aDA2dzZqMGNrMzJ4enp3ZDRmc2pzOW94ajI5bm1idXVqaW55OSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xezTtnbZIcv7GJrRhg/giphy.gif
+08:55:18 [INFO] gif: rendering https://media1.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdzJ1aDA2dzZqMGNrMzJ4enp3ZDRmc2pzOW94ajI5bm1idXVqaW55OSZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/xezTtnbZIcv7GJrRhg/giphy.gif
+08:55:18 [INFO] gif: downloaded 4194304 bytes from https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdTVjY244YmZmMDB4c3RrcW52YXBtMnY0c3Rjbm9iYng2M3A0cDJwZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/VJySfk6435MWI/giphy.gif
+08:55:18 [ERROR] gif: parse https://media3.giphy.com/media/v1.Y2lkPWZkYWU3MDlkdTVjY244YmZmMDB4c3RrcW52YXBtMnY0c3Rjbm9iYng2M3A0cDJwZyZlcD12MV9naWZzX3RyYW5zbGF0ZSZjdD1n/VJySfk6435MWI/giphy.gif failed (4194304 bytes): gif: not enough image data
+08:55:28 [INFO] manifest signature valid for room 85459036-2702-4e4c-9883-79d9295808e5 key version 1 (rotated_by=sam device_id=96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225)
+08:55:28 [INFO] skipping introduction from unverified signer sam/96b5d9dfe71942b006c2b5170362832d3bb951ef5533649a577e7b65bb30b225
+08:55:28 [INFO] joined room 85459036-2702-4e4c-9883-79d9295808e5
+08:55:28 [INFO] joined room: test
