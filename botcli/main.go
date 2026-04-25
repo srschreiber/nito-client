@@ -43,10 +43,10 @@ func Main(configPath, sourceDir string) int {
 		}
 	}()
 	if cfg.HasSandbox() {
-		log.Printf("loaded %d commands from %s (source=%s, sandbox=%s)", len(cfg.Commands), configPath, sourceDir, cfg.Worker.Image)
+		log.Printf("loaded %d commands from %s (source=%s, all sandboxed)", len(cfg.Commands), configPath, sourceDir)
 	} else {
 		log.Printf("loaded %d commands from %s (source=%s)", len(cfg.Commands), configPath, sourceDir)
-		if !confirmUnsandboxed() {
+		if !confirmUnsandboxed(cfg.UnsandboxedCommands()) {
 			return 1
 		}
 	}
@@ -209,24 +209,27 @@ func sleepCtx(ctx context.Context, d time.Duration) error {
 	}
 }
 
-// confirmUnsandboxed prints a loud warning + a y/N prompt when bot.yml
-// has no worker.image. Returns true if the operator explicitly typed y
-// (or yes). No TTY means no human to ACK, so we refuse to start — this
-// is what blocks someone from silently shipping an unsandboxed bot to
-// prod under `docker run -d`.
-func confirmUnsandboxed() bool {
+// confirmUnsandboxed prints a loud warning + a y/N prompt when one or
+// more commands have no resolved image. Returns true if the operator
+// explicitly typed y (or yes). No TTY means no human to ACK, so we
+// refuse to start — this is what blocks someone from silently shipping
+// an unsandboxed bot to prod under `docker run -d`.
+func confirmUnsandboxed(unsandboxed []string) bool {
 	bar := strings.Repeat("━", 70)
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, bar)
-	fmt.Fprintln(os.Stderr, "  SECURITY WARNING: no worker.image configured")
+	fmt.Fprintln(os.Stderr, "  SECURITY WARNING: some commands have no image configured")
 	fmt.Fprintln(os.Stderr)
-	fmt.Fprintln(os.Stderr, "  Scripts will run in the bot's own process namespace. They")
-	fmt.Fprintln(os.Stderr, "  CAN read the bot's RSA private key, .env password, and")
+	fmt.Fprintf(os.Stderr, "  Unsandboxed commands: %s\n", strings.Join(unsandboxed, ", "))
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "  These scripts will run in the bot's own process namespace.")
+	fmt.Fprintln(os.Stderr, "  They CAN read the bot's RSA private key, .env password, and")
 	fmt.Fprintln(os.Stderr, "  bot-state.yml. A malicious or buggy script can impersonate")
 	fmt.Fprintln(os.Stderr, "  the bot to the broker.")
 	fmt.Fprintln(os.Stderr)
-	fmt.Fprintln(os.Stderr, "  Set worker.image in bot.yml to run every script inside a")
-	fmt.Fprintln(os.Stderr, "  locked-down worker container. See BOTS.md §Sandbox model.")
+	fmt.Fprintln(os.Stderr, "  Fix: set defaults.image in bot.yml (applies to all commands)")
+	fmt.Fprintln(os.Stderr, "  or per-command image: on each affected command. See BOTS.md")
+	fmt.Fprintln(os.Stderr, "  §Sandbox model.")
 	fmt.Fprintln(os.Stderr, bar)
 	fmt.Fprintln(os.Stderr)
 

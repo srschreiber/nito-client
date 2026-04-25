@@ -9,4 +9,5 @@
 # etc.). The bot re-runs this image each time you `make bot-example-image`.
 FROM alpine:3.20
 
+ENV MOTTO="Carpe diem"
 # RUN apk add --no-cache curl jq python3

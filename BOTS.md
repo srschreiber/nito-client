@@ -79,18 +79,16 @@ your own bot.
 ## Command config — `bot.yml`
 
 Every command the bot serves is a shell script declared in `bot.yml`.
-Defaults apply unless a command overrides them. The `worker:` block names
-the Docker image scripts run inside (see [Sandbox model](#sandbox-model)
-below for the security rationale).
+The `defaults:` block sets values that propagate to every command;
+individual commands can override `image`, `network`, `rate_limit_rps`,
+or `timeout_ms` to suit themselves.
 
 ```yaml
-worker:
-  image: my-nito-worker:latest   # built separately via `docker build`
-  network: true                  # allow scripts to reach the internet (default)
-
 defaults:
-  rate_limit_rps: 1       # 1 request per second per sender per command
-  timeout_ms: 1000        # script killed after 1s
+  image: my-nito-worker:latest   # default sandbox image for every command
+  network: false                 # all commands offline by default
+  rate_limit_rps: 1              # 1 request per second per sender per command
+  timeout_ms: 1000               # script killed after 1s
 
 commands:
   hello:
@@ -102,21 +100,30 @@ commands:
     usage: "!ask <message>"
     args_regex: "^(.+)$"
     arg_names: [message]
-    rate_limit_rps: 0.1   # 1 request per 10 s
-    timeout_ms: 30000     # AI calls can be slow
+    image: python:3.12-slim      # this command needs python; overrides default
+    network: true                # this command needs internet; overrides default
+    env: [OPENAI_API_KEY]        # routed ONLY into this command's container
+    rate_limit_rps: 0.1
+    timeout_ms: 30000
 ```
 
-### Worker block
+### Defaults block
 
-| Field             | Default | Description                                                                                                                |
-|-------------------|---------|----------------------------------------------------------------------------------------------------------------------------|
-| `worker.image`    | (none)  | Docker image to launch as the script-execution sandbox. If omitted, scripts run unsandboxed (loud warning at startup).     |
-| `worker.network`  | `true`  | Whether the worker container has internet access. Set `false` for offline-only scripts (smaller attack surface).           |
+| Field              | Default | Description                                                                                              |
+|--------------------|---------|----------------------------------------------------------------------------------------------------------|
+| `defaults.image`   | (none)  | Default Docker image for command containers. Commands without their own `image:` use this.              |
+| `defaults.network` | `false` | Default network policy. `true` lets the container reach the internet; `false` adds `--network none`.    |
+| `defaults.rate_limit_rps` | `1`  | Default per-sender rate limit. Per-command override available.                                          |
+| `defaults.timeout_ms`     | `5000` | Default hard-kill timeout. Per-command override available; capped at 60 000.                            |
 
 The image is **not** built by nito-bot — you build it once with
 `docker build -t <tag> .`, install whatever runtimes your scripts need
 (curl, jq, python, node, ...), and reference the tag here. nito-bot only
-launches a container from the existing image.
+launches containers from the existing image.
+
+If neither `defaults.image` nor a command's `image:` is set, that command
+runs unsandboxed (see [When no image is configured](#when-no-image-is-configured)
+below).
 
 Field reference (per command):
 
@@ -126,19 +133,29 @@ Field reference (per command):
 | `usage`          | no       | Human-readable syntax. Posted in-room when args don't match `args_regex`.                    |
 | `args_regex`     | no       | Go (RE2) pattern matched against everything after the command token. Capture groups are required if `arg_names` is set. |
 | `arg_names`      | no       | Per-capture-group names; zips with regex captures into `NITO_ARG_<UPPERCASE_NAME>` env vars. |
-| `rate_limit_rps` | no       | Requests/second per sender for this command. Inherits `defaults.rate_limit_rps` if absent.   |
-| `timeout_ms`     | no       | Hard kill after this many ms. Inherits `defaults.timeout_ms` if absent. Capped at 60 000.    |
+| `image`          | no       | Override `defaults.image` for just this command (e.g. `python:3.12-slim`).                   |
+| `network`        | no       | Override `defaults.network` for just this command. `true` = internet on, `false` = `--network none`. |
+| `rate_limit_rps` | no       | Override `defaults.rate_limit_rps`.                                                          |
+| `timeout_ms`     | no       | Override `defaults.timeout_ms`. Capped at 60 000.                                            |
+| `env`            | no       | Allow-list of host env-var names to pass through to **only this command's** worker container. Reserved names (`NITO_*`, `REQUESTER`, `PATH`) are refused at load time. Per-command only — there is no `defaults.env`. |
 
 ### Sandbox model
 
-When `worker.image` is set, the bot starts **one** long-lived container
-from that image at launch and exec's every command into it. Lifecycle:
+When `worker.image` is set, the bot starts **one container per command**
+(lazily, on first invocation of that command) from `worker.image` and
+`docker exec`'s into it. Per-command isolation is what makes the
+per-command `env:` allow-list actually safe — a host secret routed into
+`!ask`'s container cannot be read by `!hello`'s scripts because they
+run in different containers. Lifecycle (per command):
 
-1. `nito-bot` boots, validates the image exists locally
-   (`docker image inspect <image>`), and starts the worker with a
-   locked-down profile:
+1. `nito-bot` boots and validates the image exists locally
+   (`docker image inspect <image>`). It does NOT start any containers
+   yet — those come up lazily on first use of each command.
+2. First invocation of `!<cmd>` starts a dedicated worker for that
+   command with a locked-down profile and the command's `env:` allow-
+   list baked in:
    ```
-   docker run -d --rm --name nito-worker-<rand> \
+   docker run -d --rm --name nito-worker-<cmd>-<rand> \
      -v <abs-source-dir>:/scripts:ro \
      -w /scripts \
      --read-only \                                  # root fs RO; only /tmp writable
@@ -147,16 +164,18 @@ from that image at launch and exec's every command into it. Lifecycle:
      --security-opt no-new-privileges \             # setuid binaries can't escalate
      --pids-limit 256 \                             # forkbomb cap
      [--network none] \                             # if worker.network: false
+     [-e MOTTO=$MOTTO -e API_KEY=$API_KEY] \        # one -e per name in `env:`
      --entrypoint tail \
      <image> -f /dev/null
    ```
-2. Each command exec's into the running worker:
+3. Each subsequent invocation of that same command exec's into its
+   running worker (per-call NITO_* vars are passed via `-e`):
    ```
    docker exec -i -e NITO_COMMAND=... -e NITO_ARGS=... ... \
-     <worker> sh /scripts/<command-script>
+     <worker-for-cmd> sh /scripts/<command-script>
    ```
-3. On `nito-bot` shutdown (SIGINT / SIGTERM), the worker container is
-   removed (`docker rm -f`).
+4. On `nito-bot` shutdown (SIGINT / SIGTERM), every per-command worker
+   container is removed (`docker rm -f`).
 
 What the worker can see:
 
@@ -193,18 +212,22 @@ keys or impersonate the bot to the broker.
 If a script times out, the worker is force-recycled before the next
 command — a runaway script can't hold the worker hostage.
 
-### When `worker.image` is omitted
+### When no image is configured
 
-`nito-bot` prints a loud security warning and prompts the operator for an
-explicit `y/N` confirmation before starting. A non-`y` answer — or any
-detached run without a TTY (e.g. `docker run -d`, CI) — aborts:
+If any command resolves to no image (no `image:` on the command and no
+`defaults.image`), `nito-bot` prints a loud security warning naming the
+affected commands and prompts the operator for an explicit `y/N`
+confirmation before starting. A non-`y` answer — or any detached run
+without a TTY (e.g. `docker run -d`, CI) — aborts:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  SECURITY WARNING: no worker.image configured
+  SECURITY WARNING: some commands have no image configured
 
-  Scripts will run in the bot's own process namespace. They
-  CAN read the bot's RSA private key, .env password, and
+  Unsandboxed commands: hello, motto
+
+  These scripts will run in the bot's own process namespace.
+  They CAN read the bot's RSA private key, .env password, and
   bot-state.yml. ...
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -212,7 +235,7 @@ continue without sandbox? [y/N]:
 ```
 
 This hard-fails any accidental detached deployment that forgot to set
-`worker.image`, while still letting a developer opt in from an attached
+an image, while still letting a developer opt in from an attached
 terminal for quick local iteration.
 
 ### Path safety
@@ -431,8 +454,11 @@ ciphertext, and nothing else, exactly as it does for human chat.
   cannot impersonate the bot or steal the bot's identity.
 - **Env is sandboxed too.** Host vars (including `NITO_BOT_PASSWORD`) are
   never inherited; only the `NITO_*` and `REQUESTER` vars plus `PATH` are
-  passed. Script authors who shell out to other tools should still treat
-  `NITO_ARGS` as untrusted user input and quote/escape accordingly.
+  passed by default. Per-command secrets are opt-in via the `env:`
+  allow-list and routed only to that command's container — a key
+  configured for `!ask` cannot be read by `!hello`'s script. Script
+  authors who shell out to other tools should still treat `NITO_ARGS`
+  as untrusted user input and quote/escape accordingly.
 - One owner per bot, in v1. Multi-owner support would require maintaining
   the owner set by vouching, similar to room-member inclusion.
 - Rate limiting and the trust gate are defense-in-depth, not a primary

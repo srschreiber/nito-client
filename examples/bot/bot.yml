@@ -1,5 +1,5 @@
-# Example bot.yml — pairs with examples/bot/Dockerfile and
-# examples/bot/scripts/hello.sh. Build + run with:
+# Example bot.yml — pairs with examples/bot/Dockerfile and the scripts
+# under examples/bot/scripts/. Build + run with:
 #
 #   make run-bot-local
 #
@@ -7,11 +7,9 @@
 # the bootstrap flow (register → verify → invite → serve) against this
 # config. See BOTS.md for the full field reference.
 
-worker:
-  image: nito-example-worker:latest
-  network: false  # hello doesn't need outbound internet
-
 defaults:
+  image: nito-example-worker:latest   # all commands inherit this image
+  network: false                      # all commands offline by default
   rate_limit_rps: 1
   timeout_ms: 1000
 
@@ -19,3 +17,12 @@ commands:
   hello:
     script: hello.sh
     usage: "!hello"
+
+  echo:
+    script: echo.sh
+    usage: "!echo <message>"
+
+  motto:
+    script: motto.sh
+    usage: "!motto"
+    env: ["MOTTO"]                    # MOTTO from bot env routed only here

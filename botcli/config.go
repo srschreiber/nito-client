@@ -19,7 +19,6 @@ import (
 // load-time error so a bad config is caught at startup, not at first
 // invocation.
 type BotConfig struct {
-	Worker   BotWorker              `yaml:"worker"`
 	Defaults BotDefaults            `yaml:"defaults"`
 	Commands map[string]*BotCommand `yaml:"commands"`
 
@@ -27,37 +26,18 @@ type BotConfig struct {
 	// resolve under it; we store it on the config so individual command
 	// validators can check.
 	sourceDir string `yaml:"-"`
-	// runner is what BotConfig.Execute hands the script + env to. Set at
-	// LoadConfig time: dockerRunner if Worker.Image is configured, otherwise
-	// directRunner with a startup warning. Tests bypass this by constructing
-	// their own runner.
-	runner runner `yaml:"-"`
-}
-
-// BotWorker configures the sandbox container used to execute scripts. When
-// Image is set, every script runs inside a long-lived container started
-// from that image at bot launch — the container only sees the bind-mounted
-// (read-only) source dir, never the bot's keys or state. Operators are
-// strongly encouraged to set this for production.
-type BotWorker struct {
-	Image string `yaml:"image"`
-	// Network controls whether the worker container has internet access.
-	// Defaults to true so scripts can hit external APIs (ChatGPT, etc.).
-	// Set false for offline-only scripts (less attack surface).
-	Network *bool `yaml:"network,omitempty"`
-}
-
-// NetworkEnabled returns true iff the worker should have a network. Pointer
-// + nil-default lets `network: false` opt out without a magic sentinel.
-func (w BotWorker) NetworkEnabled() bool {
-	if w.Network == nil {
-		return true
-	}
-	return *w.Network
+	// dockerRunners are reused across commands that share an image, so
+	// startup validation (image inspect) only happens once per image and
+	// Close() can iterate every spawned worker. Keyed by image string.
+	dockerRunners map[string]*dockerRunner `yaml:"-"`
 }
 
 // BotDefaults are applied to every command that doesn't override them.
+// Image / Network here propagate down so a uniform-bot config doesn't
+// have to repeat them per command; any command can still override.
 type BotDefaults struct {
+	Image        string  `yaml:"image,omitempty"`
+	Network      *bool   `yaml:"network,omitempty"`
 	RateLimitRPS float64 `yaml:"rate_limit_rps"`
 	TimeoutMs    int     `yaml:"timeout_ms"`
 }
@@ -74,6 +54,28 @@ type BotCommand struct {
 	ArgNames     []string `yaml:"arg_names,omitempty"`
 	RateLimitRPS float64  `yaml:"rate_limit_rps,omitempty"`
 	TimeoutMs    int      `yaml:"timeout_ms,omitempty"`
+	// Image overrides worker.image for just this command. Useful when one
+	// command needs a different runtime (e.g. !ask wants python:3.12-slim
+	// for the openai SDK while !hello is fine on alpine). Falls back to
+	// worker.image if absent; if both are absent, the command runs
+	// unsandboxed (after the global y/N confirmation prompt).
+	Image string `yaml:"image,omitempty"`
+	// Env is the allow-list of host env-var names the bot passes through to
+	// this command's container at start. Each named var must be set in the
+	// bot's process env (otherwise the empty string is passed). Variables
+	// listed here are exposed ONLY to this command's container — every
+	// command gets its own worker, so a secret routed to `motto` is
+	// invisible to scripts under any other command. Use this for per-
+	// command secrets (API keys, signing keys) without exposing them to
+	// the whole script library.
+	Env []string `yaml:"env,omitempty"`
+	// Network controls whether this command's container can reach the
+	// internet. Defaults to false (--network none) so commands have to
+	// opt in to outbound traffic — `!hello` and `!motto` stay offline,
+	// `!ask` (which calls ChatGPT) can flip it on. Pointer + nil-default
+	// lets the validator distinguish "explicit false" from "absent" if
+	// we ever want to change the default.
+	Network *bool `yaml:"network,omitempty"`
 
 	// Resolved at load time.
 	name       string         `yaml:"-"`
@@ -82,6 +84,8 @@ type BotCommand struct {
 	regex      *regexp.Regexp `yaml:"-"`
 	timeout    time.Duration  `yaml:"-"`
 	window     time.Duration  `yaml:"-"` // 1 / RateLimitRPS, rounded up
+	image      string         `yaml:"-"` // resolved: cmd.Image || worker.Image; "" → unsandboxed
+	runner     runner         `yaml:"-"` // dockerRunner if image != "", else directRunner
 }
 
 const (
@@ -141,43 +145,69 @@ func LoadConfig(path, sourceDir string) (*BotConfig, error) {
 		}
 	}
 
-	// Pick a runner. With worker.image, scripts run inside a sandbox
-	// container that never sees the bot's keys or state. Without it,
-	// scripts run in the bot's own process namespace — same fs access
-	// as the bot itself, so a malicious script could read keys. Loud
-	// warning so operators don't ship that to production by accident.
-	if cfg.Worker.Image != "" {
-		r, err := newDockerRunner(cfg.Worker, cfg.sourceDir)
-		if err != nil {
-			return nil, fmt.Errorf("worker: %w", err)
+	// Pick a runner per command. Each command resolves to either a
+	// docker-sandboxed runner (image set, by command or default) or
+	// directRunner (no image — runs in the bot's own process namespace,
+	// triggers the y/N startup prompt). dockerRunner instances are
+	// shared across commands with the same image so we only image-
+	// inspect each one once.
+	cfg.dockerRunners = map[string]*dockerRunner{}
+	for _, cmd := range cfg.Commands {
+		if cmd.image == "" {
+			cmd.runner = directRunner{}
+			continue
 		}
-		cfg.runner = r
-	} else {
-		cfg.runner = directRunner{}
+		dr, ok := cfg.dockerRunners[cmd.image]
+		if !ok {
+			r, err := newDockerRunner(cmd.image, cfg.sourceDir)
+			if err != nil {
+				return nil, fmt.Errorf("worker for command %q: %w", cmd.name, err)
+			}
+			cfg.dockerRunners[cmd.image] = r
+			dr = r
+		}
+		cmd.runner = dr
 	}
 	return &cfg, nil
 }
 
-// HasSandbox reports whether the loaded config will execute scripts inside
-// an isolated worker container. Used by Main to surface a one-line warning
-// when the operator hasn't configured one.
+// HasSandbox reports whether every command in the loaded config will run
+// inside an isolated worker container. Returns false if any command has
+// no resolved image — Main uses that to decide whether to fire the
+// y/N "continue without sandbox" prompt.
 func (cfg *BotConfig) HasSandbox() bool {
-	_, ok := cfg.runner.(*dockerRunner)
-	return ok
-}
-
-// Close releases any runner-held resources (e.g. removes the worker
-// container). Safe to call on a nil-runner config.
-func (cfg *BotConfig) Close() error {
-	if c, ok := cfg.runner.(closer); ok {
-		return c.Close()
+	for _, cmd := range cfg.Commands {
+		if cmd.image == "" {
+			return false
+		}
 	}
-	return nil
+	return true
 }
 
-// closer is satisfied by runners that hold OS resources beyond the lifetime
-// of a single Execute call (the Docker worker container is the obvious one).
-type closer interface{ Close() error }
+// UnsandboxedCommands returns the names of commands that resolved to
+// no image — used in the startup warning so the operator knows exactly
+// which commands they're approving to run in-process.
+func (cfg *BotConfig) UnsandboxedCommands() []string {
+	var out []string
+	for name, cmd := range cfg.Commands {
+		if cmd.image == "" {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// Close removes every spawned worker container across every image. Safe
+// to call on configs with no docker runners.
+func (cfg *BotConfig) Close() error {
+	var firstErr error
+	for _, dr := range cfg.dockerRunners {
+		if err := dr.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
+}
 
 // validateCommand resolves and verifies a single command. Each check
 // fails closed: an invalid command name, a script path that escapes
@@ -254,7 +284,65 @@ func validateCommand(name string, cmd *BotCommand, cfg *BotConfig) error {
 		tms = maxTimeoutMs
 	}
 	cmd.timeout = time.Duration(tms) * time.Millisecond
+
+	for _, ev := range cmd.Env {
+		if !validEnvName(ev) {
+			return fmt.Errorf("invalid env var name %q in env list", ev)
+		}
+	}
+
+	// Resolve image: per-command override wins, otherwise inherit
+	// defaults.image. Empty after both is allowed — that command runs
+	// unsandboxed and the startup prompt covers consent.
+	cmd.image = cmd.Image
+	if cmd.image == "" {
+		cmd.image = cfg.Defaults.Image
+	}
+
+	// Resolve network: per-command Network wins; else defaults.Network;
+	// else off (safer baseline). Pointer-vs-default chain lets an
+	// explicit `network: false` on the command shadow a true default.
+	if cmd.Network == nil {
+		cmd.Network = cfg.Defaults.Network
+	}
 	return nil
+}
+
+// NetworkEnabled reports whether this command's worker container should
+// have a network. Default is OFF: the safer posture is "no internet
+// unless you ask for it", since most bot commands (greetings, lookups,
+// in-script-only logic) don't need it.
+func (c *BotCommand) NetworkEnabled() bool {
+	if c.Network == nil {
+		return false
+	}
+	return *c.Network
+}
+
+// validEnvName mirrors POSIX shell-variable naming: leading letter or
+// underscore, then alnum or underscore. We also reject the NITO_*
+// prefix because the bot reserves it for per-invocation vars
+// (NITO_COMMAND, NITO_ARGS, NITO_ARG_*) — letting an operator
+// configure NITO_ARGS as a passthrough would silently override the
+// per-call value and break the args parser.
+func validEnvName(name string) bool {
+	if name == "" {
+		return false
+	}
+	if strings.HasPrefix(name, "NITO_") || name == "REQUESTER" || name == "PATH" {
+		return false
+	}
+	for i, r := range name {
+		switch {
+		case r >= 'A' && r <= 'Z':
+		case r >= 'a' && r <= 'z':
+		case r == '_':
+		case r >= '0' && r <= '9' && i > 0:
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func validCommandName(name string) bool {

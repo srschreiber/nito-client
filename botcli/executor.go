@@ -59,7 +59,7 @@ func (cfg *BotConfig) Execute(ctx context.Context, cmdName, requester, args stri
 	runCtx, cancel := context.WithTimeout(ctx, cmd.timeout)
 	defer cancel()
 
-	out, err := cfg.runner.Run(runCtx, cmd, env)
+	out, err := cmd.runner.Run(runCtx, cmd, env)
 	if err != nil {
 		return "", err
 	}

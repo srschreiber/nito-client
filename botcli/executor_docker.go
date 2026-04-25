@@ -10,40 +10,48 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"time"
 )
 
-// dockerRunner sandboxes script execution inside a long-lived worker
-// container. Lifecycle:
+// dockerRunner sandboxes script execution inside per-command worker
+// containers. Each command in bot.yml gets its own long-lived container
+// started lazily on first invocation. This is what guarantees per-
+// command env-var isolation: a host secret routed into command A's
+// container via `env:` is invisible to command B's scripts because
+// command B is a separate container.
+//
+// Lifecycle per command:
 //
 //   - newDockerRunner: validates docker is reachable and the image
-//     exists locally; doesn't start the container yet.
-//   - ensure (lazy): on first Run (or after a worker crash), starts the
-//     worker with the source dir bind-mounted READ-ONLY at /scripts.
-//     The container's entrypoint is overridden to `tail -f /dev/null`
-//     so the user's image doesn't need a long-running default command.
-//   - Run: docker exec into the container with the script's env vars.
-//     One container, many execs — start-up cost amortised across a long
-//     bot lifetime.
-//   - Close: docker rm -f the container. Called from Main on shutdown.
+//     exists locally; doesn't start any containers yet.
+//   - ensure (lazy, per command): on first Run for that command (or
+//     after a crash), starts the worker with the source dir bind-
+//     mounted READ-ONLY at /scripts and the per-command env vars
+//     baked in. The container's entrypoint is overridden to
+//     `tail -f /dev/null` so the user's image doesn't need a long-
+//     running default command.
+//   - Run: docker exec into the command's container with per-call
+//     env vars (NITO_*, REQUESTER). One container per command, many
+//     execs per container — startup cost amortised.
+//   - Close: docker rm -f every container we spawned. Called from
+//     Main on shutdown.
 //
-// Crucially, /data (where the bot's keys live) is NOT mounted into the
-// container. Scripts can read /scripts (their own source) and that's it.
-// The bot's RSA private key, the .env password, and bot-state.yml are
-// invisible to the worker.
+// Crucially, /data (where the bot's keys live) is NEVER mounted into
+// any container. Scripts can read /scripts (their own source) and
+// that's it.
 type dockerRunner struct {
 	image     string
 	sourceDir string
-	network   bool
 
-	mu          sync.Mutex
-	containerID string
+	mu         sync.Mutex
+	containers map[string]string // command name -> container id
 }
 
-func newDockerRunner(w BotWorker, sourceDir string) (*dockerRunner, error) {
+func newDockerRunner(image, sourceDir string) (*dockerRunner, error) {
 	// Sanity checks at startup: fail loudly here rather than on the
 	// first user message.
 	if _, err := exec.LookPath("docker"); err != nil {
@@ -52,34 +60,41 @@ func newDockerRunner(w BotWorker, sourceDir string) (*dockerRunner, error) {
 	if err := exec.Command("docker", "version").Run(); err != nil {
 		return nil, fmt.Errorf("docker daemon unreachable — is Docker running? (`docker version` must succeed): %w", err)
 	}
-	if err := exec.Command("docker", "image", "inspect", w.Image).Run(); err != nil {
-		return nil, fmt.Errorf("worker image %q not present locally — `docker pull %s` (or `docker build -t %s .`) first", w.Image, w.Image, w.Image)
+	if err := exec.Command("docker", "image", "inspect", image).Run(); err != nil {
+		return nil, fmt.Errorf("worker image %q not present locally — `docker pull %s` (or `docker build -t %s .`) first", image, image, image)
 	}
 	return &dockerRunner{
-		image:     w.Image,
-		sourceDir: sourceDir,
-		network:   w.NetworkEnabled(),
+		image:      image,
+		sourceDir:  sourceDir,
+		containers: map[string]string{},
 	}, nil
 }
 
-// ensure starts the worker container if one isn't running. Idempotent
-// and re-entrant: a crashed/stopped worker is detected on the next call
-// and recreated. Returns the container id to docker exec into.
-func (d *dockerRunner) ensure(ctx context.Context) (string, error) {
+// ensure starts a worker container for cmd if one isn't running for it.
+// Idempotent and re-entrant: a crashed/stopped worker is detected on
+// the next call and recreated. Returns the container id to docker exec
+// into.
+//
+// The per-command env vars (cmd.Env) are baked in at start time via
+// `docker run -e NAME=<value-from-bot-process-env>`, so they live in
+// the container's environment for every exec'd process. Vars not set
+// in the bot's env are passed as the empty string (still scoped to
+// only this command).
+func (d *dockerRunner) ensure(ctx context.Context, cmd *BotCommand) (string, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if d.containerID != "" {
+	if cid, ok := d.containers[cmd.name]; ok {
 		// Cheap probe: `docker inspect -f {{.State.Running}}` returns
 		// "true\n" if the container is up. Anything else (gone, stopped,
 		// errored) → recreate.
-		out, err := exec.CommandContext(ctx, "docker", "inspect", "-f", "{{.State.Running}}", d.containerID).Output()
+		out, err := exec.CommandContext(ctx, "docker", "inspect", "-f", "{{.State.Running}}", cid).Output()
 		if err == nil && strings.TrimSpace(string(out)) == "true" {
-			return d.containerID, nil
+			return cid, nil
 		}
-		log.Printf("worker: container %s not running; recreating", d.containerID)
-		_ = exec.Command("docker", "rm", "-f", d.containerID).Run()
-		d.containerID = ""
+		log.Printf("worker[%s]: container %s not running; recreating", cmd.name, cid)
+		_ = exec.Command("docker", "rm", "-f", cid).Run()
+		delete(d.containers, cmd.name)
 	}
 
 	// Lockdown defaults (all hard-coded so an operator can't loosen them
@@ -91,7 +106,7 @@ func (d *dockerRunner) ensure(ctx context.Context) (string, error) {
 	//   --security-opt no-new-privileges  even if the script setuid's, it can't escalate
 	//   --pids-limit 256  kills runaway forkbombs
 	// /data is intentionally NOT mounted: bot keys + .env stay invisible.
-	name := "nito-worker-" + randHex(6)
+	name := "nito-worker-" + cmd.name + "-" + randHex(4)
 	args := []string{
 		"run", "-d", "--rm",
 		"--name", name,
@@ -104,8 +119,24 @@ func (d *dockerRunner) ensure(ctx context.Context) (string, error) {
 		"--pids-limit", "256",
 		"--entrypoint", "tail",
 	}
-	if !d.network {
+	if !cmd.NetworkEnabled() {
 		args = append(args, "--network", "none")
+	}
+	// Bake per-command env vars into the container's env at start
+	// time. These are scoped to ONLY this container — other commands'
+	// containers don't see them, so a stolen API key from a buggy
+	// `ask` script can never leak into the `motto` script.
+	//
+	// LookupEnv gate: passing `-e VAR=` (with empty value) overrides
+	// any ENV the worker image has baked in. We only want to override
+	// when the operator explicitly set the var; otherwise let the
+	// image's ENV provide the value. This is the principle of least
+	// surprise — `env: ["MOTTO"]` plus `ENV MOTTO=...` in the
+	// Dockerfile should leave MOTTO populated.
+	for _, ev := range cmd.Env {
+		if val, ok := os.LookupEnv(ev); ok {
+			args = append(args, "-e", ev+"="+val)
+		}
 	}
 	args = append(args, d.image, "-f", "/dev/null")
 
@@ -114,18 +145,18 @@ func (d *dockerRunner) ensure(ctx context.Context) (string, error) {
 	out, err := exec.CommandContext(startCtx, "docker", args...).Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok && len(exitErr.Stderr) > 0 {
-			return "", fmt.Errorf("start worker container: %v: %s", err, strings.TrimSpace(string(exitErr.Stderr)))
+			return "", fmt.Errorf("start worker container for %s: %v: %s", cmd.name, err, strings.TrimSpace(string(exitErr.Stderr)))
 		}
-		return "", fmt.Errorf("start worker container: %w", err)
+		return "", fmt.Errorf("start worker container for %s: %w", cmd.name, err)
 	}
 	cid := strings.TrimSpace(string(out))
-	d.containerID = cid
-	log.Printf("worker: started container %s from image %s (network=%v)", cid[:12], d.image, d.network)
+	d.containers[cmd.name] = cid
+	log.Printf("worker[%s]: started container %s from image %s (network=%v, env=%v)", cmd.name, cid[:12], d.image, cmd.NetworkEnabled(), cmd.Env)
 	return cid, nil
 }
 
 func (d *dockerRunner) Run(ctx context.Context, cmd *BotCommand, env []string) ([]byte, error) {
-	cid, err := d.ensure(ctx)
+	cid, err := d.ensure(ctx, cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -153,12 +184,12 @@ func (d *dockerRunner) Run(ctx context.Context, cmd *BotCommand, env []string) (
 	case <-ctx.Done():
 		killProcessGroup(c)
 		<-done
-		// Best-effort: kill the script inside the container too. `docker
-		// exec` will be killed when the bot's docker CLI process dies,
-		// but the script itself keeps running until docker reaps it.
-		// Easiest is to recycle the container — a runaway script can't
-		// hold the worker hostage past the next command.
-		go d.recycle(cid)
+		// Best-effort: `docker exec` will be killed when the bot's
+		// docker CLI process dies, but the script itself keeps running
+		// until docker reaps it. Recycle the container so a runaway
+		// script can't hold this command's worker hostage past the
+		// next call.
+		go d.recycle(cmd.name, cid)
 		return nil, fmt.Errorf("script %q timed out after %s", cmd.name, cmd.timeout)
 	case err := <-done:
 		if err != nil {
@@ -172,30 +203,39 @@ func (d *dockerRunner) Run(ctx context.Context, cmd *BotCommand, env []string) (
 	return stdout.Bytes(), nil
 }
 
-// recycle force-removes the worker container. Called after a script
-// timeout to prevent a runaway script from blocking subsequent commands;
-// the next ensure() will spin up a fresh container.
-func (d *dockerRunner) recycle(cid string) {
+// recycle force-removes a single command's worker container. Called
+// after a script timeout to prevent a runaway script from blocking
+// subsequent calls to that same command; the next ensure() will spin
+// up a fresh container.
+func (d *dockerRunner) recycle(cmdName, cid string) {
 	d.mu.Lock()
-	if d.containerID == cid {
-		d.containerID = ""
+	if d.containers[cmdName] == cid {
+		delete(d.containers, cmdName)
 	}
 	d.mu.Unlock()
 	_ = exec.Command("docker", "rm", "-f", cid).Run()
 }
 
+// Close removes every per-command worker container. Best-effort: any
+// individual remove failure is logged into the returned error but we
+// keep going so a single dead container doesn't leave the rest
+// dangling.
 func (d *dockerRunner) Close() error {
 	d.mu.Lock()
-	cid := d.containerID
-	d.containerID = ""
+	cids := make(map[string]string, len(d.containers))
+	for k, v := range d.containers {
+		cids[k] = v
+	}
+	d.containers = map[string]string{}
 	d.mu.Unlock()
-	if cid == "" {
-		return nil
+
+	var firstErr error
+	for cmdName, cid := range cids {
+		if err := exec.Command("docker", "rm", "-f", cid).Run(); err != nil && firstErr == nil {
+			firstErr = fmt.Errorf("docker rm worker[%s] %s: %w", cmdName, cid, err)
+		}
 	}
-	if err := exec.Command("docker", "rm", "-f", cid).Run(); err != nil {
-		return fmt.Errorf("docker rm worker %s: %w", cid, err)
-	}
-	return nil
+	return firstErr
 }
 
 func randHex(nBytes int) string {

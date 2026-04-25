@@ -187,6 +187,51 @@ commands:
 	}
 }
 
+// TestConfigEnvAllowList: per-command `env:` accepts plain shell var
+// names; reserved/NITO_ prefixes and bad characters are refused so the
+// per-call vars (NITO_ARGS, etc.) can't be silently shadowed.
+func TestConfigEnvAllowList(t *testing.T) {
+	dir := t.TempDir()
+	writeScript(t, dir, "x.sh")
+	cfgPath := writeConfig(t, dir, `
+commands:
+  ok:
+    script: x.sh
+    env: ["MOTTO", "API_KEY"]
+`)
+	cfg, err := LoadConfig(cfgPath, dir)
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	want := []string{"MOTTO", "API_KEY"}
+	got := cfg.Commands["ok"].Env
+	if len(got) != len(want) {
+		t.Fatalf("env list: got %v, want %v", got, want)
+	}
+	for i, n := range want {
+		if got[i] != n {
+			t.Fatalf("env[%d]: got %q, want %q", i, got[i], n)
+		}
+	}
+}
+
+func TestConfigEnvRejectsReserved(t *testing.T) {
+	dir := t.TempDir()
+	writeScript(t, dir, "x.sh")
+	for _, bad := range []string{"NITO_ARGS", "NITO_COMMAND", "REQUESTER", "PATH", "1BAD", "with-dash"} {
+		cfgPath := writeConfig(t, dir, `
+commands:
+  bad:
+    script: x.sh
+    env: ["`+bad+`"]
+`)
+		_, err := LoadConfig(cfgPath, dir)
+		if err == nil {
+			t.Fatalf("env=[%q] should have been refused", bad)
+		}
+	}
+}
+
 // TestConfigEmptyCommands: a config with no commands defined is a
 // loading-time error — running a bot that responds to nothing is almost
 // always a misconfiguration.
