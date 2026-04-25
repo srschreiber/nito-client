@@ -68,13 +68,20 @@ kick the tyres before installing), the Makefile has a source-run target
 that builds the example worker image and compiles nito-bot on the fly:
 
 ```bash
-make run-bot-local
+make run-bot
 ```
 
 This launches [`examples/bot/`](examples/bot/) — a minimal alpine worker
-image plus a `hello.sh` command. State lands in `./nito-bot-data/` so the
-example doesn't touch `~/.nito-bot`. Use it as the starting point for
-your own bot.
+image plus a few example commands. State lands in `./nito-bot-data/` so
+the example doesn't touch `~/.nito-bot`. Use it as the starting point
+for your own bot.
+
+For the production shape — bot binary itself wrapped in the distroless
+container — use `make run-bot-docker` (interactive bootstrap) or
+`make run-bot-docker-daemon` (detached, `--restart=unless-stopped`).
+Both use the *same* per-command worker-container model for script
+isolation; the only thing that differs is whether the bot process runs
+on the host or inside its own container.
 
 ## Command config — `bot.yml`
 

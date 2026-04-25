@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -56,6 +57,14 @@ func Main(configPath, sourceDir string) int {
 	// wins over the file, so a docker run -e flag still takes precedence.
 	if err := LoadEnvFile(); err != nil {
 		log.Printf("warn: could not read bot .env (%v); continuing", err)
+	}
+	// Also pull any `.env` sitting next to bot.yml — this is where
+	// operators stash per-command secrets (OPENAI_API_KEY, MOTTO, etc.)
+	// without having to export them on the host. Same precedence: any
+	// var already in the process env wins.
+	configEnv := filepath.Join(filepath.Dir(configPath), ".env")
+	if err := LoadEnvFileFrom(configEnv); err != nil {
+		log.Printf("warn: could not read %s (%v); continuing", configEnv, err)
 	}
 
 	// Root ctx tied to SIGINT/SIGTERM so the Docker stop signal tears down

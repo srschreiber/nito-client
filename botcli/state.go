@@ -152,6 +152,23 @@ func LoadEnvFile() error {
 	if err != nil {
 		return err
 	}
+	return loadEnvFromPath(p)
+}
+
+// LoadEnvFileFrom reads `KEY=VALUE` lines from path and exports them with
+// the same precedence rules as LoadEnvFile (process env wins). Used to
+// pull operator-defined per-command vars from a `.env` next to bot.yml,
+// in addition to the data-dir `.env` that holds NITO_BOT_PASSWORD.
+//
+// Both .env files end up merged into the bot's process env before any
+// command runs, and from there into per-command containers via the
+// `env:` allow-list — so an operator can put `OPENAI_API_KEY=...` next
+// to bot.yml instead of exporting it on the host.
+func LoadEnvFileFrom(path string) error {
+	return loadEnvFromPath(path)
+}
+
+func loadEnvFromPath(p string) error {
 	f, err := os.Open(p)
 	if err != nil {
 		if os.IsNotExist(err) {

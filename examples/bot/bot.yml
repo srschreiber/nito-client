@@ -25,4 +25,16 @@ commands:
   motto:
     script: motto.sh
     usage: "!motto"
-    env: ["MOTTO"]                    # MOTTO from bot env routed only here
+    env: ["MOTTO"]
+
+  help:
+    script: help.sh
+    usage: "!help"
+
+  ask:
+    script: ask.sh
+    usage: "!ask <question>"
+    env: ["GEMINI_API_KEY"]
+    network: true
+    timeout_ms: 30000          # LLM round-trip can be slow; bump from 1s default
+    rate_limit_rps: 0.2        # 1 question per 5s per sender — protects API quota

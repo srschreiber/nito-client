@@ -10,4 +10,7 @@
 FROM alpine:3.20
 
 ENV MOTTO="Carpe diem"
-# RUN apk add --no-cache curl jq python3
+
+# curl + jq are what the example !ask script uses to talk to Gemini.
+# Trim or extend this list to match what your scripts call.
+RUN apk add --no-cache curl jq
