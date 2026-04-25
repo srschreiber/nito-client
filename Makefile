@@ -3,37 +3,41 @@ run-ui:
 	cd ui && go build -o nito . && ./nito
 
 # Bot (headless nito user). See BOTS.md for the full setup story.
-#   make bot-image      — build the distroless container image
-#   make run-bot        — interactive first-run (wizard + verify prompt)
-#   make run-bot-daemon — detached always-on run, after bootstrap
+#
+# Two ways to run the bot:
+#   make run-bot                — `go run` from source against examples/bot/
+#                                 (everyday dev loop; what most contributors want)
+#   make run-bot-docker         — wrap the bot itself in the distroless image
+#                                 from botcli/Dockerfile and run interactively
+#                                 (production shape; first-run wizard + verify)
+#   make run-bot-docker-daemon  — same as above, detached, --restart=unless-stopped
+#
+# Both modes use Docker for the *script* sandbox (per-command worker
+# containers); they differ in whether the bot binary itself runs on the
+# host or inside a distroless container.
 bot-image:
 	@echo "Building nito-bot container image..."
 	./scripts/generate-bot-image.sh
 
-run-bot: bot-image
-	@echo "Running nito-bot (interactive)..."
-	./scripts/run-bot.sh
-
-run-bot-daemon: bot-image
-	@echo "Running nito-bot (detached)..."
-	DETACH=1 ./scripts/run-bot.sh
-
-# Example bot (examples/bot/): minimal alpine worker + a hello.sh command.
-# Useful for iterating on nito-bot from a local checkout without having to
-# install the released binary or rebuild the distroless image on every edit.
-#   make bot-example-image — build nito-example-worker:latest from examples/bot/Dockerfile
-#   make run-bot-local     — build worker image + go run ./cmd/nito-bot against examples/bot/
 bot-example-image:
 	@echo "Building example nito-bot worker image..."
 	docker build -t nito-example-worker:latest examples/bot/
 
-run-bot-local: bot-example-image
+run-bot: bot-example-image
 	@echo "Running nito-bot from source against examples/bot/..."
 	@# HOME is pinned to the data dir so RSA keys (engine/keys uses os.UserHomeDir)
 	@# land next to bot-state.yml instead of in ~/.nito/. Matches the layout the
-	@# distroless container uses, so a directory created by `make run-bot` is
-	@# drop-in compatible with `make run-bot-local` and vice versa.
+	@# distroless container uses, so a directory populated by `run-bot-docker`
+	@# is drop-in compatible with `run-bot` and vice versa.
 	NITO_BOT_DATA=$$PWD/nito-bot-data HOME=$$PWD/nito-bot-data go run ./cmd/nito-bot -f examples/bot/bot.yml -s examples/bot/scripts
+
+run-bot-docker: bot-image
+	@echo "Running nito-bot wrapped in distroless image (interactive)..."
+	./scripts/run-bot.sh
+
+run-bot-docker-daemon: bot-image
+	@echo "Running nito-bot wrapped in distroless image (detached)..."
+	DETACH=1 ./scripts/run-bot.sh
 
 tag-and-push:
 	@current=$$(cat engine/tag.txt | tr -d '\n'); \
