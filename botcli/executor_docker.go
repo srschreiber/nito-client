@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -46,12 +47,13 @@ import (
 type dockerRunner struct {
 	image     string
 	sourceDir string
+	dataDir   string // bot's host data dir; used to derive per-command writable state dirs
 
 	mu         sync.Mutex
 	containers map[string]string // command name -> container id
 }
 
-func newDockerRunner(image, sourceDir string) (*dockerRunner, error) {
+func newDockerRunner(image, sourceDir, dataDir string) (*dockerRunner, error) {
 	// Sanity checks at startup: fail loudly here rather than on the
 	// first user message.
 	if _, err := exec.LookPath("docker"); err != nil {
@@ -66,6 +68,7 @@ func newDockerRunner(image, sourceDir string) (*dockerRunner, error) {
 	return &dockerRunner{
 		image:      image,
 		sourceDir:  sourceDir,
+		dataDir:    dataDir,
 		containers: map[string]string{},
 	}, nil
 }
@@ -97,22 +100,35 @@ func (d *dockerRunner) ensure(ctx context.Context, cmd *BotCommand) (string, err
 		delete(d.containers, cmd.name)
 	}
 
+	// Per-command state dir — bind-mounted at /state, writable, and
+	// persists across container recycles (timeouts, bot restarts).
+	// Each command gets its OWN dir so !ask can keep conversation
+	// history without !hello being able to read it. The bot's keys
+	// and .env live elsewhere under dataDir and are NOT mounted.
+	stateDir := filepath.Join(d.dataDir, "worker-state", cmd.name)
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		return "", fmt.Errorf("create state dir for %s: %w", cmd.name, err)
+	}
+
 	// Lockdown defaults (all hard-coded so an operator can't loosen them
 	// without editing source):
-	//   --read-only       root fs is RO; only /tmp is writable
-	//   --tmpfs /tmp:...  64M scratch space, mode 1777 like a real /tmp
+	//   --tmpfs /tmp:...  64M ephemeral scratch (wiped on container rm)
 	//   -v ...:/scripts:ro  source dir is bind-mounted read-only
+	//   -v ...:/state       per-command writable persistent state
 	//   --cap-drop ALL    no Linux capabilities — scripts run unprivileged
 	//   --security-opt no-new-privileges  even if the script setuid's, it can't escalate
 	//   --pids-limit 256  kills runaway forkbombs
-	// /data is intentionally NOT mounted: bot keys + .env stay invisible.
+	// Root fs is writable (no --read-only) — scripts may need to drop
+	// files anywhere; isolation comes from the container, not from a
+	// read-only root. /data is intentionally NOT mounted: the rest of
+	// the bot's keys + state stay invisible.
 	name := "nito-worker-" + cmd.name + "-" + randHex(4)
 	args := []string{
 		"run", "-d", "--rm",
 		"--name", name,
 		"-v", d.sourceDir + ":/scripts:ro",
+		"-v", stateDir + ":/state",
 		"-w", "/scripts",
-		"--read-only",
 		"--tmpfs", "/tmp:rw,nosuid,nodev,size=64m,mode=1777",
 		"--cap-drop", "ALL",
 		"--security-opt", "no-new-privileges",

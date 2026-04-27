@@ -151,6 +151,15 @@ func LoadConfig(path, sourceDir string) (*BotConfig, error) {
 	// triggers the y/N startup prompt). dockerRunner instances are
 	// shared across commands with the same image so we only image-
 	// inspect each one once.
+	// Per-command state dirs live under <bot data dir>/worker-state/<cmd>/
+	// and get bind-mounted into the worker at /state. Pre-resolve the data
+	// dir here (rather than inside dockerRunner) so a bad NITO_BOT_DATA
+	// fails at LoadConfig instead of on first command invocation.
+	dataDir, err := DataDir()
+	if err != nil {
+		return nil, fmt.Errorf("resolve bot data dir: %w", err)
+	}
+
 	cfg.dockerRunners = map[string]*dockerRunner{}
 	for _, cmd := range cfg.Commands {
 		if cmd.image == "" {
@@ -159,7 +168,7 @@ func LoadConfig(path, sourceDir string) (*BotConfig, error) {
 		}
 		dr, ok := cfg.dockerRunners[cmd.image]
 		if !ok {
-			r, err := newDockerRunner(cmd.image, cfg.sourceDir)
+			r, err := newDockerRunner(cmd.image, cfg.sourceDir, dataDir)
 			if err != nil {
 				return nil, fmt.Errorf("worker for command %q: %w", cmd.name, err)
 			}
